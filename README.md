@@ -9,9 +9,7 @@ digitial transport controller for vintage Ampexx MM-1200 professional studio
 recorders. This source code was built with the following Texas Instruments
 tool chain:
 
-Code Composer Studio v6.2.0.00050 
-ARM Compiler Tools v16.9.1 
-TI-RTOS v2.16.0.08 
+Code Composer Studio v6.2.0.0005, ARM Compiler Tools v16.9.1, TI-RTOS v2.16.0.08 
 
 
 ### Known Issues

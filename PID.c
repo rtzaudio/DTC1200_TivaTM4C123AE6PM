@@ -1,13 +1,13 @@
-/*
- * pid.c : created 7/30/99 10:50:41 AM
- *  
- * Copyright (C) 1999-2000, RTZ Audio. ALL RIGHTS RESERVED.
- *  
- * THIS MATERIAL CONTAINS  CONFIDENTIAL, PROPRIETARY AND TRADE
- * SECRET INFORMATION OF RTZ AUDIO. NO DISCLOSURE OR USE OF ANY
- * PORTIONS OF THIS MATERIAL MAY BE MADE WITHOUT THE EXPRESS
- * WRITTEN CONSENT OF RTZ AUDIO.
- */
+/* ============================================================================
+ *
+ * DTC-1200 Digital Transport Controller for Ampex MM-1200 Tape Machines
+ *
+ * Copyright (C) 2016, RTZ Professional Audio, LLC
+ * All Rights Reserved
+ *
+ * RTZ is registered trademark of RTZ Professional Audio, LLC
+ *
+ * ============================================================================ */
 
 #include <limits.h>
 #include <math.h>

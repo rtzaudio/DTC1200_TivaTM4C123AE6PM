@@ -76,9 +76,7 @@
 #include "MotorDAC.h"
 
 /* Calculate the tension value from the ADC reading */
-//#define TENSION(g)	((1023 - (g_servo.adc[0] & 0x3FF)) >> g)
-
-#define TENSION(adc, g)		((1023 - (adc & 0x3FF)) >> 1)
+#define TENSION(adc, g)		((0xFFF - (adc & 0xFFF)) >> g)
 
 #define OFFSET_SCALE		500
 #define OFFSET_CALC_PERIOD	500
@@ -137,7 +135,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 		long sdir = QEIDirectionGet(QEI_BASE_SUPPLY);
 		long tdir = QEIDirectionGet(QEI_BASE_TAKEUP);
 
-		if ((sdir == tdir) && (g_servo.velocity > 50))
+		if ((sdir == tdir) && (g_servo.velocity > g_sys.velocity_detect))
 			g_servo.direction = sdir;
 
 		/* Read all ADC values which includes the tape tension sensor
@@ -150,7 +148,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 		Board_readADC(g_servo.adc);
 
 		/* calculate the tension sensor value */
-		g_servo.tsense = TENSION(g_servo.adc[0], 1);
+		g_servo.tsense = TENSION(g_servo.adc[0], 2);
 
 		/***********************************************************
 		 * BEGIN CALCULATIONS FROM DATA SAMPLE

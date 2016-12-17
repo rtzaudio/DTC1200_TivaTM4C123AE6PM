@@ -467,7 +467,7 @@ void Terminal_initialize(void)
 
 	uartParams.readMode       = UART_MODE_BLOCKING;
 	uartParams.writeMode      = UART_MODE_BLOCKING;
-	uartParams.readTimeout    = 1000;					// 1 second read timeout
+	uartParams.readTimeout    = 500;					// 0.5 second read timeout
 	uartParams.writeTimeout   = BIOS_WAIT_FOREVER;
 	uartParams.readCallback   = NULL;
 	uartParams.writeCallback  = NULL;

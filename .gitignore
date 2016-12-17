@@ -5,6 +5,10 @@
 *.obj
 *.elf
 
+# Directories
+[Dd]ebug*/
+[Rr]elease*/
+
 # Precompiled Headers
 *.gch
 *.pch

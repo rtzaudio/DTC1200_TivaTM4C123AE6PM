@@ -234,7 +234,10 @@ static MENUITEM general_items[] = {
 { 6, 1, "2", "Torque Null Offset Gain   ", MI_NRANGE, 0, 5, NULL, set_mdata,
 		DT_LONG, &g_sys.null_offset_gain },
 
-{ 7, 1, "3", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
+{ 7, 1, "3", "Tension Sensor Gain       ", MI_NRANGE, 0, 5, NULL, set_mdata,
+				DT_LONG, &g_sys.tension_sensor_gain },
+
+{ 8, 1, "4", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
 				DT_LONG, &g_sys.record_pulse_length },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };

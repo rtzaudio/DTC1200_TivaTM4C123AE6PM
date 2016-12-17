@@ -83,7 +83,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        0        	/* firmware revision */
+#define FIRMWARE_REV        1        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -199,7 +199,7 @@ typedef struct _SYSPARMS
     long pinch_settle_time;		   		/* delay before engaging play mode   */
     long lifter_settle_time;		  	/* tape lifer settling time in ms    */
     long record_pulse_length;			/* record pulse length time          */
-    long reserved2;
+    long tension_sensor_gain;			/* tension sensor gain divisor       */
 
     /*** STOP SERVO PARAMETERS ***/
 

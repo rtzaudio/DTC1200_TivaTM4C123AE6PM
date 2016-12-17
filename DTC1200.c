@@ -429,6 +429,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->brakes_stop_play         = 1;        /* brakes stop from play mode if 1  */
     p->engage_pinch_roller		= 1;		/* engage pinch roller during play  */
     p->record_pulse_length      = REC_PULSE_DURATION;
+    p->tension_sensor_gain      = 2;
 
 #if (QE_TIMER_PERIOD > 500000)
     p->velocity_detect          = 100;      /* 100 pulses or less = no velocity */
@@ -479,7 +480,6 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_hi_boost_start      = DAC_MAX;
     p->play_hi_boost_end        = 220;
 
-    p->reserved2                = 0;        /* reserved */
     p->reserved3                = 0;        /* reserved */
     p->reserved4                = 0;        /* reserved */
 }
@@ -520,11 +520,17 @@ int SysParamsRead(SYSPARMS* sp)
     if (sp->magic != MAGIC)
     {
         System_printf("ERROR Reading System Parameters - Using Defaults...\n");
+        System_flush();
     	InitSysDefaults(sp);
     	return -1;
     }
 
-    System_printf("System Parameters loaded...\n");
+    if (sp->version != MAKEREV(FIRMWARE_VER, FIRMWARE_REV))
+    {
+    	System_printf("WARNING New Firmware Version - Using Defaults...\n");
+        System_flush();
+    	InitSysDefaults(sp);
+    }
 
 	return 0;
 }

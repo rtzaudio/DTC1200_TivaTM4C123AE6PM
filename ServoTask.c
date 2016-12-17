@@ -148,7 +148,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 		Board_readADC(g_servo.adc);
 
 		/* calculate the tension sensor value */
-		g_servo.tsense = TENSION(g_servo.adc[0], 2);
+		g_servo.tsense = TENSION(g_servo.adc[0], g_sys.tension_sensor_gain);
 
 		/***********************************************************
 		 * BEGIN CALCULATIONS FROM DATA SAMPLE
@@ -427,7 +427,7 @@ static void SvcServoPlay(void)
 
    		dac_t = (g_servo.play_boost_start << 1) / ((g_servo.velocity_takeup / 8) + 1);
 
-   		dac_s = (g_servo.play_supply_tension + g_servo.offset_supply) + TENSION(g_servo.adc[0], 0);
+   		dac_s = (g_servo.play_supply_tension + g_servo.offset_supply) + TENSION(g_servo.adc[0], 1);
 
    	    /* Boost status LED on */
    		g_lamp_mask |= L_STAT3;

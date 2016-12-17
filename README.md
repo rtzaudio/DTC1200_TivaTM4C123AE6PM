@@ -39,6 +39,7 @@ send us a pull request.
 ## License
 
 Copyright (C) 2016, RTZ Professional Audio, LLC
+
 All Rights Reserved
 
 RTZ is registered trademark of RTZ Professional Audio, LLC

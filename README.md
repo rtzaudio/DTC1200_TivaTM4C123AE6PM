@@ -5,11 +5,15 @@ By [Bob Starr](http://www.rtzaudio.com).
 
 ## Description
 The **DTC-1200** project contains the source code for the RTZ Audio DTC-1200 
-digitial transport controller for vintage Ampexx MM-1200 professional studio
+digitial transport controller for vintage Ampex MM-1200 professional studio
 recorders. This source code was built with the following Texas Instruments
 tool chain:
 
 Code Composer Studio v6.2.0.0005, ARM Compiler Tools v16.9.1, TI-RTOS v2.16.0.08 
+
+This code performs real-time servo loop control of the transport reel motors
+while providing constant tension control under all modes of operation. In 
+addition, this code handles all transport commands and transport mode changes.
 
 
 ### Known Issues

@@ -102,18 +102,18 @@ Int main()
 
     /* Call board init functions */
     Board_initGeneral();
-	Board_initGPIO();
-	Board_initUART();
-	Board_initI2C();
-	Board_initSPI();
-	Board_initQEI();
-	Board_initADC();
+    Board_initGPIO();
+    Board_initUART();
+    Board_initI2C();
+    Board_initSPI();
+    Board_initQEI();
+    Board_initADC();
 
     /*
      * Create a mailbox message queues for the transport control/command tasks
      */
 
-	/* Create transport controller task mailbox */
+    /* Create transport controller task mailbox */
 
     Error_init(&eb);
     Mailbox_Params_init(&mboxParams);
@@ -164,35 +164,35 @@ Int main()
 
 void InitPeripherals(void)
 {
-	I2C_Params i2cParams;
+    I2C_Params i2cParams;
 
-	/*
-	 * Open the I2C ports for peripherals we need to communicate with.
-	 */
+    /*
+     * Open the I2C ports for peripherals we need to communicate with.
+     */
 
-	/* Open I2C0 for U14 CAT24C08 EPROM */
+    /* Open I2C0 for U14 CAT24C08 EPROM */
 
-	I2C_Params_init(&i2cParams);
-	i2cParams.transferMode	= I2C_MODE_BLOCKING;
-	i2cParams.bitRate       = I2C_100kHz;
-	g_handleI2C0 = I2C_open(Board_I2C0, &i2cParams);
+    I2C_Params_init(&i2cParams);
+    i2cParams.transferMode  = I2C_MODE_BLOCKING;
+    i2cParams.bitRate       = I2C_100kHz;
+    g_handleI2C0 = I2C_open(Board_I2C0, &i2cParams);
 
-	/* Open I2C1 for U9 AT24CS01 EPROM/Serial# */
+    /* Open I2C1 for U9 AT24CS01 EPROM/Serial# */
 
-	I2C_Params_init(&i2cParams);
-	i2cParams.transferMode	= I2C_MODE_BLOCKING;
-	i2cParams.bitRate       = I2C_100kHz;
-	g_handleI2C1 = I2C_open(Board_I2C1, &i2cParams);
+    I2C_Params_init(&i2cParams);
+    i2cParams.transferMode  = I2C_MODE_BLOCKING;
+    i2cParams.bitRate       = I2C_100kHz;
+    g_handleI2C1 = I2C_open(Board_I2C1, &i2cParams);
 
-	/*
+    /*
      * Open the SPI ports for peripherals we need to communicate with.
      */
 
-	/* Initialize the SPI-0 to the reel motor DAC's */
-	MotorDAC_initialize();
+    /* Initialize the SPI-0 to the reel motor DAC's */
+    MotorDAC_initialize();
 
     /* Initialize the SPI-1 & SPI-2 to the I/O expanders */
-	IOExpander_initialize();
+    IOExpander_initialize();
 }
 
 //*****************************************************************************
@@ -201,22 +201,22 @@ void InitPeripherals(void)
 
 Void MainPollTask(UArg a0, UArg a1)
 {
-	uint8_t count = 0;
+    uint8_t count = 0;
     uint8_t bits = 0x00;
     uint8_t tran_prev = 0xff;
     uint8_t mode_prev = 0xff;
     uint8_t tout_prev = 0xff;
-	uint8_t debounce_tran = 0;
-	uint8_t debounce_mode = 0;
-	uint8_t debounce_tout = 0;
+    uint8_t debounce_tran = 0;
+    uint8_t debounce_mode = 0;
+    uint8_t debounce_tout = 0;
     Error_Block eb;
     Task_Params taskParams;
 
     System_printf("MainPollTask()\n");
 
-	/* Initialize the default servo and program data values */
+    /* Initialize the default servo and program data values */
 
-	memset(&g_servo, 0, sizeof(SERVODATA));
+    memset(&g_servo, 0, sizeof(SERVODATA));
     memset(&g_sys, 0, sizeof(SYSPARMS));
 
     InitSysDefaults(&g_sys);
@@ -224,29 +224,29 @@ Void MainPollTask(UArg a0, UArg a1)
     InitPeripherals();
 
     /* Read the initial mode switch states */
-	GetModeSwitches(&mode_prev);
+    GetModeSwitches(&mode_prev);
     g_high_speed_flag = (mode_prev & M_HISPEED) ? 1 : 0;
-	g_switch_option   = mode_prev & M_DIPSW_MASK;
+    g_switch_option   = mode_prev & M_DIPSW_MASK;
 
     /* Read the initial transport switch states */
-	GetTransportSwitches(&tran_prev);
-   	g_tape_out_flag   = (tran_prev & S_TAPEOUT) ? 1 : 0;
+    GetTransportSwitches(&tran_prev);
+    g_tape_out_flag   = (tran_prev & S_TAPEOUT) ? 1 : 0;
 
     /* Read the system config parameters from storage */
     if (SysParamsRead(&g_sys) != 0) {
-    	/* blink ALL lamps on error */
-    	LampBlinkError();
+        /* blink ALL lamps on error */
+        LampBlinkError();
     } else {
-		/* blink each lamp individually on success */
-    	LampBlinkChase();
+        /* blink each lamp individually on success */
+        LampBlinkChase();
     }
 
     /* Initialize servo loop controller data */
     g_servo.offset_sample_cnt = 0;
     g_servo.offset_null_sum   = 0;
-	g_servo.tsense_sum        = 0;
-	g_servo.tsense_sample_cnt = 0;
-	g_servo.brake_torque      = 0;
+    g_servo.tsense_sum        = 0;
+    g_servo.tsense_sample_cnt = 0;
+    g_servo.brake_torque      = 0;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
 
@@ -312,14 +312,14 @@ Void MainPollTask(UArg a0, UArg a1)
 
     g_lamp_blink_mask = L_STAT1;
 
-	for(;;)
-	{
-		/* Blink heartbeat LED1 on the transport interface card */
-		if (++count >= 50)
-		{
-			count = 0;
-			g_lamp_mask ^= g_lamp_blink_mask;
-		}
+    for(;;)
+    {
+        /* Blink heartbeat LED1 on the transport interface card */
+        if (++count >= 50)
+        {
+            count = 0;
+            g_lamp_mask ^= g_lamp_blink_mask;
+        }
 
         /* Set any new led/lamp state. We only update the LED output
          * port if a new lamp state was selected.
@@ -334,50 +334,50 @@ Void MainPollTask(UArg a0, UArg a1)
             g_lamp_mask_prev = g_lamp_mask;
         }
 
-		/*
-		 * Poll the transport control buttons to read the
-		 * current transport button switch states
-		 */
+        /*
+         * Poll the transport control buttons to read the
+         * current transport button switch states
+         */
 
-   		GetTransportSwitches(&bits);
+        GetTransportSwitches(&bits);
 
-   		/* First process the tape out arm switch */
-   		if ((bits & S_TAPEOUT) != tout_prev)
-   		{
-   			if (++debounce_tout >= 2)
-   			{
-   				debounce_tout = 0;
+        /* First process the tape out arm switch */
+        if ((bits & S_TAPEOUT) != tout_prev)
+        {
+            if (++debounce_tout >= 2)
+            {
+                debounce_tout = 0;
 
-   				/* Save the new state */
-            	tout_prev = (bits & S_TAPEOUT);
+                /* Save the new state */
+                tout_prev = (bits & S_TAPEOUT);
 
-   				/* Set the tape out arm state */
-            	g_tape_out_flag = (bits & S_TAPEOUT) ? 1 : 0;
+                /* Set the tape out arm state */
+                g_tape_out_flag = (bits & S_TAPEOUT) ? 1 : 0;
 
-            	if (!(bits & S_TAPEOUT))
-            		bits |= S_TAPEIN;
+                if (!(bits & S_TAPEOUT))
+                    bits |= S_TAPEIN;
 
-            	/* Send the button press to transport ctrl/cmd task */
-            	Mailbox_post(g_mailboxCommander, &bits, 10);
-   			}
-   		}
+                /* Send the button press to transport ctrl/cmd task */
+                Mailbox_post(g_mailboxCommander, &bits, 10);
+            }
+        }
 
-   		/* Next process the tape transport buttons */
-   		bits &= S_BUTTON_MASK;
+        /* Next process the tape transport buttons */
+        bits &= S_BUTTON_MASK;
 
-   		if (bits != tran_prev)
-   		{
-   			if (++debounce_tran >= 2)
-   			{
-   				debounce_tran = 0;
+        if (bits != tran_prev)
+        {
+            if (++debounce_tran >= 2)
+            {
+                debounce_tran = 0;
 
-   				/* Debounced a button press, send it to transport task */
-   				tran_prev = bits;
+                /* Debounced a button press, send it to transport task */
+                tran_prev = bits;
 
-            	/* Send the button press to transport ctrl/cmd task */
-            	Mailbox_post(g_mailboxCommander, &bits, 10);
-    		}
-    	}
+                /* Send the button press to transport ctrl/cmd task */
+                Mailbox_post(g_mailboxCommander, &bits, 10);
+            }
+        }
 
         /*
          * Poll the mode config switches to read the DIP switches on
@@ -388,24 +388,24 @@ Void MainPollTask(UArg a0, UArg a1)
 
         if (bits != mode_prev)
         {
-   			if (++debounce_mode >= 2)
-   			{
-   				debounce_mode = 0;
+            if (++debounce_mode >= 2)
+            {
+                debounce_mode = 0;
 
-   				/* We debounced a switch change, reset and process it */
-   				mode_prev = bits;
+                /* We debounced a switch change, reset and process it */
+                mode_prev = bits;
 
-            	/* Save the transport speed select setting */
-				g_high_speed_flag = (bits & M_HISPEED) ? 1 : 0;
+                /* Save the transport speed select setting */
+                g_high_speed_flag = (bits & M_HISPEED) ? 1 : 0;
 
-				/* Save the updated DIP switch settings */
-				g_switch_option = bits & M_DIPSW_MASK;
-   			}
+                /* Save the updated DIP switch settings */
+                g_switch_option = bits & M_DIPSW_MASK;
+            }
         }
 
         /* delay for 10ms and loop */
         Task_sleep(10);
-	}
+    }
 }
 
 //*****************************************************************************
@@ -416,64 +416,64 @@ void InitSysDefaults(SYSPARMS* p)
 {
     /* default servo parameters */
     p->version                  = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
-    p->debug                    = 0;    	/* debug mode 0=off 				*/
+    p->debug                    = 0;        /* debug mode 0=off                 */
 #if (QE_TIMER_PERIOD > 500000)
-    p->shuttle_slow_velocity    = 0;	    /* reduce velocity to speed         */
-    p->shuttle_slow_offset      = 110;	    /* offset to reduce velocity at     */
+    p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
+    p->shuttle_slow_offset      = 110;      /* offset to reduce velocity at     */
 #else
-    p->shuttle_slow_velocity    = 0;	    /* reduce velocity to speed         */
-    p->shuttle_slow_offset      = 60;	    /* offset to reduce velocity at     */
+    p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
+    p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
 #endif
-    p->lifter_settle_time       = 800; 		/* tape lifter settling delay in ms */
-    p->pinch_settle_time        = 250;	    /* start 250ms after pinch roller   */
+    p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
+    p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
     p->brakes_stop_play         = 1;        /* brakes stop from play mode if 1  */
-    p->engage_pinch_roller		= 1;		/* engage pinch roller during play  */
+    p->engage_pinch_roller      = 1;        /* engage pinch roller during play  */
     p->record_pulse_length      = REC_PULSE_DURATION;
     p->tension_sensor_gain      = 3;
 
 #if (QE_TIMER_PERIOD > 500000)
     p->velocity_detect          = 100;      /* 100 pulses or less = no velocity */
-    p->null_offset_gain         = 2;	    /* null offset gain */
+    p->null_offset_gain         = 2;        /* null offset gain */
 #else
     p->velocity_detect          = 5;        /* 5 pulses or less = no velocity  */
-    p->null_offset_gain         = 3;    	/* null offset gain */
+    p->null_offset_gain         = 3;        /* null offset gain */
 #endif
     p->stop_supply_tension      = 220;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 220;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
-    p->stop_min_torque          = 10;		/* min stop servo torque            */
+    p->stop_min_torque          = 10;       /* min stop servo torque            */
 #if (QE_TIMER_PERIOD > 500000)
     p->stop_brake_torque        = 450;      /* max stop brake torque            */
 #else
     p->stop_brake_torque        = 300;      /* max stop brake torque            */
 #endif
 
-    p->shuttle_supply_tension   = 220;		/* shuttle supply reel tension      */
-    p->shuttle_takeup_tension   = 220;		/* shuttle takeup reel tension      */
-    p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque 				*/
-    p->shuttle_min_torque       = 10;		/* shuttle min torque 				*/
+    p->shuttle_supply_tension   = 220;      /* shuttle supply reel tension      */
+    p->shuttle_takeup_tension   = 220;      /* shuttle takeup reel tension      */
+    p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
+    p->shuttle_min_torque       = 10;       /* shuttle min torque               */
 #if (QE_TIMER_PERIOD > 500000)
-    p->shuttle_velocity         = 3500;     /* max shuttle velocity 			*/
-    p->shuttle_servo_pgain      = 32;       /* shuttle mode servo P-gain 		*/
-    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain 		*/
-    p->shuttle_servo_dgain      = 3;     	/* shuttle mode servo D-gain 		*/
+    p->shuttle_velocity         = 3500;     /* max shuttle velocity             */
+    p->shuttle_servo_pgain      = 32;       /* shuttle mode servo P-gain        */
+    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
+    p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 #else
-    p->shuttle_velocity         = 350;      /* max shuttle velocity 			*/
-    p->shuttle_servo_pgain      = 32;     	/* shuttle mode servo P-gain 		*/
-    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain 		*/
-    p->shuttle_servo_dgain      = 3;       	/* shuttle mode servo D-gain 		*/
+    p->shuttle_velocity         = 350;      /* max shuttle velocity             */
+    p->shuttle_servo_pgain      = 32;       /* shuttle mode servo P-gain        */
+    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
+    p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 #endif
-    p->play_tension_gain		= 10;		/* play tension velocity gain factor*/
+    p->play_tension_gain        = 10;       /* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 220;      /* supply tension level (0-DAC_MAX) */
     p->play_lo_takeup_tension   = 220;      /* takeup tension level (0-DAC_MAX) */
     p->play_hi_supply_tension   = 220;      /* supply tension level (0-DAC_MAX) */
     p->play_hi_takeup_tension   = 220;      /* takeup tension level (0-DAC_MAX) */
-    p->play_max_torque          = DAC_MAX;  /* play mode max torque (0-DAC_MAX)	*/
-    p->play_min_torque          = 10;		/* play mode min torque (0-DAC_MAX) */
+    p->play_max_torque          = DAC_MAX;  /* play mode max torque (0-DAC_MAX) */
+    p->play_min_torque          = 10;       /* play mode min torque (0-DAC_MAX) */
     p->play_lo_boost_time       = 1500;     /* play mode accel boost from stop  */
-    p->play_lo_boost_step		= 10;
+    p->play_lo_boost_step       = 10;
     p->play_hi_boost_time       = 3000;     /* play mode accel boost from stop  */
-    p->play_hi_boost_step		= 8;
+    p->play_hi_boost_step       = 8;
     p->play_lo_boost_start      = DAC_MAX;
     p->play_lo_boost_end        = 105;
     p->play_hi_boost_start      = DAC_MAX;
@@ -492,14 +492,14 @@ void InitSysDefaults(SYSPARMS* p)
 
 int SysParamsWrite(SYSPARMS* sp)
 {
-	int32_t rc = 0;
+    int32_t rc = 0;
 
-	sp->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
-	sp->magic   = MAGIC;
+    sp->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
+    sp->magic   = MAGIC;
 
-	rc = EEPROMProgram((uint32_t *)sp, 0, sizeof(SYSPARMS));
+    rc = EEPROMProgram((uint32_t *)sp, 0, sizeof(SYSPARMS));
 
-	System_printf("Writing System Parameters %d\n", rc);
+    System_printf("Writing System Parameters %d\n", rc);
     System_flush();
 
     return rc;
@@ -524,24 +524,24 @@ int SysParamsRead(SYSPARMS* sp)
         System_printf("ERROR Reading System Parameters - Using Defaults...\n");
         System_flush();
 
-    	InitSysDefaults(sp);
+        InitSysDefaults(sp);
 
-    	SysParamsWrite(sp);
+        SysParamsWrite(sp);
 
-    	return -1;
+        return -1;
     }
 
     if (sp->version != MAKEREV(FIRMWARE_VER, FIRMWARE_REV))
     {
-    	System_printf("WARNING New Firmware Version - Using Defaults...\n");
+        System_printf("WARNING New Firmware Version - Using Defaults...\n");
         System_flush();
 
-    	InitSysDefaults(sp);
+        InitSysDefaults(sp);
 
-    	SysParamsWrite(sp);
+        SysParamsWrite(sp);
 
-    	return -1;
+        return -1;
     }
 
-	return 0;
+    return 0;
 }

@@ -578,11 +578,7 @@ void show_menu(void)
 	/* Clear the screen and show title */
 	tty_cls();
 
-	//unsigned stack;
-    //stack = uxTaskGetStackHighWaterMark(NULL);
-
-	tty_printf("DTC-1200 Transport Controller - v%d.%02d",
-			FIRMWARE_VER, FIRMWARE_REV);
+	tty_printf("DTC-1200 Transport Controller - v%d.%02d", FIRMWARE_VER, FIRMWARE_REV);
 
 	/* Show the tape speed if main menu */
 

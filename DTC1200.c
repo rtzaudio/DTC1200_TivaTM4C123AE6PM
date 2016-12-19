@@ -500,6 +500,9 @@ int SysParamsWrite(SYSPARMS* sp)
 
 	rc = EEPROMProgram((uint32_t *)sp, 0, sizeof(SYSPARMS));
 
+	System_printf("Writing System Parameters %d\n", rc);
+    System_flush();
+
     return rc;
  }
 
@@ -521,7 +524,11 @@ int SysParamsRead(SYSPARMS* sp)
     {
         System_printf("ERROR Reading System Parameters - Using Defaults...\n");
         System_flush();
+
     	InitSysDefaults(sp);
+
+    	SysParamsWrite(sp);
+
     	return -1;
     }
 
@@ -529,7 +536,10 @@ int SysParamsRead(SYSPARMS* sp)
     {
     	System_printf("WARNING New Firmware Version - Using Defaults...\n");
         System_flush();
+
     	InitSysDefaults(sp);
+
+    	SysParamsWrite(sp);
     }
 
 	return 0;

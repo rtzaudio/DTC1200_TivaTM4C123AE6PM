@@ -192,7 +192,7 @@ Void Timer2AIntHandler(void)
 	TimerEnable(TIMER2_BASE, TIMER_A);
 
 	Timer_A_Count = previous_time - TimerValueGet(TIMER1_BASE, TIMER_A);
-	previous_time = TimerValueGet(TIMER1_BASE, TIMER_B);
+	previous_time = TimerValueGet(TIMER1_BASE, TIMER_A);
 }
 
 /****************************************************************************

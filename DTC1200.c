@@ -289,7 +289,7 @@ Void MainPollTask(UArg a0, UArg a1)
      * counter roller.
      */
 
-    //Tachometer_initialize();
+    Tachometer_initialize();
 
     /* Start the transport servo loop timer clock running.
      * We create an auto-reload periodic timer for the servo loop.

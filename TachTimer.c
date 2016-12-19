@@ -93,8 +93,8 @@ static uint32_t Timer_A_Count = 0;
 static uint32_t Timer_B_Count = 0;
 
 /* Hardware Interrupt Handlers */
-static Void TimerAIntHandler(void);
-static Void TimerBIntHandler(void);
+static Void Timer2AIntHandler(void);
+static Void Timer2BIntHandler(void);
 
 /****************************************************************************
  * The transport has tape tach derived from the search-to-cue timer card
@@ -109,68 +109,71 @@ static Void TimerBIntHandler(void);
 
 void Tachometer_initialize(void)
 {
-	uint32_t s_sysClockSpeed = SysCtlClockGet();
+	Timer_A_Count = 0;
+	Timer_B_Count = 0;
 
-	// Disable interrupts
+	s_sysClockSpeed = SysCtlClockGet();
+
+	/* Map the timer interrupt handlers. We don't make sys/bios calls
+	 * from these interrupt handlers and there is no need to create a
+	 * context handler with stack swapping for these. These handlers
+	 * just update some globals variables and need to execute as
+	 * quickly and efficiently as possible.
+	 */
+	Hwi_plug(INT_TIMER2A_TM4C123, Timer2AIntHandler);
+	Hwi_plug(INT_TIMER2B_TM4C123, Timer2BIntHandler);
+
+	/* Disable interrupts */
 	IntMasterDisable();
 
-	// Map the timer interrupt handlers. We don't make sys/bios calls
-	// from these interrupt handlers and there is no need to create a
-	// context handler with stack swapping for these. These handlers
-	// just update some globals variables and need to execute as
-	// quickly and efficiently as possible.
-	Hwi_plug(INT_TIMER2A_TM4C123, TimerAIntHandler);
-	Hwi_plug(INT_TIMER2B_TM4C123, TimerBIntHandler);
+	/* Enable Timers */
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
-	// Enable Timers
-	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);		
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);    
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
-
-    // Enable pin PB0 for TIMER2 T2CCP0
+    /* Enable pin PB0 for TIMER2 T2CCP0 */
     GPIOPinConfigure(GPIO_PB0_T2CCP0);
     GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_0);
 
-    // Enable pin PB1 for TIMER2 T2CCP1
+    /* Enable pin PB1 for TIMER2 T2CCP1 */
     GPIOPinConfigure(GPIO_PB1_T2CCP1);
     GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_1);
 
-    // Reset the timers
-	SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER1);
-	SysCtlPeripheralReset(SYSCTL_PERIPH_TIMER2);
+	/* Configure Edge Count Timers */
 
-	// Configure Edge Count Timers
-
-	// Setup timer as 2 16-bit timers in Edge Count mode
-	// Counters will count 1000 edges then generate an interrupt
+	/* Setup timer2 as two 16-bit timers in edge count mode. The counters
+	 * will count TACH_EDGE_COUNT edges then generate an interrupt.
+	 */
 	TimerConfigure(TIMER2_BASE, (TIMER_CFG_SPLIT_PAIR |
 								 TIMER_CFG_A_CAP_COUNT |
 								 TIMER_CFG_B_CAP_COUNT));
 
-	// The prescaler is not available for Edge Count mode
-	// Set to 0 for good measure
+	/* The prescaler not available for Edge Count mode, set to 0 for good measure */
 	TimerPrescaleSet(TIMER2_BASE, TIMER_BOTH, 0);
-	// Trigger on rising edges
+	/* Trigger on rising edges */
 	TimerControlEvent(TIMER2_BASE, TIMER_BOTH, TIMER_EVENT_POS_EDGE);
-	// Load timer value
+	/* Load set timer value */
 	TimerLoadSet(TIMER2_BASE, TIMER_BOTH, TACH_EDGE_COUNT);
-	// Set match value
+	/* Load the match value */
 	TimerMatchSet(TIMER2_BASE, TIMER_BOTH, 0x0000);
 
-	// Enable interrupts
+	/* Enable interrupts */
 	IntMasterEnable();
+
+	IntEnable(INT_TIMER2A);
+	IntEnable(INT_TIMER2B);
 
 	TimerIntEnable(TIMER2_BASE, TIMER_CAPA_MATCH);
 	TimerIntEnable(TIMER2_BASE, TIMER_CAPB_MATCH);
 
-	// Configure time base timer (free running)
+	/* Configure time base timer (free running) */
 
-	// Setup timer as 32-bit periodic timer
-	TimerConfigure(TIMER1_BASE, TIMER_CFG_A_PERIODIC_UP);
-	// Load timer value (TIMER_A for 32-bit operation)
+	/* Setup timer as 32-bit periodic timer */
+	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+	/* Load timer value (TIMER_A for 32-bit operation) */
 	TimerLoadSet(TIMER1_BASE, TIMER_A, 0xFFFFFFFF);
 
-	// Enable timers
+	/* Enable timers */
 	TimerEnable(TIMER2_BASE, TIMER_BOTH);
 	TimerEnable(TIMER1_BASE, TIMER_A);
 }
@@ -180,7 +183,7 @@ void Tachometer_initialize(void)
  * stores the difference in a global variable
  ****************************************************************************/
 
-Void TimerAIntHandler(void)
+Void Timer2AIntHandler(void)
 {
 	static uint32_t previous_time = 0;
 
@@ -189,8 +192,7 @@ Void TimerAIntHandler(void)
 	TimerEnable(TIMER2_BASE, TIMER_A);
 
 	Timer_A_Count = previous_time - TimerValueGet(TIMER1_BASE, TIMER_A);
-
-	previous_time = TimerValueGet(TIMER1_BASE, TIMER_A);
+	previous_time = TimerValueGet(TIMER1_BASE, TIMER_B);
 }
 
 /****************************************************************************
@@ -198,17 +200,17 @@ Void TimerAIntHandler(void)
  * stores the difference in a global variable
  ****************************************************************************/
 
-Void TimerBIntHandler(void)
+Void Timer2BIntHandler(void)
 {
-	static uint32_t previous_time = 0;
+	//static uint32_t previous_time = 0;
 
 	TimerIntClear(TIMER2_BASE, TIMER_CAPB_MATCH);
 	TimerLoadSet(TIMER2_BASE, TIMER_B, TACH_EDGE_COUNT);
 	TimerEnable(TIMER2_BASE, TIMER_B);
-
+#if 0
 	Timer_B_Count = previous_time - TimerValueGet(TIMER1_BASE, TIMER_A);
-
 	previous_time = TimerValueGet(TIMER1_BASE, TIMER_A);
+#endif
 }
 
 /****************************************************************************

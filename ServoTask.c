@@ -112,7 +112,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
     while (1)
     {
 		/* Toggle I/O pin for debug timing measurement*/
-		//GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_0, GPIO_PIN_0);
+		GPIO_write(DTC1200_EXPANSION_PF3, PIN_HIGH);
 
 		/***********************************************************
 		 * GET THE SUPPLY AND TAKEUP REEL VELOCITY AND DIRECTION
@@ -243,8 +243,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
 		(*jmptab[g_cmode & MODE_MASK])();
 
 		/* Toggle I/O pin for debug timing measurement*/
-		//GPIOPinWrite(GPIO_PORTE_BASE, GPIO_PIN_0, 0);
+		GPIO_write(DTC1200_EXPANSION_PF3, PIN_LOW);
 
+		/* 500 Hz (2ms) sample rate */
     	Task_sleep(2);
     }
 }

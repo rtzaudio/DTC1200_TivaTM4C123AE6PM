@@ -87,8 +87,6 @@
 
 #define TACH_EDGE_COUNT		(11)		//0x03E8
 
-static uint32_t s_sysClockSpeed;
-
 static uint32_t Timer_A_Count = 0;
 static uint32_t Timer_B_Count = 0;
 
@@ -111,8 +109,6 @@ void Tachometer_initialize(void)
 {
 	Timer_A_Count = 0;
 	Timer_B_Count = 0;
-
-	s_sysClockSpeed = SysCtlClockGet();
 
 	/* Map the timer interrupt handlers. We don't make sys/bios calls
 	 * from these interrupt handlers and there is no need to create a
@@ -232,7 +228,7 @@ uint32_t ReadTapeTach(void)
 	if (Timer_A_Count == 0)
 		a = 0;
 	else
-		a = (s_sysClockSpeed / Timer_A_Count);
+		a = (800000000 / Timer_A_Count);
 
 	Gate_leaveModule(key);
 
@@ -259,7 +255,7 @@ uint32_t ReadCapstanTach(void)
 	if (Timer_B_Count == 0)
 		b = 0;
 	else
-		b = (s_sysClockSpeed / Timer_B_Count);
+		b = (800000000 / Timer_B_Count);
 
 	Gate_leaveModule(key);
 

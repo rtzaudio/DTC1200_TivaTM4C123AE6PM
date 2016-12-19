@@ -429,7 +429,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->brakes_stop_play         = 1;        /* brakes stop from play mode if 1  */
     p->engage_pinch_roller		= 1;		/* engage pinch roller during play  */
     p->record_pulse_length      = REC_PULSE_DURATION;
-    p->tension_sensor_gain      = 2;
+    p->tension_sensor_gain      = 3;
 
 #if (QE_TIMER_PERIOD > 500000)
     p->velocity_detect          = 100;      /* 100 pulses or less = no velocity */
@@ -463,7 +463,6 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain 		*/
     p->shuttle_servo_dgain      = 3;       	/* shuttle mode servo D-gain 		*/
 #endif
-
     p->play_tension_gain		= 10;		/* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 220;      /* supply tension level (0-DAC_MAX) */
     p->play_lo_takeup_tension   = 220;      /* takeup tension level (0-DAC_MAX) */
@@ -476,9 +475,9 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_hi_boost_time       = 3000;     /* play mode accel boost from stop  */
     p->play_hi_boost_step		= 8;
     p->play_lo_boost_start      = DAC_MAX;
-    p->play_lo_boost_end        = 220;
+    p->play_lo_boost_end        = 105;
     p->play_hi_boost_start      = DAC_MAX;
-    p->play_hi_boost_end        = 220;
+    p->play_hi_boost_end        = 215;
 
     p->reserved3                = 0;        /* reserved */
     p->reserved4                = 0;        /* reserved */
@@ -540,6 +539,8 @@ int SysParamsRead(SYSPARMS* sp)
     	InitSysDefaults(sp);
 
     	SysParamsWrite(sp);
+
+    	return -1;
     }
 
 	return 0;

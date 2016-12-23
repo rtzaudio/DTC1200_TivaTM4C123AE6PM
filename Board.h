@@ -80,6 +80,10 @@ extern "C" {
 #define Board_INT2B					DTC1200_MCP23S17T_INT2B		/* PG3 */
 #define Board_TAPE_WIDTH			DTC1200_TAPE_WIDTH			/* PG2 */
 
+/* Board specific I2C addresses */
+#define Board_AT24CS01_EPROM_ADDR   (0xA0 >> 1)
+#define Board_AT24CS01_SERIAL_ADDR	(0xB0 >> 1)
+
 #ifdef __cplusplus
 }
 #endif

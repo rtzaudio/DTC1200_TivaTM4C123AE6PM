@@ -161,6 +161,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * takeup and supply reel velocity by simply dividing the two reel
          * velocity tach values.
          */
+
         if ((g_servo.velocity_takeup > g_sys.velocity_detect) && (g_servo.velocity_supply > g_sys.velocity_detect))
         {
             long delta;
@@ -384,13 +385,8 @@ static void SvcServoStop(void)
 
     /* Safety Clamps */
 
-    DAC_CLAMP(dac_s,
-              g_sys.stop_min_torque,
-              g_sys.stop_max_torque);
-
-    DAC_CLAMP(dac_t,
-              g_sys.stop_min_torque,
-              g_sys.stop_max_torque);
+    DAC_CLAMP(dac_s, g_sys.stop_min_torque, g_sys.stop_max_torque);
+    DAC_CLAMP(dac_t, g_sys.stop_min_torque, g_sys.stop_max_torque);
 
     /* Set the DAC levels to the servos */
 
@@ -490,13 +486,8 @@ static void SvcServoPlay(void)
 
     /* Clamp the DAC values within range if needed */
 
-    DAC_CLAMP(dac_s,
-              g_sys.play_min_torque,
-              g_sys.play_max_torque);
-
-    DAC_CLAMP(dac_t,
-              g_sys.play_min_torque,
-              g_sys.play_max_torque);
+    DAC_CLAMP(dac_s, g_sys.play_min_torque, g_sys.play_max_torque);
+    DAC_CLAMP(dac_t, g_sys.play_min_torque, g_sys.play_max_torque);
 
     /* Set the servo DAC levels */
 
@@ -548,17 +539,13 @@ static void SvcServoFwd(void)
 
     dac_s = ((g_sys.shuttle_supply_tension + g_servo.tsense) - cv) + g_servo.offset_supply;
 
-    DAC_CLAMP(dac_s,
-              g_sys.shuttle_min_torque,
-              g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* INCREASE TAKEUP Torque & Safety clamp */
 
     dac_t = ((g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
 
-    DAC_CLAMP(dac_t,
-              g_sys.shuttle_min_torque,
-              g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
 
@@ -610,17 +597,13 @@ static void SvcServoRew(void)
 
     dac_s = ((g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
-    DAC_CLAMP(dac_s,
-              g_sys.shuttle_min_torque,
-              g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* DECREASE TAKEUP Torque & Safety clamp */
 
     dac_t = ((g_sys.shuttle_takeup_tension + g_servo.tsense) - cv) + g_servo.offset_takeup;
 
-    DAC_CLAMP(dac_t,
-              g_sys.shuttle_min_torque,
-              g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
 

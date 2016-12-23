@@ -104,6 +104,8 @@ static MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value);
 
 static int set_mdata(MENUITEM* item);
 
+static int get_hex_str(char* pTextBuf, uint8_t* pDataBuf, int len);
+
 /* Menu Command Handlers */
 
 int mc_cmd_stop(MENUITEM *item);
@@ -231,14 +233,8 @@ static MENUITEM general_items[] = {
 { 5, 1, "1", "Velocity Detect Threshold ", MI_NRANGE, 1, 50, NULL, set_mdata,
 		DT_LONG, &g_sys.velocity_detect },
 
-{ 6, 1, "2", "Torque Null Offset Gain   ", MI_NRANGE, 0, 5, NULL, set_mdata,
-		DT_LONG, &g_sys.null_offset_gain },
-
-{ 7, 1, "3", "Tension Sensor Gain       ", MI_NRANGE, 0, 5, NULL, set_mdata,
-				DT_LONG, &g_sys.tension_sensor_gain },
-
-{ 8, 1, "4", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
-				DT_LONG, &g_sys.record_pulse_length },
+{ 6, 1, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
+		DT_LONG, &g_sys.record_pulse_length },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
@@ -304,6 +300,14 @@ static MENUITEM tension_items[] = {
 
 { 14, 26, "14", "Play    ", MI_NRANGE, 1, DAC_MAX, NULL, set_mdata, DT_LONG,
 		&g_sys.play_max_torque },
+
+{ 16,  5, "", "SERVO SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+
+{ 18,  1, "15", "Radius Null Offset Gain ", MI_NRANGE, 0, 5, NULL, set_mdata,
+		DT_LONG, &g_sys.null_offset_gain },
+
+{ 19,  1, "16", "Tension Sensor Gain     ", MI_NRANGE, 0, 5, NULL, set_mdata,
+		DT_LONG, &g_sys.tension_sensor_gain },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
@@ -586,6 +590,13 @@ void show_menu(void)
 		int speed = g_high_speed_flag ? 30 : 15;
 		tty_pos(2, 78 - 6);
 		tty_printf("%d IPS", speed);
+	}
+
+	if (menu->id == MENU_GENERAL) {
+		char buf[64];
+		get_hex_str(buf, g_ui8SerialNumber, 16);
+		tty_pos(18, 1);
+		tty_printf("Serial# %s", buf);
 	}
 
 	/* Add the menu heading to top of screen */
@@ -1494,6 +1505,30 @@ static char get_dir_char(void)
 		ch = '*';
 
 	return ch;
+}
+
+int get_hex_str(char* pTextBuf, uint8_t* pDataBuf, int len)
+{
+	char fmt[8];
+	uint32_t i;
+	int32_t	l;
+
+	*pTextBuf = 0;
+	strcpy(fmt, "%02X");
+
+	for (i=0; i < len; i++)
+	{
+		l = sprintf(pTextBuf, fmt, *pDataBuf++);
+		pTextBuf += l;
+
+		if (((i % 2) == 1) && (i != (len-1)))
+		{
+			l = sprintf(pTextBuf, "-");
+			pTextBuf += l;
+		}
+	}
+
+	return strlen(pTextBuf);
 }
 
 void show_monitor_screen()

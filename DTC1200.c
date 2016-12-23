@@ -89,6 +89,7 @@ Semaphore_Handle g_semaSPI;
 /* Static Function Prototypes */
 Int main();
 Void MainPollTask(UArg a0, UArg a1);
+int ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
 
 //*****************************************************************************
 // Main Program Entry Point
@@ -183,6 +184,9 @@ void InitPeripherals(void)
     i2cParams.transferMode  = I2C_MODE_BLOCKING;
     i2cParams.bitRate       = I2C_100kHz;
     g_handleI2C1 = I2C_open(Board_I2C1, &i2cParams);
+
+    /* Read the serial number into memory */
+    ReadSerialNumber(g_handleI2C1, g_ui8SerialNumber);
 
     /*
      * Open the SPI ports for peripherals we need to communicate with.
@@ -544,4 +548,43 @@ int SysParamsRead(SYSPARMS* sp)
     }
 
     return 0;
+}
+
+//*****************************************************************************
+// This function attempts to read the unique serial number from
+// the AT24CS01 I2C serial EPROM and serial# number device.
+//*****************************************************************************
+
+int ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16])
+{
+	bool			ret;
+	uint8_t			txByte;
+	I2C_Transaction i2cTransaction;
+
+    /* default invalid serial number is all FF's */
+    memset(ui8SerialNumber, 0xFF, sizeof(ui8SerialNumber));
+
+	/* Note the Upper bit of the word address must be set
+	 * in order to read the serial number. Thus 80H would
+	 * set the starting address to zero prior to reading
+	 * this sixteen bytes of serial number data.
+	 */
+
+	txByte = 0x80;
+
+	i2cTransaction.slaveAddress = Board_AT24CS01_SERIAL_ADDR;
+	i2cTransaction.writeBuf     = &txByte;
+	i2cTransaction.writeCount   = 1;
+	i2cTransaction.readBuf      = ui8SerialNumber;
+	i2cTransaction.readCount    = 16;
+
+	ret = I2C_transfer(handle, &i2cTransaction);
+
+	if (!ret)
+	{
+		System_printf("Unsuccessful I2C transfer\n");
+		System_flush();
+	}
+
+	return ret;
 }

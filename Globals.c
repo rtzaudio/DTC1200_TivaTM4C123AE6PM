@@ -98,6 +98,8 @@ uint8_t g_switch_option   = 0;        	/* option DIP switch settings */
 uint8_t g_high_speed_flag = 0;        	/* non-zero if hi-speed tape  */
 uint8_t g_tape_out_flag   = 0;        	/* current tape out status */
 
+uint8_t g_ui8SerialNumber[16];
+
 #if (CAPDATA_SIZE > 0)
 CAPDATA g_capdata[CAPDATA_SIZE];
 long g_capdata_count = 0;

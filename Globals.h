@@ -74,4 +74,6 @@ extern uint8_t g_switch_option;
 extern uint8_t g_high_speed_flag;
 extern uint8_t g_tape_out_flag;
 
+extern uint8_t g_ui8SerialNumber[16];
+
 #endif // __GLOBALS_H__

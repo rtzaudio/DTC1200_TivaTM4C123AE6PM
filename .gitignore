@@ -4,10 +4,12 @@
 *.ko
 *.obj
 *.elf
+*.bak
 
 # Directories
 [Dd]ebug*/
 [Rr]elease*/
+[Ss]rc*/
 
 # Precompiled Headers
 *.gch

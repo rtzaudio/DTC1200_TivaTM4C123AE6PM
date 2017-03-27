@@ -166,13 +166,10 @@ extern "C" {
  * if we to correct at 0.15" intervals, the sample period would be 5ms.
  */
 
-//#define SAMPLE_PERIOD_30_IPS	10
-//#define SAMPLE_PERIOD_15_IPS	20
-
 /* This macro is used to calculate the RPM of the motor based on velocity.
- * Our encoders are US Digital Model H1-360-I with 360 cycles per revolution.
+ * Our encoders are US Digital Model H1-360-I with 360 pulses per revolution.
  * We configure the QEI to capture edges on both signals and maintain an
- * absolute angular position by resetting on index pulses. So, our 360 CPR
+ * absolute angular position by resetting on index pulses. So, our 360 PPR
  * encoder at four edges per line, gives us 1440 pulses per revolution.
  *
  * The period of the timer is configurable by specifying the load value
@@ -197,8 +194,9 @@ extern "C" {
  *	RPM = (10 * s) / 24 = 600 rpm
  */
 
-#define QE_EDGES_PER_REV	(360 * 4)	/* 360 * 4 for four quad encoder edges */
-#define QE_TIMER_PERIOD		500000		/* period of 500,000 is 10ms at 50MHz  */
+#define QE_PPR				500				/* encoder pulses per revolution       */
+#define QE_EDGES_PER_REV	(QE_PPR * 4)	/* PPR x 4 for four quad encoder edges */
+#define QE_TIMER_PERIOD		500000			/* period of 500,000 is 10ms at 50MHz  */
 
 /* Calculate RPM from the velocity value */
 #if (QE_TIMER_PERIOD == 500000)

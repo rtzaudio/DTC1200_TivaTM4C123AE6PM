@@ -163,8 +163,8 @@ void ResetStopServo(int state)
 {
 	IArg key = Gate_enterModule();  // enter critical section
 	{
-		g_servo.brake_torque = 0;
-		g_servo.brake_state  = 0;
+		g_servo.stop_brake_torque = 0;
+		g_servo.stop_brake_state  = 0;
 	}
 	Gate_leaveModule(key);
 }

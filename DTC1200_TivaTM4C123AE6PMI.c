@@ -466,8 +466,8 @@ const UARTTivaDMA_HWAttrs uartTivaHWAttrs[DTC1200_UARTCOUNT] = {
         .txChannelIndex = UDMA_CH9_UART0TX,
     },
     {
-        .baseAddr       = UART3_BASE,
-        .intNum         = INT_UART3,
+        .baseAddr       = UART1_BASE,
+        .intNum         = INT_UART1,
         .intPriority    = (~0),
         .rxChannelIndex = UDMA_CH22_UART1RX,
         .txChannelIndex = UDMA_CH23_UART1TX,

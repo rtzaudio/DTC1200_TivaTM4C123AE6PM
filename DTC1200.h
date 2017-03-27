@@ -88,75 +88,10 @@
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
 
-#define MS(msec)  			( msec / portTICK_RATE_MS )
-
 #define UNDEFINED           (-1)
 
+/* Timeout for SPI communications */
 #define TIMEOUT_SPI			1000
-
-/*** Hardware Constants ****************************************************/
-
-/*
- * Tape moves at 30 IPS in high speed and 15 IPS in low speed. We want to
- * sample and correct at 0.3" intervals so our sample rate needs to
- * be 100 Hz (30/0.3 = 100). The timer delay period required in
- * milliseconds is 1/Hz * 1000. Therefore 1/100*1000 = 10ms. Therefore,
- * if we to correct at 0.15" intervals, the sample period would be 5ms.
- */
-
-//#define SAMPLE_PERIOD_30_IPS	10
-//#define SAMPLE_PERIOD_15_IPS	20
-
-/* This macro is used to calculate the RPM of the motor based on velocity.
- * Our encoders are US Digital Model H1-360-I with 360 cycles per revolution.
- * We configure the QEI to capture edges on both signals and maintain an
- * absolute angular position by resetting on index pulses. So, our 360 CPR
- * encoder at four edges per line, gives us 1440 pulses per revolution.
- *
- * The period of the timer is configurable by specifying the load value
- * for the timer in the QEILOAD register. We can calculate RPM with
- * the following equation:
- *
- *	RPM = (clock * (2 ^ VelDiv) * Speed * 60) / (Load * PPR * Edges)
- *
- * For our case, consider a motor running at 600 rpm. A 360 pulse per
- * revolution quadrature encoder is attached to the motor, producing 1440
- * phase edges per revolution. With a velocity pre-divider of ÷1
- * (VelDiv set to 0) and clocking on both PhA and PhB edges, this results
- * in 14,400 pulses per second (the motor turns 10 times per second).
- * If the timer were clocked at 50,000,000 Hz, and the load value was
- * 12,500,000 (1/4 of a second), it would count 14400 pulses per update.
- *
- *	RPM = (50,000,000 * 1 * s * 60) / (500,000 * 360 * 4) = 600 rpm
- *	RPM = (100 * s) / 24 = 600 rpm
- *	RPM = (25 * s) / 6 = 600 rpm
- *
- *	RPM = (50,000,000 * 1 * s * 60) / (5,000,000 * 360 * 4) = 600 rpm
- *	RPM = (10 * s) / 24 = 600 rpm
- */
-
-
-#define QE_EDGES_PER_REV	(360 * 4)	/* 360 * 4 for four quad encoder edges */
-#define QE_TIMER_PERIOD		500000		/* period of 500,000 is 10ms at 50MHz  */
-
-/* Calculate RPM from the velocity value */
-#if (QE_TIMER_PERIOD == 500000)
-	#define RPM(t)				((25 * t) / 6)
-#elif (QE_TIMER_PERIOD == 5000000)
-	#define RPM(t)				((10 * t) / 24)
-#else
-	#pragma(error, "Invalid QE_TIMER_PERIOD Specified!")
-#endif
-
-/*
- * Hardware Constants
- */
-
-#define DAC_MIN             0           	/* zero scale dac setting  */
-#define DAC_MAX             0x03FF        	/* 10-bit full scale DAC   */
-
-#define ADC_MIN             0           	/* zero scale adc input    */
-#define ADC_MAX             0x03FF      	/* full scale adc input    */
 
 /* Default record strobe pulse length */
 #define REC_PULSE_DURATION	20
@@ -260,8 +195,8 @@ typedef struct _SERVODATA
 	unsigned long	tape_tach;			/* tape roller tachometer        */
 	long			stop_null_supply;	/* stop mode supply null         */
 	long			stop_null_takeup;	/* stop mode takeup null         */
-	long			brake_torque;
-	long			brake_state;
+	long			stop_brake_torque;	/* stop servo brake torque       */
+	long			stop_brake_state;	/* stop servo dynamic brake state*/
 	long			offset_null;       	/* takeup/supply tach difference */
 	long			offset_null_sum;
 	long			offset_sample_cnt;

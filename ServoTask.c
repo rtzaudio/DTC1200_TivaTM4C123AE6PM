@@ -299,63 +299,62 @@ static void SvcServoStop(void)
         /* Reset the brake state if motion starts back up */
         IArg key = Gate_enterModule();
         {
-            g_servo.brake_state = 0;
-            g_servo.brake_torque = 0;
+            g_servo.stop_brake_state  = 0;
+            g_servo.stop_brake_torque = 0;
         }
         Gate_leaveModule(key);
     }
     else
     {
-        /*
-         * STATE-0 : ramp up brake torque
-         */
-
-        if (g_servo.brake_state == 0)
+        IArg key = Gate_enterModule();
         {
-            IArg key = Gate_enterModule();
+            switch(g_servo.stop_brake_state)
             {
-                if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-                    g_servo.brake_torque += 5;
-                else
-                    g_servo.brake_torque += 10;
+                case 0:
 
-                if (g_servo.brake_torque >= g_sys.stop_brake_torque)
-                    g_servo.brake_state = 1;
+                    /* STATE-0 : ramp up brake torque */
 
-                if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-                    g_servo.brake_state = 1;
+                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
+                        g_servo.stop_brake_torque += 20;
+                    else
+                        g_servo.stop_brake_torque += 10;
+
+                    if (g_servo.stop_brake_torque >= g_sys.stop_brake_torque)
+                        g_servo.stop_brake_state = 1;
+
+                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
+                        g_servo.stop_brake_state = 1;
+
+                    break;
+
+                case 1:
+
+                    /*
+                     * STATE-1 : keep applying brake torque or ramp down
+                     *           torque if at threshold velocity.
+                     */
+
+                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
+                    {
+                        if (g_servo.stop_brake_torque)
+                            g_servo.stop_brake_torque -= 5;
+
+                        if (!g_servo.stop_brake_torque)
+                            g_servo.stop_brake_state = 0;
+                    }
+                    break;
+
+                default:
+                    g_servo.stop_brake_state  = 0;
+                    g_servo.stop_brake_torque = 0;
+                    break;
             }
-            Gate_leaveModule(key);
+
+            g_servo.stop_null_supply = g_servo.stop_brake_torque;
+            g_servo.stop_null_takeup = g_servo.stop_brake_torque;
+
         }
-
-        /*
-         * STATE-1 : keep applying brake torque or ramp down torque
-         *           to release brake if at threshold velocity.
-         */
-
-        if (g_servo.brake_state == 1)
-        {
-            if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-            {
-                IArg key = Gate_enterModule();
-                {
-                    if (g_servo.brake_torque)
-                        g_servo.brake_torque -= 5;
-
-                    if (!g_servo.brake_torque)
-                        g_servo.brake_state = 0;
-                }
-                Gate_leaveModule(key);
-            }
-
-            g_servo.stop_null_supply = g_servo.brake_torque;
-            g_servo.stop_null_takeup = g_servo.brake_torque;
-        }
-
-        if (g_servo.brake_state == 2)
-        {
-            g_servo.stop_null_supply = g_servo.stop_null_takeup = g_servo.brake_torque = 0;
-        }
+        Gate_leaveModule(key);
 
         /*
          * DYNAMIC BRAKING: Apply the braking torque required to null motion.

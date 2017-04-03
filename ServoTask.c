@@ -48,6 +48,7 @@
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
 
@@ -81,6 +82,8 @@
 #define OFFSET_SCALE        500
 #define OFFSET_CALC_PERIOD  500
 
+/* External Global Data */
+extern Semaphore_Handle g_semaServo;
 
 /* Static Servo Mode Prototypes */
 static void SvcServoHalt(void);
@@ -162,7 +165,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        if ((g_servo.velocity_takeup > g_sys.velocity_detect) && (g_servo.velocity_supply > g_sys.velocity_detect))
+        long veldetect = (g_high_speed_flag) ? 10 : 5;	//g_sys.velocity_detect * 2;
+
+        if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
             long delta;
 
@@ -204,7 +209,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
             g_servo.offset_supply = 0;
             g_servo.offset_takeup = 0;
         }
-        else if ((g_servo.velocity_takeup > g_sys.velocity_detect) && (g_servo.velocity_supply > g_sys.velocity_detect))
+        else if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
             long offset;
 
@@ -216,7 +221,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
                  */
                 offset = g_servo.offset_null;
                 g_servo.offset_supply = (offset);
-                g_servo.offset_takeup =  -(offset);
+                g_servo.offset_takeup = -(offset);
             }
             else if (g_servo.velocity_supply > g_servo.velocity_takeup)
             {
@@ -233,7 +238,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
                 /* reels at same velocity! */
                 g_servo.offset_supply = 0;
                 g_servo.offset_takeup = 0;
-                g_servo.offset_null = offset;
+                g_servo.offset_null   = offset;
             }
         }
 
@@ -272,114 +277,52 @@ static void SvcServoHalt(void)
 // configuration parameter.
 //*****************************************************************************
 
-#if (QE_TIMER_PERIOD > 500000)
-#define BRAKE_THRESHOLD_VEL     250
-#else
-#define BRAKE_THRESHOLD_VEL     25
-#endif
-
 static void SvcServoStop(void)
 {
     long dac_t;
     long dac_s;
+    long dynbrake;
 
-    // RPM(g_servo.velocity_supply);
-    // RPM(g_servo.velocity_takeup);
-
-    /*** Calculate the braking torque for each reel ***/
+    /*** Calculate the dynamic null braking torque ***/
 
     if (g_servo.velocity <= g_sys.velocity_detect)
     {
-        /* No motion, set stop mode tension levels */
-        dac_s = g_sys.stop_supply_tension + g_servo.tsense + g_servo.offset_supply;
-        dac_t = g_sys.stop_takeup_tension + g_servo.tsense + g_servo.offset_takeup;
-
-        g_servo.stop_null_supply = g_servo.stop_null_takeup = 0;
-
-        /* Reset the brake state if motion starts back up */
-        IArg key = Gate_enterModule();
-        {
-            g_servo.stop_brake_state  = 0;
-            g_servo.stop_brake_torque = 0;
-        }
-        Gate_leaveModule(key);
+        dynbrake = 0;
     }
     else
     {
-        IArg key = Gate_enterModule();
-        {
-            switch(g_servo.stop_brake_state)
-            {
-                case 0:
+        dynbrake = (500 - g_servo.velocity);
 
-                    /* STATE-0 : ramp up brake torque */
+        if (dynbrake < 0)
+        	dynbrake = 500;
+    }
 
-                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-                        g_servo.stop_brake_torque += 20;
-                    else
-                        g_servo.stop_brake_torque += 10;
+    g_servo.stop_null_supply = dynbrake;
+    g_servo.stop_null_takeup = dynbrake;
 
-                    if (g_servo.stop_brake_torque >= g_sys.stop_brake_torque)
-                        g_servo.stop_brake_state = 1;
+	/*
+	 * DYNAMIC BRAKING: Apply the braking torque required to null motion.
+	 */
 
-                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-                        g_servo.stop_brake_state = 1;
-
-                    break;
-
-                case 1:
-
-                    /*
-                     * STATE-1 : keep applying brake torque or ramp down
-                     *           torque if at threshold velocity.
-                     */
-
-                    if (g_servo.velocity <= BRAKE_THRESHOLD_VEL)
-                    {
-                        if (g_servo.stop_brake_torque)
-                            g_servo.stop_brake_torque -= 5;
-
-                        if (!g_servo.stop_brake_torque)
-                            g_servo.stop_brake_state = 0;
-                    }
-                    break;
-
-                default:
-                    g_servo.stop_brake_state  = 0;
-                    g_servo.stop_brake_torque = 0;
-                    break;
-            }
-
-            g_servo.stop_null_supply = g_servo.stop_brake_torque;
-            g_servo.stop_null_takeup = g_servo.stop_brake_torque;
-
-        }
-        Gate_leaveModule(key);
-
-        /*
-         * DYNAMIC BRAKING: Apply the braking torque required to null motion.
-         */
-
-        if (g_servo.direction == TAPE_DIR_FWD)
-        {
-            /* FORWARD DIR MOTION - increase supply torque */
-            dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) + g_servo.stop_null_supply) + g_servo.offset_supply;
-            /* decrease takeup torque */
-            dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) - g_servo.stop_null_takeup) + g_servo.offset_takeup;
-        }
-        else if (g_servo.direction == TAPE_DIR_REW)
-        {
-            /* REWIND DIR MOTION - decrease supply torque */
-            dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) - g_servo.stop_null_supply) + g_servo.offset_supply;
-            /* increase takeup torque */
-            dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.stop_null_takeup) + g_servo.offset_takeup;
-        }
-        else
-        {
-            /* error, no motion? */
-            dac_s = (g_sys.stop_supply_tension + g_servo.tsense) + g_servo.offset_supply;
-            dac_t = (g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
-        }
+    if (g_servo.direction == TAPE_DIR_FWD)
+    {
+        /* FORWARD DIR MOTION - increase supply torque */
+        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) + g_servo.stop_null_supply) + g_servo.offset_supply;
+        /* decrease takeup torque */
+        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) - g_servo.stop_null_takeup) + g_servo.offset_takeup;
+    }
+    else if (g_servo.direction == TAPE_DIR_REW)
+    {
+        /* REWIND DIR MOTION - decrease supply torque */
+        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) - g_servo.stop_null_supply) + g_servo.offset_supply;
+        /* increase takeup torque */
+        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.stop_null_takeup) + g_servo.offset_takeup;
+    }
+    else
+    {
+    	/* error, no motion? */
+        dac_s = (g_sys.stop_supply_tension + g_servo.tsense) + g_servo.offset_supply;
+        dac_t = (g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
     }
 
     /* Safety Clamps */
@@ -416,9 +359,10 @@ static void SvcServoPlay(void)
     rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
 
     /* Play acceleration boost state? */
-
     if (g_servo.play_boost_time)
     {
+        Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
         g_servo.play_boost_count += 1;
 
         dac_t = (g_servo.play_boost_start << 1) / ((g_servo.velocity_takeup / 8) + 1);
@@ -452,6 +396,8 @@ static void SvcServoPlay(void)
             /* Turn off boost status LED */
             g_lamp_mask &= ~(L_STAT3);
         }
+
+        Semaphore_post(g_semaServo);
     }
     else
     {
@@ -523,11 +469,15 @@ static void SvcServoFwd(void)
 
     /* Get the PID current CV value based on the velocity */
 
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
     cv = ipid_calc(
             &g_servo.pid,           /* PID accumulator  */
             target_velocity,        /* desired velocity */
             g_servo.velocity        /* current velocity */
             );
+
+    Semaphore_post(g_semaServo);
 
     // DEBUG
     g_servo.db_cv    = cv;
@@ -581,11 +531,15 @@ static void SvcServoRew(void)
 
     /* Get the PID current CV value based on the velocity */
 
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
     cv = ipid_calc(
             &g_servo.pid,               /* PID accumulator  */
             target_velocity,            /* desired velocity */
             g_servo.velocity            /* current velocity */
             );
+
+    Semaphore_post(g_semaServo);
 
     // DEBUG
     g_servo.db_cv    = cv;

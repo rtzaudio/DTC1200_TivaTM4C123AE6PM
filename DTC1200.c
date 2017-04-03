@@ -48,9 +48,9 @@
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
-#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Clock.h>
 
 /* TI-RTOS Driver files */
@@ -84,7 +84,7 @@
 #include "Diag.h"
 
 Semaphore_Handle g_semaSPI;
-
+Semaphore_Handle g_semaServo;
 
 /* Static Function Prototypes */
 Int main();
@@ -135,7 +135,15 @@ Int main()
     /* Create a global binary semaphore for serialized access to the SPI bus */
     //Semaphore_Params_init(&semaParams);
     //semaParams.mode =
+
+    Error_init(&eb);
     if ((g_semaSPI = Semaphore_create(1, NULL, &eb)) == NULL)
+    {
+        System_abort("Semaphore_create() failed!\n");
+    }
+
+    Error_init(&eb);
+    if ((g_semaServo = Semaphore_create(1, NULL, &eb)) == NULL)
     {
         System_abort("Semaphore_create() failed!\n");
     }
@@ -230,7 +238,7 @@ Void MainPollTask(UArg a0, UArg a1)
     /* Read the initial mode switch states */
     GetModeSwitches(&mode_prev);
     g_high_speed_flag = (mode_prev & M_HISPEED) ? 1 : 0;
-    g_switch_option   = mode_prev & M_DIPSW_MASK;
+    g_switch_option   = (mode_prev & M_DIPSW_MASK);
 
     /* Read the initial transport switch states */
     GetTransportSwitches(&tran_prev);
@@ -250,9 +258,10 @@ Void MainPollTask(UArg a0, UArg a1)
     g_servo.offset_null_sum   = 0;
     g_servo.tsense_sum        = 0;
     g_servo.tsense_sample_cnt = 0;
-    g_servo.stop_brake_torque      = 0;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
+	g_servo.play_tension_gain = g_sys.play_tension_gain;
+	g_servo.play_boost_count  = 0;
 
     /* Servo's start in halt mode! */
     SET_SERVO_MODE(MODE_HALT);
@@ -439,18 +448,14 @@ void InitSysDefaults(SYSPARMS* p)
     p->velocity_detect          = 100;      /* 100 pulses or less = no velocity */
     p->null_offset_gain         = 2;        /* null offset gain */
 #else
-    p->velocity_detect          = 5;        /* 5 pulses or less = no velocity  */
+    p->velocity_detect          = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
 #endif
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
     p->stop_min_torque          = 10;       /* min stop servo torque            */
-#if (QE_TIMER_PERIOD > 500000)
-    p->stop_brake_torque        = 450;      /* max stop brake torque            */
-#else
-    p->stop_brake_torque        = 300;      /* max stop brake torque            */
-#endif
+    p->stop_brake_gain          = 1;      	/* max stop brake torque            */
 
     p->shuttle_supply_tension   = 200;      /* shuttle supply reel tension      */
     p->shuttle_takeup_tension   = 200;      /* shuttle takeup reel tension      */
@@ -462,9 +467,9 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 #else
-    p->shuttle_velocity         = 350;      /* max shuttle velocity             */
-    p->shuttle_servo_pgain      = 32;       /* shuttle mode servo P-gain        */
-    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
+    p->shuttle_velocity         = 320;      /* max shuttle velocity             */
+    p->shuttle_servo_pgain      = 100;      /* shuttle mode servo P-gain        */
+    p->shuttle_servo_igain      = 32;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 #endif
     p->play_tension_gain        = 10;       /* play tension velocity gain factor*/

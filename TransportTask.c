@@ -48,6 +48,7 @@
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Semaphore.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
 
@@ -78,6 +79,8 @@
 static void ResetPlayServo(void);
 static void ResetStopServo(int state);
 
+extern Semaphore_Handle g_semaServo;
+
 /*
  * The DIP switches are currently defined by the firmware to
  * function as follows:
@@ -99,74 +102,72 @@ static void ResetStopServo(int state);
 
 void ResetPlayServo(void)
 {
-	IArg key = Gate_enterModule();  // enter critical section
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+	/* Reset play mode capture data buffer to zeros */
+#if (CAPDATA_SIZE > 0)
+	memset(g_capdata, 0, sizeof(g_capdata));
+	g_capdata_count = 0;
+#endif
+
+	g_servo.play_tension_gain = g_sys.play_tension_gain;
+	g_servo.play_boost_count  = 0;
+
+	/* Initialize the play servo data items */
+	if (g_high_speed_flag)
 	{
-		/* Reset play mode capture data buffer to zeros */
-	#if (CAPDATA_SIZE > 0)
-		memset(g_capdata, 0, sizeof(g_capdata));
-		g_capdata_count = 0;
-	#endif
+		/* Reset the tension values */
+		g_servo.play_supply_tension = g_sys.play_hi_supply_tension;
+		g_servo.play_takeup_tension = g_sys.play_hi_takeup_tension;
 
-		g_servo.play_tension_gain = g_sys.play_tension_gain;
-		g_servo.play_boost_count  = 0;
+		/* Reset the play boost counters */
+		g_servo.play_boost_time     = g_sys.play_hi_boost_time;
+		g_servo.play_boost_step     = g_sys.play_hi_boost_step;
+		g_servo.play_boost_start    = g_sys.play_hi_boost_start;
+		g_servo.play_boost_end      = g_sys.play_hi_boost_end;
 
-		/* Initialize the play servo data items */
-		if (g_high_speed_flag)
-		{
-			/* Reset the tension values */
-			g_servo.play_supply_tension = g_sys.play_hi_supply_tension;
-			g_servo.play_takeup_tension = g_sys.play_hi_takeup_tension;
-
-			/* Reset the play boost counters */
-			g_servo.play_boost_time     = g_sys.play_hi_boost_time;
-			g_servo.play_boost_step     = g_sys.play_hi_boost_step;
-			g_servo.play_boost_start    = g_sys.play_hi_boost_start;
-			g_servo.play_boost_end      = g_sys.play_hi_boost_end;
-
-			/* If play boost end config parameter is 0, then use
-			 * the takeup tension parameter value instead.
-			 */
-			if (g_sys.play_hi_boost_end == 0)
-				g_servo.play_boost_end = g_sys.play_hi_takeup_tension;
-		}
-		else
-		{
-			/* Reset the tension values */
-			g_servo.play_supply_tension = g_sys.play_lo_supply_tension;
-			g_servo.play_takeup_tension = g_sys.play_lo_takeup_tension;
-
-			/* Reset the play boost counters */
-			g_servo.play_boost_time     = g_sys.play_lo_boost_time;
-			g_servo.play_boost_step     = g_sys.play_lo_boost_step;
-			g_servo.play_boost_start    = g_sys.play_lo_boost_start;
-			g_servo.play_boost_end      = g_sys.play_lo_boost_end;
-
-			/* If play boost end config parameter is 0, then use
-			 * the takeup tension parameter value instead.
-			 */
-			if (g_sys.play_lo_boost_end == 0)
-				g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
-		}
-
-		ResetTapeTach();
+		/* If play boost end config parameter is 0, then use
+		 * the takeup tension parameter value instead.
+		 */
+		if (g_sys.play_hi_boost_end == 0)
+			g_servo.play_boost_end = g_sys.play_hi_takeup_tension;
 	}
-	Gate_leaveModule(key);
+	else
+	{
+		/* Reset the tension values */
+		g_servo.play_supply_tension = g_sys.play_lo_supply_tension;
+		g_servo.play_takeup_tension = g_sys.play_lo_takeup_tension;
+
+		/* Reset the play boost counters */
+		g_servo.play_boost_time     = g_sys.play_lo_boost_time;
+		g_servo.play_boost_step     = g_sys.play_lo_boost_step;
+		g_servo.play_boost_start    = g_sys.play_lo_boost_start;
+		g_servo.play_boost_end      = g_sys.play_lo_boost_end;
+
+		/* If play boost end config parameter is 0, then use
+		 * the takeup tension parameter value instead.
+		 */
+		if (g_sys.play_lo_boost_end == 0)
+			g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
+	}
+
+	ResetTapeTach();
+
+	Semaphore_post(g_semaServo);
 }
 
 //*****************************************************************************
 // Reset STOP servo parameters. This function gets called every time the
-// the machine entering stop servo mode. Here we reset the brake state machine
+// the machine enters stop servo mode. Here we reset the brake state machine
 // and counters used by the stop servo task to perform dynamic braking.
 //*****************************************************************************
 
 void ResetStopServo(int state)
 {
-	IArg key = Gate_enterModule();  // enter critical section
-	{
-		g_servo.stop_brake_torque = 0;
-		g_servo.stop_brake_state  = 0;
-	}
-	Gate_leaveModule(key);
+    //Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+	//g_servo.stop_null_torque = 0;
+	//g_servo.stop_brake_state  = 0;
+	//Semaphore_post(g_semaServo);
 }
 
 //*****************************************************************************
@@ -383,7 +384,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
     long stoptimer = 0;
     long shuttling = 0;
     CMDMSG msg;
-    IArg key;
 
     for(;;)
     {
@@ -533,15 +533,16 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					/* Initialize shuttle mode PID values */
 
-					key = Gate_enterModule();  // enter critical section
-					{
-						ipid_init(&g_servo.pid,
-								 g_sys.shuttle_servo_pgain,     // P-gain
-								 g_sys.shuttle_servo_igain,     // I-gain
-								 g_sys.shuttle_servo_dgain,     // D-gain
-								 PID_TOLERANCE);                 // PID deadband
-					}
-					Gate_leaveModule(key);
+				    //Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+					ipid_init(&g_servo.pid,
+							 g_sys.shuttle_servo_pgain,     // P-gain
+							 g_sys.shuttle_servo_igain,     // I-gain
+							 g_sys.shuttle_servo_dgain,     // D-gain
+							 PID_TOLERANCE);                 // PID deadband
+
+				    //Semaphore_post(g_semaServo);
+
 
        		        // 500 ms delay for tape lifter settling time
         			if (IS_STOPPED())
@@ -577,16 +578,16 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					 /* Initialize the shuttle tension sensor and velocity PID data */
 
-					key = Gate_enterModule();  // enter critical section
-					{
-						/* Initialize shuttle mode PID values */
-						ipid_init(&g_servo.pid,
-								 g_sys.shuttle_servo_pgain,     // P-gain
-								 g_sys.shuttle_servo_igain,     // I-gain
-								 g_sys.shuttle_servo_dgain,     // D-gain
-								 PID_TOLERANCE);                // PID deadband
-					}
-					Gate_leaveModule(key);
+					//Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+					/* Initialize shuttle mode PID values */
+					ipid_init(&g_servo.pid,
+							 g_sys.shuttle_servo_pgain,     // P-gain
+							 g_sys.shuttle_servo_igain,     // I-gain
+							 g_sys.shuttle_servo_dgain,     // D-gain
+							 PID_TOLERANCE);                // PID deadband
+
+					//Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
         			if (IS_STOPPED())

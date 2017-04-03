@@ -142,7 +142,7 @@ typedef struct _SYSPARMS
     long stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
     long stop_max_torque;           	/* must be <= DAC_MAX */
     long stop_min_torque;
-    long stop_brake_torque;   			/* stop brake torque in shuttle mode */
+    long stop_brake_gain;   			/* stop brake torque in shuttle mode */
     long reserved3;
     long reserved4;
 
@@ -195,7 +195,6 @@ typedef struct _SERVODATA
 	unsigned long	tape_tach;			/* tape roller tachometer        */
 	long			stop_null_supply;	/* stop mode supply null         */
 	long			stop_null_takeup;	/* stop mode takeup null         */
-	long			stop_brake_torque;	/* stop servo brake torque       */
 	long			stop_brake_state;	/* stop servo dynamic brake state*/
 	long			offset_null;       	/* takeup/supply tach difference */
 	long			offset_null_sum;

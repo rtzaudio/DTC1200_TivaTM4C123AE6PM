@@ -64,7 +64,7 @@ extern "C" {
 #define DAC_MAX             0x03FF        	/* 10-bit full scale DAC   */
 
 #define ADC_MIN             0           	/* zero scale adc input    */
-#define ADC_MAX             0x03FF      	/* full scale adc input    */
+#define ADC_MAX             0x0FFF      	/* full scale adc input    */
 
 #define QEI_BASE_SUPPLY	    QEI0_BASE   	/* QEI-0 is SUPPLY encoder */
 #define QEI_BASE_TAKEUP	    QEI1_BASE   	/* QEI-1 is TAKEUP encoder */

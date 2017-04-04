@@ -142,7 +142,7 @@ typedef struct _SYSPARMS
     long stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
     long stop_max_torque;           	/* must be <= DAC_MAX */
     long stop_min_torque;
-    long stop_brake_gain;   			/* stop brake torque in shuttle mode */
+    long stop_brake_torque;   			/* stop brake torque in shuttle mode */
     long reserved3;
     long reserved4;
 

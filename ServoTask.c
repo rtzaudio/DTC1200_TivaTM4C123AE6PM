@@ -291,10 +291,10 @@ static void SvcServoStop(void)
     }
     else
     {
-        dynbrake = (500 - g_servo.velocity);
+        dynbrake = (g_sys.stop_brake_torque - g_servo.velocity);
 
         if (dynbrake < 0)
-        	dynbrake = 500;
+        	dynbrake = g_sys.stop_brake_torque;
     }
 
     g_servo.stop_null_supply = dynbrake;

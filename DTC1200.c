@@ -455,7 +455,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
     p->stop_min_torque          = 10;       /* min stop servo torque            */
-    p->stop_brake_gain          = 1;      	/* max stop brake torque            */
+    p->stop_brake_torque        = 500;    	/* max dynamic stop brake torque   */
 
     p->shuttle_supply_tension   = 200;      /* shuttle supply reel tension      */
     p->shuttle_takeup_tension   = 200;      /* shuttle takeup reel tension      */

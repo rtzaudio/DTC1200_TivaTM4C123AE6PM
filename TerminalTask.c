@@ -324,8 +324,8 @@ static MENUITEM stop_items[] = {
 
 { 3, 5, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "Stop Brake Gain ", MI_NRANGE, 0, 5, NULL, set_mdata, DT_LONG,
-		&g_sys.stop_brake_gain },
+{ 5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300, 800, NULL, set_mdata, DT_LONG,
+		&g_sys.stop_brake_torque },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 

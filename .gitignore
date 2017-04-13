@@ -17,6 +17,7 @@
 
 # Libraries
 *.lib
+*.libs
 *.a
 *.la
 *.lo

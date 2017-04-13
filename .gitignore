@@ -9,7 +9,9 @@
 # Directories
 [Dd]ebug/
 [Rr]elease/
-[Ss]rc*/
+[Ss]rc**/
+
+src/makefile.libs
 
 # Precompiled Headers
 *.gch

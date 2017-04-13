@@ -81,18 +81,6 @@ static void ResetStopServo(int state);
 
 extern Semaphore_Handle g_semaServo;
 
-/*
- * The DIP switches are currently defined by the firmware to
- * function as follows:
- *
- *  M_DIPSW1    - Enable one-touch RECORD if this switch is on (use with care).
- *  M_DIPSW2    - Leave tape lifter engaged in STOP mode if this switch is on.
- *  M_DIPSW3    - Leave BRAKES engaged in STOP mode if this switch is on.
- *  M_DIPSW4    - (currently undefined)
- */
-
-/* Leave brakes engaged at stop DIP switch #3 enabled. */
-
 //*****************************************************************************
 // Reset PLAY servo parameters. This gets called every time prior to the
 // transport controller entering play mode. Here we reset all the play boost

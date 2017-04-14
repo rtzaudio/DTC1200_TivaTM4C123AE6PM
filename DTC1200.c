@@ -439,16 +439,16 @@ void InitSysDefaults(SYSPARMS* p)
 #endif
     p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
-    p->brakes_stop_play         = 1;        /* brakes stop from play mode if 1  */
-    p->engage_pinch_roller      = 1;        /* engage pinch roller during play  */
     p->record_pulse_length      = REC_PULSE_DURATION;
     p->tension_sensor_gain      = 3;
 
+    p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
+
 #if (QE_TIMER_PERIOD > 500000)
-    p->velocity_detect          = 100;      /* 100 pulses or less = no velocity */
+    p->vel_detect_threshold     = 100;      /* 100 pulses or less = no velocity */
     p->null_offset_gain         = 2;        /* null offset gain */
 #else
-    p->velocity_detect          = 5;        /* 10 pulses or less = no velocity  */
+    p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
 #endif
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */

@@ -231,7 +231,7 @@ static MENUITEM general_items[] = {
 { 3, 5, "", "GENERAL SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
 { 5, 1, "1", "Velocity Detect Threshold ", MI_NRANGE, 1, 50, NULL, set_mdata,
-		DT_LONG, &g_sys.velocity_detect },
+		DT_LONG, &g_sys.vel_detect_threshold },
 
 { 6, 1, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
 		DT_LONG, &g_sys.record_pulse_length },
@@ -324,13 +324,22 @@ static MENUITEM stop_items[] = {
 
 { 3, 5, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300, 800, NULL, set_mdata, DT_LONG,
+{  5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300, 800, NULL, set_mdata, DT_LONG,
 		&g_sys.stop_brake_torque },
+
+{  7, 5, "", "STOP SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+
+{  9, 1,  "2", "Lifter Engaged at STOP ", MI_BITBOOL, SF_LIFTER_AT_STOP, SF_LIFTER_AT_STOP,
+		NULL, NULL, DT_LONG, &g_sys.sysflags },
+
+{ 10, 1, "3", "Brakes Engaged at STOP ", MI_BITBOOL, SF_BRAKES_AT_STOP, SF_BRAKES_AT_STOP,
+		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
 static MENU menu_stop = { MENU_STOP, stop_items, sizeof(stop_items)
 		/ sizeof(MENUITEM), "STOP MENU" };
+
 
 /*****************************************************************************
  * SHUTTLE MENU ITEMS
@@ -405,17 +414,17 @@ static MENUITEM play_items[] = {
 
 { 12, 5, NULL, "PLAY SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 14, 1, "10", "Play tension velocity gain   ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
+{ 14, 1, "10", "Play Tension Velocity Gain   ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
 		&g_sys.play_tension_gain },
 
 { 15, 1, "11", "Pinch Roller Settling Time   ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
 		&g_sys.pinch_settle_time },
 
-{ 16, 1, "12", "Use Brakes to Stop Play Mode ", MI_VALLIST, 0, 2, s_onoff, NULL, DT_LONG,
-		&g_sys.brakes_stop_play },
+{ 16, 1, "12", "Use Brakes to Stop Play Mode ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
+		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 17, 1, "13", "Engage Pinch Roller at Play  ", MI_VALLIST, 0, 2, s_onoff, NULL, DT_LONG,
-		&g_sys.engage_pinch_roller },
+{ 17, 1, "13", "Engage Pinch Roller at Play  ", MI_BITBOOL, SF_ENGAGE_PINCH_ROLLER, SF_ENGAGE_PINCH_ROLLER,
+		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 

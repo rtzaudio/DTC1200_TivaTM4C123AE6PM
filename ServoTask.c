@@ -138,7 +138,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         long sdir = QEIDirectionGet(QEI_BASE_SUPPLY);
         long tdir = QEIDirectionGet(QEI_BASE_TAKEUP);
 
-        if ((sdir == tdir) && (g_servo.velocity > g_sys.velocity_detect))
+        if ((sdir == tdir) && (g_servo.velocity > g_sys.vel_detect_threshold))
             g_servo.direction = sdir;
 
         /* Read all ADC values which includes the tape tension sensor
@@ -165,7 +165,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        long veldetect = (g_high_speed_flag) ? 10 : 5;	//g_sys.velocity_detect * 2;
+        long veldetect = (g_high_speed_flag) ? 10 : 5;	//g_sys.vel_detect_threshold * 2;
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
@@ -285,7 +285,7 @@ static void SvcServoStop(void)
 
     /*** Calculate the dynamic null braking torque ***/
 
-    if (g_servo.velocity <= g_sys.velocity_detect)
+    if (g_servo.velocity <= g_sys.vel_detect_threshold)
     {
         dynbrake = 0;
     }

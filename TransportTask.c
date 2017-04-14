@@ -329,7 +329,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    {
 #if 0
 		        /* one-touch record if DIP switch #1 is on! */
-		        if (g_switch_option & M_DIPSW1)
+		        if (g_sys.sysflags & SF_ONE_BUTTON_RECORD)
 		        {
 		            /* One-touch punch in/out mode */
 		            if (IS_SERVO_MODE(MODE_PLAY))
@@ -673,7 +673,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
             	        (last_mode == MODE_REW) ||
             	        (last_mode == MODE_PLAY))
             	    {
-            	        if ((last_mode == MODE_PLAY) && g_sys.brakes_stop_play)
+            	        if ((last_mode == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
             	        {
                             /* STOP - Stop capstan servo, engage brakes,
                              * disengage pinch roller, disable record.
@@ -700,13 +700,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		 */
 
             		/* Leave lifter engaged at stop if DIP switch #2 enabled. */
-            		if (g_switch_option & M_DIPSW2)
+            		if (g_sys.sysflags & SF_LIFTER_AT_STOP)
                 		SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
             		else
             			SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH | T_BRAKE);
 
             		/* Leave brakes engaged at stop DIP switch #3 enabled. */
-            		if (g_switch_option & M_DIPSW3)
+            		if (g_sys.sysflags & SF_BRAKES_AT_STOP)
             		    SetTransportMask(T_BRAKE, 0);
 
             		/* Tape lifter settling Time */
@@ -738,7 +738,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
         		    SetTransportMask(0, T_TLIFT | T_BRAKE);
 
         		    /* Settling time for tape lifter release */
-        		    if (g_switch_option & M_DIPSW2)
+        		    if (g_sys.sysflags & SF_LIFTER_AT_STOP)
         		    	Task_sleep(g_sys.lifter_settle_time);
 
         		    /* Play lamp only, diag leds preserved */
@@ -752,7 +752,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
         		     */
 
         		    /* [1] Engage the pinch roller */
-        		    if (g_sys.engage_pinch_roller)
+        		    if (g_sys.sysflags & SF_ENGAGE_PINCH_ROLLER)
         		    {
         		      	/* Engage the pinch roller */
        		        	SetTransportMask(T_PROL, 0);

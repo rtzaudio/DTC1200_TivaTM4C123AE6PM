@@ -83,7 +83,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        1        	/* firmware revision */
+#define FIRMWARE_REV        2        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -125,16 +125,16 @@ typedef struct _SYSPARMS
     /*** GLOBAL PARAMETERS ***/
 
     long debug;                     	/* debug level */
-    long velocity_detect;           	/* stop detect threshold vel (10) 	 */
+    long vel_detect_threshold;         	/* vel detect threshold (10) 	     */
     long null_offset_gain;          	/* reel servo null offset gain 		 */
     long shuttle_slow_velocity;     	/* velocity to reduce sppeed to      */
     long shuttle_slow_offset;       	/* null offset to reduce velocity at */
-    long engage_pinch_roller;			/* engage pinch roller during play   */
-    long brakes_stop_play;				/* use brakes to stop from play mode */
     long pinch_settle_time;		   		/* delay before engaging play mode   */
     long lifter_settle_time;		  	/* tape lifer settling time in ms    */
     long record_pulse_length;			/* record pulse length time          */
     long tension_sensor_gain;			/* tension sensor gain divisor       */
+
+    uint32_t sysflags;					/* global system bit flags           */
 
     /*** STOP SERVO PARAMETERS ***/
 
@@ -180,6 +180,14 @@ typedef struct _SYSPARMS
     long play_hi_boost_step;
     long reserved10;
 } SYSPARMS;
+
+/* System Bit Flags for SYSPARAMS.sysflags */
+
+#define SF_LIFTER_AT_STOP			0x0001	/* leave lifter engaged at stop */
+#define SF_BRAKES_AT_STOP			0x0002	/* leave brakes engaged at stop */
+#define SF_BRAKES_STOP_PLAY			0x0004	/* use brakes to stop play mode */
+#define SF_ENGAGE_PINCH_ROLLER		0x0008	/* engage pinch roller at play  */
+#define SF_ONE_BUTTON_RECORD		0x0010	/* rec button alone to record   */
 
 /*** SERVO & PID LOOP DATA *************************************************/
 
@@ -243,7 +251,7 @@ typedef struct _SERVODATA
 #define SET_SERVO_MODE(m)		(g_cmode = (m & MODE_MASK))
 #define GET_SERVO_MODE()		(g_cmode & MODE_MASK)
 #define IS_SERVO_MODE(m)		(((g_cmode & MODE_MASK) == m) ? 1 : 0)
-#define IS_STOPPED()         	((g_servo.velocity <= g_sys.velocity_detect) ? 1 : 0)
+#define IS_STOPPED()         	((g_servo.velocity <= g_sys.vel_detect_threshold) ? 1 : 0)
 
 /* General Purpose Defines and Macros */
 

@@ -607,7 +607,7 @@ void show_menu(void)
 	if (menu->id == MENU_GENERAL) {
 		char buf[64];
 		get_hex_str(buf, g_ui8SerialNumber, 16);
-		tty_pos(18, 1);
+		tty_pos(18, 3);
 		tty_printf("Serial# %s", buf);
 	}
 

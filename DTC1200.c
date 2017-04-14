@@ -238,7 +238,7 @@ Void MainPollTask(UArg a0, UArg a1)
     /* Read the initial mode switch states */
     GetModeSwitches(&mode_prev);
     g_high_speed_flag = (mode_prev & M_HISPEED) ? 1 : 0;
-    g_switch_option   = (mode_prev & M_DIPSW_MASK);
+    g_dip_switch      = (mode_prev & M_DIPSW_MASK);
 
     /* Read the initial transport switch states */
     GetTransportSwitches(&tran_prev);
@@ -254,6 +254,7 @@ Void MainPollTask(UArg a0, UArg a1)
     }
 
     /* Initialize servo loop controller data */
+    g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;
     g_servo.offset_null_sum   = 0;
     g_servo.tsense_sum        = 0;
@@ -412,7 +413,7 @@ Void MainPollTask(UArg a0, UArg a1)
                 g_high_speed_flag = (bits & M_HISPEED) ? 1 : 0;
 
                 /* Save the updated DIP switch settings */
-                g_switch_option = bits & M_DIPSW_MASK;
+                g_dip_switch = bits & M_DIPSW_MASK;
             }
         }
 

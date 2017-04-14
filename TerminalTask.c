@@ -477,6 +477,9 @@ void Terminal_initialize(void)
 {
 	UART_Params uartParams;
 
+	/* 57600, 38400, 19200, 9600, etc */
+	uint32_t baud = (g_dip_switch & M_DIPSW1) ? 9600: 19200;
+
 	/* Open the UART port for the TTY console */
 
 	UART_Params_init(&uartParams);
@@ -491,7 +494,7 @@ void Terminal_initialize(void)
 	uartParams.writeDataMode  = UART_DATA_BINARY;
 	uartParams.readDataMode   = UART_DATA_TEXT;
 	uartParams.readEcho       = UART_ECHO_OFF;
-	uartParams.baudRate       = 19200;					// 57600, 38400, 19200;
+	uartParams.baudRate       = baud;
 	uartParams.dataLength	  = UART_LEN_8;
 	uartParams.parityType     = UART_PAR_NONE;
 	uartParams.stopBits       = UART_STOP_ONE;

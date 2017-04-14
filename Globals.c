@@ -88,13 +88,11 @@ SYSPARMS g_sys;
 /* Servo & System Data in RAM */
 SERVODATA g_servo;
 
-long g_cmode = MODE_HALT;    /* current transport mode */
-
 uint8_t g_lamp_mask       = 0;        	/* current led/lamp output mask */
 uint8_t g_lamp_mask_prev  = 0xff;     	/* prev led/lamp output mask    */
 uint8_t g_lamp_blink_mask = 0;
 
-uint8_t g_switch_option   = 0;        	/* option DIP switch settings */
+uint8_t g_dip_switch      = 0;        	/* option DIP switch settings */
 uint8_t g_high_speed_flag = 0;        	/* non-zero if hi-speed tape  */
 uint8_t g_tape_out_flag   = 0;        	/* current tape out status */
 

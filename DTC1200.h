@@ -248,9 +248,9 @@ typedef struct _SERVODATA
 
 /* Macros to get/set servo mode */
 
-#define SET_SERVO_MODE(m)		(g_cmode = (m & MODE_MASK))
-#define GET_SERVO_MODE()		(g_cmode & MODE_MASK)
-#define IS_SERVO_MODE(m)		(((g_cmode & MODE_MASK) == m) ? 1 : 0)
+#define SET_SERVO_MODE(m)		(g_servo.mode = (m & MODE_MASK))
+#define GET_SERVO_MODE()		(g_servo.mode & MODE_MASK)
+#define IS_SERVO_MODE(m)		(((g_servo.mode & MODE_MASK) == m) ? 1 : 0)
 #define IS_STOPPED()         	((g_servo.velocity <= g_sys.vel_detect_threshold) ? 1 : 0)
 
 /* General Purpose Defines and Macros */

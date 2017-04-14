@@ -64,13 +64,11 @@ extern long g_capdata_count;
 extern SYSPARMS  g_sys;
 extern SERVODATA g_servo;
 
-extern long g_cmode;
-
 extern uint8_t g_lamp_mask;
 extern uint8_t g_lamp_mask_prev;
 extern uint8_t g_lamp_blink_mask;
 
-extern uint8_t g_switch_option;
+extern uint8_t g_dip_switch;
 extern uint8_t g_high_speed_flag;
 extern uint8_t g_tape_out_flag;
 

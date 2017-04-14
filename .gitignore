@@ -11,6 +11,10 @@
 [Rr]elease/
 [Ss]rc/**/
 
+.settings/
+.launches/
+.config/**/
+
 # Precompiled Headers
 *.gch
 *.pch

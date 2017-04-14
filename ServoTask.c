@@ -246,7 +246,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * DISPATCH TO THE CURRENT SERVO MODE HANDLER
          **********************************************/
 
-        (*jmptab[g_cmode & MODE_MASK])();
+        (*jmptab[g_servo.mode & MODE_MASK])();
 
         /* Toggle I/O pin for debug timing measurement*/
         GPIO_write(DTC1200_EXPANSION_PF3, PIN_LOW);

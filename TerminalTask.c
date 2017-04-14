@@ -156,10 +156,10 @@ static const char* s_escstr = "<ESC> Key Exits...";
 
 static const char* s_title = "MM-1200 Transport/Servo Controller - v%u.%-2.2u";
 
-static MENU_ARGLIST s_onoff[] = {
-	{ "On", 	1,	},
-	{ "Off",	0	}
-};
+//static MENU_ARGLIST s_onoff[] = {
+//	{ "On", 	1,	},
+//	{ "Off",	0	}
+//};
 
 /*
  *  Menu ID defines

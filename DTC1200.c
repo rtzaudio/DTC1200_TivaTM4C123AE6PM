@@ -431,13 +431,8 @@ void InitSysDefaults(SYSPARMS* p)
     /* default servo parameters */
     p->version                  = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
     p->debug                    = 0;        /* debug mode 0=off                 */
-#if (QE_TIMER_PERIOD > 500000)
-    p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
-    p->shuttle_slow_offset      = 110;      /* offset to reduce velocity at     */
-#else
     p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
     p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
-#endif
     p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
     p->record_pulse_length      = REC_PULSE_DURATION;
@@ -445,35 +440,26 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
-#if (QE_TIMER_PERIOD > 500000)
-    p->vel_detect_threshold     = 100;      /* 100 pulses or less = no velocity */
-    p->null_offset_gain         = 2;        /* null offset gain */
-#else
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
-#endif
+
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
     p->stop_min_torque          = 10;       /* min stop servo torque            */
-    p->stop_brake_torque        = 500;    	/* max dynamic stop brake torque   */
+    p->stop_brake_torque        = 650;    	/* max dynamic stop brake torque   */
 
     p->shuttle_supply_tension   = 200;      /* shuttle supply reel tension      */
     p->shuttle_takeup_tension   = 200;      /* shuttle takeup reel tension      */
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
-#if (QE_TIMER_PERIOD > 500000)
-    p->shuttle_velocity         = 3500;     /* max shuttle velocity             */
-    p->shuttle_servo_pgain      = 32;       /* shuttle mode servo P-gain        */
+
+    p->shuttle_velocity         = 420;      /* max shuttle velocity             */
+    p->shuttle_servo_pgain      = 100;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
-#else
-    p->shuttle_velocity         = 320;      /* max shuttle velocity             */
-    p->shuttle_servo_pgain      = 100;      /* shuttle mode servo P-gain        */
-    p->shuttle_servo_igain      = 32;       /* shuttle mode servo I-gain        */
-    p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
-#endif
-    p->play_tension_gain        = 10;       /* play tension velocity gain factor*/
+
+    p->play_tension_gain        = 9;        /* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 200;      /* supply tension level (0-DAC_MAX) */
     p->play_lo_takeup_tension   = 200;      /* takeup tension level (0-DAC_MAX) */
     p->play_hi_supply_tension   = 200;      /* supply tension level (0-DAC_MAX) */

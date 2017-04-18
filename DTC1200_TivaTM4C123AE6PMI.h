@@ -158,8 +158,7 @@ extern "C" {
 #define C_MIRROR        0x40	/* INT A/B pins mirrored                   */
 #define C_BANK          0x80	/* port registers are in different banks   */
 
-/*
- * Tape moves at 30 IPS in high speed and 15 IPS in low speed. We want to
+/* Tape moves at 30 IPS in high speed and 15 IPS in low speed. We want to
  * sample and correct at 0.3" intervals so our sample rate needs to
  * be 100 Hz (30/0.3 = 100). The timer delay period required in
  * milliseconds is 1/Hz * 1000. Therefore 1/100*1000 = 10ms. Therefore,
@@ -167,10 +166,9 @@ extern "C" {
  */
 
 /* This macro is used to calculate the RPM of the motor based on velocity.
- * Our encoders are US Digital Model H1-360-I with 360 pulses per revolution.
- * We configure the QEI to capture edges on both signals and maintain an
- * absolute angular position by resetting on index pulses. So, our 360 PPR
- * encoder at four edges per line, gives us 1440 pulses per revolution.
+ * We are using Austria Micro Systems AS5047D with 500 pulses per revolution.
+ * The QEI module is configured to capture both quadrature edges. Thus,
+ * the 500 PPR encoder at four edges per line, gives us 2000 edges per rev.
  *
  * The period of the timer is configurable by specifying the load value
  * for the timer in the QEILOAD register. We can calculate RPM with
@@ -178,35 +176,29 @@ extern "C" {
  *
  *	RPM = (clock * (2 ^ VelDiv) * Speed * 60) / (Load * PPR * Edges)
  *
- * For our case, consider a motor running at 600 rpm. A 360 pulse per
- * revolution quadrature encoder is attached to the motor, producing 1440
+ * For our case, consider a motor running at 600 rpm. A 500 pulse per
+ * revolution quadrature encoder is attached to the motor, producing 2000
  * phase edges per revolution. With a velocity pre-divider of ÷1
  * (VelDiv set to 0) and clocking on both PhA and PhB edges, this results
- * in 14,400 pulses per second (the motor turns 10 times per second).
- * If the timer were clocked at 50,000,000 Hz, and the load value was
- * 12,500,000 (1/4 of a second), it would count 14400 pulses per update.
+ * in 20,000 pulses per second (the motor turns 10 times per second).
+ * If the timer were clocked at 80,000,000 Hz, and the load value was
+ * 20,000,000 (1/4 of a second), it would count 20000 pulses per update.
  *
  *	RPM = (50,000,000 * 1 * s * 60) / (500,000 * 360 * 4) = 600 rpm
  *	RPM = (100 * s) / 24 = 600 rpm
  *	RPM = (25 * s) / 6 = 600 rpm
  *
- *	RPM = (50,000,000 * 1 * s * 60) / (5,000,000 * 360 * 4) = 600 rpm
- *	RPM = (10 * s) / 24 = 600 rpm
+ *	RPM = (80,000,000 * 1 * s * 60) / (800,000 * 500 * 4) = 600 rpm
+ *	RPM = (100 * s) / 33.33 = 600 rpm
+ *
  */
 
 #define QE_PPR				500				/* encoder pulses per revolution       */
 #define QE_EDGES_PER_REV	(QE_PPR * 4)	/* PPR x 4 for four quad encoder edges */
-#define QE_TIMER_PERIOD		500000			/* period of 500,000 is 10ms at 50MHz  */
+#define QE_TIMER_PERIOD		800000			/* period of 800,000 is 10ms at 80MHz  */
 
 /* Calculate RPM from the velocity value */
-#if (QE_TIMER_PERIOD == 500000)
-	#define RPM(t)				((25 * t) / 6)
-#elif (QE_TIMER_PERIOD == 5000000)
-	#define RPM(t)				((10 * t) / 24)
-#else
-	#pragma(error, "Invalid QE_TIMER_PERIOD Specified!")
-#endif
-
+#define RPM(s)				((25 * s) / 6)
 
 /*!
  *  @def    DTC1200_GPIOName

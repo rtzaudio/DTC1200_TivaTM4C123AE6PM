@@ -324,7 +324,7 @@ static MENUITEM stop_items[] = {
 
 { 3, 5, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{  5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300, 800, NULL, set_mdata, DT_LONG,
+{  5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300,900, NULL, set_mdata, DT_LONG,
 		&g_sys.stop_brake_torque },
 
 {  7, 5, "", "STOP SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
@@ -360,7 +360,7 @@ static MENUITEM shuttle_items[] = {
 
 { 9, 5, NULL, "SHUTTLE SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 11, 1, "7", "Shuttle Mode Velocity     ", MI_NRANGE, 50, 400, NULL, set_mdata,
+{ 11, 1, "7", "Shuttle Mode Velocity     ", MI_NRANGE, 50, 500, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_velocity },
 
 { 12, 1, "8", "Auto Decelerate Velocity  ", MI_NRANGE, 0, 200, NULL, set_mdata,

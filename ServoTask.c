@@ -341,11 +341,7 @@ static void SvcServoStop(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-#if (QE_TIMER_PERIOD > 500000)
-#define RADIUS(ts, rs)  ( ((ts*10)/((rs)+1) >> 1 ) )
-#else
 #define RADIUS(ts, rs)  ( (ts)/((rs)+1) )
-#endif
 
 static void SvcServoPlay(void)
 {

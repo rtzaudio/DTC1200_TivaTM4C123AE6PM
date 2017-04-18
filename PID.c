@@ -78,11 +78,7 @@ void ipid_init(
  * Returns:     The PID output control variable (CV) value.
  */
 
-#if (QE_TIMER_PERIOD > 500000)
 #define GAIN(g,v)		(((g)*(v)+50)/100)
-#else
-#define GAIN(g,v)		(((g)*(v)+50)/100)
-#endif
 
 long ipid_calc(IPID* p, long setpoint, long actual)
 {

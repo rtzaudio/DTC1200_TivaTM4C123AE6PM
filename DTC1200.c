@@ -431,17 +431,15 @@ void InitSysDefaults(SYSPARMS* p)
     /* default servo parameters */
     p->version                  = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
     p->debug                    = 0;        /* debug mode 0=off                 */
-    p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
-    p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
-    p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
-    p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
-    p->record_pulse_length      = REC_PULSE_DURATION;
-    p->tension_sensor_gain      = 3;
 
     p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
+    p->tension_sensor_gain      = 3;
+    p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
+    p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
+    p->record_pulse_length      = REC_PULSE_DURATION;
 
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
@@ -453,9 +451,10 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_takeup_tension   = 200;      /* shuttle takeup reel tension      */
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
-
-    p->shuttle_velocity         = 420;      /* max shuttle velocity             */
-    p->shuttle_servo_pgain      = 100;      /* shuttle mode servo P-gain        */
+    p->shuttle_velocity         = 450;      /* max shuttle velocity             */
+    p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
+    p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
+    p->shuttle_servo_pgain      = 200;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 

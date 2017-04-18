@@ -38,7 +38,7 @@ send us a pull request.
 
 ## License
 
-Copyright (C) 2016, RTZ Professional Audio, LLC
+Copyright (C) 2016-2017, RTZ Professional Audio, LLC
 
 All Rights Reserved
 

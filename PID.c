@@ -78,7 +78,7 @@ void ipid_init(
  * Returns:     The PID output control variable (CV) value.
  */
 
-#define GAIN(g,v)		(((g)*(v)+50)/100)
+#define GAIN(g,v)		(((g)*(v)+50)/50)
 
 long ipid_calc(IPID* p, long setpoint, long actual)
 {

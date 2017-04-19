@@ -155,7 +155,7 @@ Int main()
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.stackSize = 1024;
-    taskParams.priority  = 2;
+    taskParams.priority  = 13;
 
     if (Task_create(MainPollTask, &taskParams, &eb) == NULL)
     {
@@ -211,6 +211,8 @@ void InitPeripherals(void)
 //
 //*****************************************************************************
 
+#define DEBOUNCE	4
+
 Void MainPollTask(UArg a0, UArg a1)
 {
     uint8_t count = 0;
@@ -263,6 +265,11 @@ Void MainPollTask(UArg a0, UArg a1)
     g_servo.dac_halt_supply   = 0;
 	g_servo.play_tension_gain = g_sys.play_tension_gain;
 	g_servo.play_boost_count  = 0;
+	g_servo.rpm_takeup        = 0;
+	g_servo.rpm_takeup_sum    = 0;
+	g_servo.rpm_supply        = 0;
+	g_servo.rpm_supply_sum    = 0;
+	g_servo.rpm_sum_cnt       = 0;
 
     /* Servo's start in halt mode! */
     SET_SERVO_MODE(MODE_HALT);
@@ -358,7 +365,7 @@ Void MainPollTask(UArg a0, UArg a1)
         /* First process the tape out arm switch */
         if ((bits & S_TAPEOUT) != tout_prev)
         {
-            if (++debounce_tout >= 2)
+            if (++debounce_tout >= DEBOUNCE)
             {
                 debounce_tout = 0;
 
@@ -381,7 +388,7 @@ Void MainPollTask(UArg a0, UArg a1)
 
         if (bits != tran_prev)
         {
-            if (++debounce_tran >= 2)
+            if (++debounce_tran >= DEBOUNCE)
             {
                 debounce_tran = 0;
 
@@ -402,7 +409,7 @@ Void MainPollTask(UArg a0, UArg a1)
 
         if (bits != mode_prev)
         {
-            if (++debounce_mode >= 2)
+            if (++debounce_mode >= DEBOUNCE)
             {
                 debounce_mode = 0;
 
@@ -418,7 +425,7 @@ Void MainPollTask(UArg a0, UArg a1)
         }
 
         /* delay for 10ms and loop */
-        Task_sleep(10);
+        Task_sleep(5);
     }
 }
 

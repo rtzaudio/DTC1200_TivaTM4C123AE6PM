@@ -1621,7 +1621,7 @@ void show_monitor_data()
 		tty_pos(6, 15);
 		tty_printf("%-8d", g_servo.velocity_supply);
 		tty_pos(7, 15);
-		tty_printf("%-8d", RPM(g_servo.velocity_supply));
+		tty_printf("%-8u", g_servo.rpm_supply);
 		tty_pos(8, 15);
 		tty_printf("%-8d", g_servo.stop_null_supply);
 		tty_pos(9, 15);
@@ -1633,7 +1633,7 @@ void show_monitor_data()
 		tty_pos(6, 49);
 		tty_printf("%-8d", g_servo.velocity_takeup);
 		tty_pos(7, 49);
-		tty_printf("%-8d", RPM(g_servo.velocity_takeup));
+		tty_printf("%-8u", g_servo.rpm_supply);
 		tty_pos(8, 49);
 		tty_printf("%-8d", g_servo.stop_null_takeup);
 		tty_pos(9, 49);

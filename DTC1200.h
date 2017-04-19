@@ -217,6 +217,11 @@ typedef struct _SERVODATA
     long			play_tension_gain;
     long 			play_supply_tension;
     long 			play_takeup_tension;
+	long			rpm_takeup;
+	long			rpm_takeup_sum;
+	long			rpm_supply;
+	long			rpm_supply_sum;
+	long			rpm_sum_cnt;
     long			tsense;				/* tension sensor value 		 */
     long 			tsense_sum;
 	long			tsense_sample_cnt;

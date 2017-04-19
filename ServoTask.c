@@ -157,6 +157,23 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * BEGIN CALCULATIONS FROM DATA SAMPLE
          ***********************************************************/
 
+        /* We calculate the RPM summed over a 1 second period */
+
+        g_servo.rpm_takeup_sum += g_servo.velocity_takeup;
+        g_servo.rpm_supply_sum += g_servo.velocity_supply;
+
+    	++g_servo.rpm_sum_cnt;
+
+    	if (g_servo.rpm_sum_cnt >= 500)
+    	{
+    		g_servo.rpm_sum_cnt = 0;
+
+    		g_servo.rpm_takeup = (g_servo.rpm_takeup_sum / 2000) * 60;
+    		g_servo.rpm_supply = (g_servo.rpm_supply_sum / 2000) * 60;
+
+    		g_servo.rpm_takeup_sum = g_servo.rpm_supply_sum = 0;
+    	}
+
         /* Calculate the servo null offset value. The servo null offset
          * is the difference in velocity of the takeup and supply reel.
          * The reel with more pack turns more slowly due to larger radius and
@@ -184,7 +201,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
             /* Accumulate the null offset value for averaging */
             g_servo.offset_null_sum += delta;
 
-            if (g_servo.offset_sample_cnt++ >= OFFSET_CALC_PERIOD)
+            ++g_servo.offset_sample_cnt;
+
+            if (g_servo.offset_sample_cnt >= OFFSET_CALC_PERIOD)
             {
                 /* Calculate the averaged null offset value */
                 g_servo.offset_null = (g_servo.offset_null_sum / OFFSET_CALC_PERIOD) >> g_sys.null_offset_gain;

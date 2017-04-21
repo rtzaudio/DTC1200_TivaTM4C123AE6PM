@@ -44,7 +44,6 @@ extern "C" {
 #define Board_initI2C               DTC1200_initI2C
 #define Board_initSPI               DTC1200_initSPI
 #define Board_initUART              DTC1200_initUART
-#define Board_initQEI				DTC1200_initQEI
 #define Board_initADC				DTC1200_initADC
 #define Board_initWatchdog          DTC1200_initWatchdog
 

@@ -107,7 +107,6 @@ Int main()
     Board_initUART();
     Board_initI2C();
     Board_initSPI();
-    Board_initQEI();
     Board_initADC();
 
     /*

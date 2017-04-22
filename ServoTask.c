@@ -107,8 +107,8 @@ static void SvcServoFwd(void);
 static void SvcServoRew(void);
 
 /* Interrupt Handlers */
-static Void QEI0HwiHandler(UArg arg);
-static Void QEI1HwiHandler(UArg arg);
+static Void QEISupplyHwi(UArg arg);
+static Void QEITakeupHwi(UArg arg);
 
 /*****************************************************************************
  * QEI Configuration and interrupt handling
@@ -196,50 +196,90 @@ void DTC1200_initQEI(void)
 
     Error_init(&eb);
     Hwi_Params_init(&hwiParams);
-    Hwi_construct(&(qei0HwiStruct), INT_QEI0, QEI0HwiHandler, &hwiParams, &eb);
+    Hwi_construct(&(qei0HwiStruct), INT_QEI0, QEISupplyHwi, &hwiParams, &eb);
     if (Error_check(&eb)) {
         System_abort("Couldn't construct DMA error hwi");
     }
 
     Error_init(&eb);
     Hwi_Params_init(&hwiParams);
-    Hwi_construct(&(qei1HwiStruct), INT_QEI1, QEI1HwiHandler, &hwiParams, &eb);
+    Hwi_construct(&(qei1HwiStruct), INT_QEI1, QEITakeupHwi, &hwiParams, &eb);
     if (Error_check(&eb)) {
         System_abort("Couldn't construct DMA error hwi");
     }
 
-    //QEIIntEnable(unsigned long ulBase, unsigned long ulIntFlags);
-    //QEIIntDisable(unsigned long ulBase, unsigned long ulIntFlags);
+    QEIIntEnable(QEI_BASE_SUPPLY, QEI_INTERROR|QEI_INTTIMER);
+    QEIIntEnable(QEI_BASE_TAKEUP, QEI_INTERROR);
 }
 
 /*****************************************************************************
  * QEI Interrupt Handlers
  *****************************************************************************/
 
-Void QEI0HwiHandler(UArg arg)
+Void QEISupplyHwi(UArg arg)
 {
+	UInt key;
     unsigned long ulIntStat;
-    // Get and clear the current interrupt source(s)
+
+    /* Get and clear the current interrupt source(s) */
     ulIntStat = QEIIntStatus(QEI_BASE_SUPPLY, true);
     QEIIntClear(QEI_BASE_SUPPLY, ulIntStat);
-//  if (ulIntStat & QEI_INTERROR)       // phase error detected
-//  else if (ulIntStat & QEI_INTDIR)    // velocity timer expired
-//  else if (ulIntStat & QEI_INTTIMER)  // direction change
-//  else if (ulIntStat & QEI_INTINDEX)  // Index pulse detected
-//  QEIIntEnable(QEI_BASE_SUPPLY, ulIntStat);
+
+    /* Determine which interrupt occurred */
+
+    if (ulIntStat & QEI_INTERROR)       	/* phase error detected */
+    {
+    	key = Hwi_disable();
+    	g_servo.qei_supply_error_cnt++;
+    	Hwi_restore(key);
+    }
+    else if (ulIntStat & QEI_INTTIMER)  	/* velocity timer expired */
+    {
+        GPIO_toggle(DTC1200_EXPANSION_PF2);
+    }
+    else if (ulIntStat & QEI_INTDIR)    	/* direction change */
+    {
+
+    }
+    else if (ulIntStat & QEI_INTINDEX)  	/* Index pulse detected */
+    {
+
+    }
+
+    QEIIntEnable(QEI_BASE_SUPPLY, ulIntStat);
 }
 
-Void QEI1HwiHandler(UArg arg)
+Void QEITakeupHwi(UArg arg)
 {
+	UInt key;
     unsigned long ulIntStat;
-    // Get and clear the current interrupt source(s)
+
+    /* Get and clear the current interrupt source(s) */
     ulIntStat = QEIIntStatus(QEI_BASE_TAKEUP, true);
     QEIIntClear(QEI_BASE_TAKEUP, ulIntStat);
-//  if (ulIntStat & QEI_INTERROR)       // phase error detected
-//  else if (ulIntStat & QEI_INTDIR)    // velocity timer expired
-//  else if (ulIntStat & QEI_INTTIMER)  // direction change
-//  else if (ulIntStat & QEI_INTINDEX)  // Index pulse detected
-//  QEIIntEnable(QEI_BASE_TAKEUP, ulIntStat);
+
+    /* Determine which interrupt occurred */
+
+    if (ulIntStat & QEI_INTERROR)       	/* phase error detected */
+    {
+    	key = Hwi_disable();
+    	g_servo.qei_takeup_error_cnt++;
+    	Hwi_restore(key);
+    }
+    else if (ulIntStat & QEI_INTTIMER)  	/* velocity timer expired */
+    {
+
+    }
+    else if (ulIntStat & QEI_INTDIR)    	/* direction change */
+    {
+
+    }
+    else if (ulIntStat & QEI_INTINDEX)  	/* Index pulse detected */
+    {
+
+    }
+
+    QEIIntEnable(QEI_BASE_TAKEUP, ulIntStat);
 }
 
 /*****************************************************************************

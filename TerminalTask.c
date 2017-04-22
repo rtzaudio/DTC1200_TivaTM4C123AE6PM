@@ -1562,7 +1562,7 @@ void show_monitor_screen()
 		tty_pos(6, 1);
 		tty_puts("Velocity    :");
 		tty_pos(7, 1);
-		tty_puts("RPM         :");
+		tty_puts("Errors      :");
 		tty_pos(8, 1);
 		tty_puts("Stop Null   :");
 		tty_pos(9, 1);
@@ -1575,7 +1575,7 @@ void show_monitor_screen()
 		tty_pos(6, 35);
 		tty_puts("Velocity    :");
 		tty_pos(7, 35);
-		tty_puts("RPM         :");
+		tty_puts("Errors      :");
 		tty_pos(8, 35);
 		tty_puts("Stop Null   :");
 		tty_pos(9, 35);
@@ -1621,7 +1621,7 @@ void show_monitor_data()
 		tty_pos(6, 15);
 		tty_printf("%-8d", g_servo.velocity_supply);
 		tty_pos(7, 15);
-		tty_printf("%-8u", g_servo.rpm_supply);
+		tty_printf("%-8u", g_servo.qei_supply_error_cnt);
 		tty_pos(8, 15);
 		tty_printf("%-8d", g_servo.stop_null_supply);
 		tty_pos(9, 15);
@@ -1633,7 +1633,7 @@ void show_monitor_data()
 		tty_pos(6, 49);
 		tty_printf("%-8d", g_servo.velocity_takeup);
 		tty_pos(7, 49);
-		tty_printf("%-8u", g_servo.rpm_supply);
+		tty_printf("%-8u", g_servo.qei_takeup_error_cnt);
 		tty_pos(8, 49);
 		tty_printf("%-8d", g_servo.stop_null_takeup);
 		tty_pos(9, 49);

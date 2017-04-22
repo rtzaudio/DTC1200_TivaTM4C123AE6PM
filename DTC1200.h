@@ -83,7 +83,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        2        	/* firmware revision */
+#define FIRMWARE_REV        3        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -222,6 +222,8 @@ typedef struct _SERVODATA
 	long			rpm_supply;
 	long			rpm_supply_sum;
 	long			rpm_sum_cnt;
+	uint32_t		qei_takeup_error_cnt;
+	uint32_t		qei_supply_error_cnt;
     long			tsense;				/* tension sensor value 		 */
     long 			tsense_sum;
 	long			tsense_sample_cnt;

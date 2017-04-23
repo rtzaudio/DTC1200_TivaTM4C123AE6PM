@@ -600,8 +600,8 @@ void show_menu(void)
 
 	if (menu->id == MENU_MAIN) {
 		int speed = g_high_speed_flag ? 30 : 15;
-		tty_pos(2, 78 - 6);
-		tty_printf("%d IPS", speed);
+		tty_pos(2, 78 - 9);
+		tty_printf("%d IPS %d\"", speed, g_tape_width);
 	}
 
 	if (menu->id == MENU_GENERAL) {

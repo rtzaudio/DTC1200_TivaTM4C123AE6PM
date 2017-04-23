@@ -98,6 +98,8 @@ uint8_t g_tape_out_flag   = 0;        	/* current tape out status */
 
 uint8_t g_ui8SerialNumber[16];
 
+uint32_t g_tape_width;					/* tape width 0=one-inch, 1=two-inch */
+
 #if (CAPDATA_SIZE > 0)
 CAPDATA g_capdata[CAPDATA_SIZE];
 long g_capdata_count = 0;

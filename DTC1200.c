@@ -254,6 +254,9 @@ Void MainPollTask(UArg a0, UArg a1)
         LampBlinkChase();
     }
 
+    /* Detect tape width from head stack mounted */
+    g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
+
     /* Initialize servo loop controller data */
     g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;

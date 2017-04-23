@@ -71,6 +71,7 @@ extern uint8_t g_lamp_blink_mask;
 extern uint8_t g_dip_switch;
 extern uint8_t g_high_speed_flag;
 extern uint8_t g_tape_out_flag;
+extern uint32_t g_tape_width;		/* tape width 0=one-inch, 1=two-inch */
 
 extern uint8_t g_ui8SerialNumber[16];
 

@@ -210,7 +210,7 @@ void InitPeripherals(void)
 //
 //*****************************************************************************
 
-#define DEBOUNCE	4
+#define DEBOUNCE	6
 
 Void MainPollTask(UArg a0, UArg a1)
 {

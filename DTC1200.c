@@ -216,6 +216,7 @@ Void MainPollTask(UArg a0, UArg a1)
 {
     uint8_t count = 0;
     uint8_t bits = 0x00;
+    uint8_t temp;
     uint8_t tran_prev = 0xff;
     uint8_t mode_prev = 0xff;
     uint8_t tout_prev = 0xff;
@@ -388,14 +389,16 @@ Void MainPollTask(UArg a0, UArg a1)
         /* Next process the tape transport buttons */
         bits &= S_BUTTON_MASK;
 
-        if (bits != tran_prev)
+        temp = bits & ~(S_REC);
+
+        if (temp != tran_prev)
         {
             if (++debounce_tran >= DEBOUNCE)
             {
                 debounce_tran = 0;
 
                 /* Debounced a button press, send it to transport task */
-                tran_prev = bits;
+                tran_prev = temp;
 
                 /* Send the button press to transport ctrl/cmd task */
                 Mailbox_post(g_mailboxCommander, &bits, 10);

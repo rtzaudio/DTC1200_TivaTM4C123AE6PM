@@ -85,6 +85,9 @@ extern Semaphore_Handle g_semaSPI;
 
 #define NUM_OBJ	2
 
+/* U5 : SSI-1 : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS */
+/* U8 : SSI-2 : SPI MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE OUT */
+
 static IOExpander_InitData initData_SPI1[] = {
     { MCP_IOCONA, C_SEQOP },	/* Configure for byte mode */
     { MCP_IODIRA, 0xFF },	    /* Port A - all inputs from transport switches */
@@ -110,6 +113,9 @@ static IOExpander_Object IOExpanderObjects[NUM_OBJ] = {
 /* SPI I/O Expander Handles */
 static IOExpander_Handle g_handleSPI1;
 static IOExpander_Handle g_handleSPI2;
+
+static void gpioExpanderSSI1AHwi(unsigned int index);
+static void gpioExpanderSSI2BHwi(unsigned int index);
 
 /*****************************************************************************
  * Static Function Prototypes
@@ -149,6 +155,39 @@ void IOExpander_initialize(void)
 	g_handleSPI2 = IOExpander_open(1);
 	if (g_handleSPI2 == NULL)
 		System_abort("Error opening SPI2\n");
+
+    /* Setup the callback Hwi handler for each button */
+    GPIO_setCallback(Board_INT1A, gpioExpanderSSI1AHwi);
+    GPIO_setCallback(Board_INT2B, gpioExpanderSSI2BHwi);
+
+    /* Enable keypad button interrupts */
+    //GPIO_enableInt(Board_INT1A);
+    //GPIO_enableInt(Board_INT2B);
+}
+
+
+/*****************************************************************************
+ * SSI-1 : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS
+ *****************************************************************************/
+
+void gpioExpanderSSI1AHwi(unsigned int index)
+{
+	System_abort("SSI1A Interrupt!\n");
+
+	/* Clear the interrupt to re-enable */
+    GPIO_clearInt(index);
+}
+
+/*****************************************************************************
+ * SSI-2 : SPI MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE OUT
+ *****************************************************************************/
+
+void gpioExpanderSSI2BHwi(unsigned int index)
+{
+	System_abort("SSI2B Interrupt!\n");
+
+	/* Clear the interrupt to re-enable */
+    GPIO_clearInt(index);
 }
 
 /*****************************************************************************

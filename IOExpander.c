@@ -51,6 +51,7 @@
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Event.h>
 
 /* TI-RTOS Driver files */
 #include <ti/drivers/GPIO.h>
@@ -78,30 +79,47 @@
 /* Semaphore timeout 100ms */
 
 extern Semaphore_Handle g_semaSPI;
+extern Event_Handle g_eventSPI;
 
 /*****************************************************************************
  * I/O handle and configuration data
  *****************************************************************************/
 
-#define NUM_OBJ	2
+/* U5 (SSI1) : MCP23S17SO TRANSPORT SWITCHES & LAMPS */
 
-/* U5 : SSI-1 : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS */
-/* U8 : SSI-2 : SPI MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE OUT */
+#define INT1A_MASK	(S_STOP | S_PLAY | S_REW | S_FWD | S_LDEF /* | S_TAPEOUT*/ )
 
 static IOExpander_InitData initData_SPI1[] = {
-    { MCP_IOCONA, C_SEQOP },	/* Configure for byte mode */
-    { MCP_IODIRA, 0xFF },	    /* Port A - all inputs from transport switches */
-    { MCP_IODIRB, 0x00 },		/* Port B - all outputs to lamp/led drivers */
-    { MCP_IOPOLA, 0x40 },		/* Invert input polarity of tape-out switch */
+    { MCP_IOCONA, C_SEQOP },		/* Configure for byte mode, INT active low */
+    { MCP_IOCONB, C_SEQOP },		/* Configure for byte mode, INT active low */
+    { MCP_IODIRA, 0xFF },	    	/* Port A - all inputs from transport switches */
+    { MCP_IODIRB, 0x00 },			/* Port B - all outputs to lamp/led drivers */
+    { MCP_IOPOLA, 0x40 },			/* Invert input polarity of tape-out switch */
+#if BUTTON_INTERRUPTS != 0
+	{ MCP_DEFVALA, 0x00 },			/* Default interrupt compare */
+	{ MCP_INTCONA, 0x00 },			/* Interrupt on change */
+	{ MCP_GPINTENA, INT1A_MASK },	/* Interrupt enable mask */
+#endif
 };
+
+/* U8 (SSI2) : MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE SPEED */
+
+#define INT2B_MASK	(M_DIPSW1 | M_DIPSW2 | M_DIPSW3 | M_DIPSW4 | M_HISPEED)
 
 static IOExpander_InitData initData_SPI2[] = {
-    { MCP_IOCONA, C_SEQOP },	/* Configure for byte mode */
-    { MCP_IODIRA, 0x00 },	    /* Port A - solenoid and other drivers, all outputs */
-    { MCP_IODIRB, 0xFF },		/* Port B - DIP switches and tape-speed switch, all inputs. */
-    { MCP_IOPOLB, 0x8F },		/* Invert input polarity of DIP switches and tape-speed switch */
+    { MCP_IOCONA, C_SEQOP },		/* Configure for byte mode, INT active low */
+    { MCP_IOCONB, C_SEQOP },		/* Configure for byte mode, INT active low */
+    { MCP_IODIRA, 0x00 },	    	/* Port A - solenoid and other drivers, all outputs */
+    { MCP_IODIRB, 0xFF },			/* Port B - DIP switches and tape-speed switch, all inputs. */
+    { MCP_IOPOLB, 0x8F },			/* Invert input polarity of DIP switches and tape-speed switch */
+#if BUTTON_INTERRUPTS != 0
+    { MCP_DEFVALB, 0x00 },			/* Default interrupt compare */
+	{ MCP_INTCONB, 0x00 },			/* Interrupt on change */
+	{ MCP_GPINTENB, INT2B_MASK },	/* Interrupt enable mask */
+#endif
 };
 
+#define NUM_OBJ		2
 #define NCOUNT(d)	( sizeof(d)/sizeof(IOExpander_InitData) )
 
 /* I/O Expander Handle Data */
@@ -111,84 +129,232 @@ static IOExpander_Object IOExpanderObjects[NUM_OBJ] = {
 };
 
 /* SPI I/O Expander Handles */
-static IOExpander_Handle g_handleSPI1;
-static IOExpander_Handle g_handleSPI2;
-
-static void gpioExpanderSSI1AHwi(unsigned int index);
-static void gpioExpanderSSI2BHwi(unsigned int index);
+IOExpander_Handle g_handleSPI1;
+IOExpander_Handle g_handleSPI2;
 
 /*****************************************************************************
  * Static Function Prototypes
  *****************************************************************************/
 
-static bool MCP23S17_write(
-	IOExpander_Handle	handle,
-    uint8_t   			ucRegAddr,
-    uint8_t   			ucData
-    );
-
-static bool MCP23S17_read(
-	IOExpander_Handle	handle,
-    uint8_t				ucRegAddr,
-    uint8_t*			pucData
-    );
-
 static IOExpander_Handle IOExpander_open(uint32_t index);
 
+#if BUTTON_INTERRUPTS != 0
+static void gpioExpanderSSI1AHwi(unsigned int index);
+static void gpioExpanderSSI2BHwi(unsigned int index);
+#endif
+
 /*****************************************************************************
- * PUBLIC FUNCTIONS
+ * Initialize the MCP23017 I/O Expander Chips
  *****************************************************************************/
+
 void IOExpander_initialize(void)
 {
+#if BUTTON_INTERRUPTS != 0
+    Error_Block eb;
+#endif
+
 	/* Reset low pulse to I/O expanders */
 	GPIO_write(Board_RESET_MCP, PIN_LOW);
     Task_sleep(100);
 	GPIO_write(Board_RESET_MCP, PIN_HIGH);
     Task_sleep(100);
 
-	/* Open the SPI 1 port */
+	/* Open the SPI 1 & 2 ports */
 	g_handleSPI1 = IOExpander_open(0);
-	if (g_handleSPI1 == NULL)
-		System_abort("Error opening SPI1\n");
-
-	/* Open the SPI 2 port */
 	g_handleSPI2 = IOExpander_open(1);
-	if (g_handleSPI2 == NULL)
-		System_abort("Error opening SPI2\n");
 
-    /* Setup the callback Hwi handler for each button */
+#if BUTTON_INTERRUPTS != 0
+    /* Create interrupt signal event */
+	Error_init(&eb);
+	g_eventSPI = Event_create(NULL, &eb);
+
+	/* Setup the callback Hwi handler for interrupt notify pins */
     GPIO_setCallback(Board_INT1A, gpioExpanderSSI1AHwi);
     GPIO_setCallback(Board_INT2B, gpioExpanderSSI2BHwi);
 
     /* Enable keypad button interrupts */
-    //GPIO_enableInt(Board_INT1A);
-    //GPIO_enableInt(Board_INT2B);
+    GPIO_enableInt(Board_INT1A);
+    GPIO_enableInt(Board_INT2B);
+#endif
 }
 
-
+#if BUTTON_INTERRUPTS != 0
 /*****************************************************************************
- * SSI-1 : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS
+ * U5 (SSI1) : MCP23S17SO INT HANDLER TRANSPORT SWITCHES & LAMPS
  *****************************************************************************/
 
 void gpioExpanderSSI1AHwi(unsigned int index)
 {
-	System_abort("SSI1A Interrupt!\n");
-
-	/* Clear the interrupt to re-enable */
-    GPIO_clearInt(index);
+	Event_post(g_eventSPI, Event_Id_00);
 }
 
 /*****************************************************************************
- * SSI-2 : SPI MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE OUT
+ * U8 (SSI2) : MCP23S17SO INT HANDLER (SOLENOID, CONFIG DIP SWITCH & TAPE SPEED
  *****************************************************************************/
 
 void gpioExpanderSSI2BHwi(unsigned int index)
 {
-	System_abort("SSI2B Interrupt!\n");
-
-	/* Clear the interrupt to re-enable */
-    GPIO_clearInt(index);
+	Event_post(g_eventSPI, Event_Id_01);
 }
+#endif
+
+/*****************************************************************************
+ * Initialize the MCP23017 I/O Expander Chips U5 on SS1 and U8 on SSI2
+ *****************************************************************************/
+
+IOExpander_Handle IOExpander_open(uint32_t index)
+{
+	uint32_t i, key;
+	IOExpander_Handle handle;
+	IOExpander_InitData* initData;
+	SPI_Params	spiParams;
+
+	handle = &(IOExpanderObjects[index]);
+
+	/* Determine if the device index was already opened */
+	key = Hwi_disable();
+	if (handle->spiHandle)
+	{
+		Hwi_restore(key);
+		return NULL;
+	}
+	Hwi_restore(key);
+
+	SPI_Params_init(&spiParams);
+
+	spiParams.transferMode	= SPI_MODE_BLOCKING;
+	spiParams.mode 			= SPI_MASTER;
+	spiParams.frameFormat 	= SPI_POL0_PHA0;
+	spiParams.bitRate 		= 5000000;
+	spiParams.dataSize 		= 8;
+
+	/* Open SPI driver to the IO Expander */
+	handle->spiHandle = SPI_open(handle->boardSPI, &spiParams);
+
+	if (handle->spiHandle == NULL)
+	{
+		System_printf("Error opening I/O Expander SPI port\n");
+		return NULL;
+	}
+
+	/* Initialize the I/O expander */
+
+	initData = IOExpanderObjects[index].initData;
+
+	for (i=0; i < IOExpanderObjects[index].initDataCount; i++)
+	{
+		MCP23S17_write(handle, initData->addr, initData->data);
+		++initData;
+	}
+
+	return handle;
+}
+
+/*****************************************************************************
+ * Write a register command byte to MCP23S17 expansion I/O controller.
+ *****************************************************************************/
+
+bool MCP23S17_write(
+	IOExpander_Handle	handle,
+    uint8_t   			ucRegAddr,
+    uint8_t   			ucData
+    )
+{
+	uint8_t txBuffer[3];
+	uint8_t rxBuffer[3];
+	SPI_Transaction transaction;
+
+	txBuffer[0] = 0x40;			/* write opcode */
+	txBuffer[1] = ucRegAddr;	/* register address */
+	txBuffer[2] = ucData;		/* register data */
+
+	/* Initialize opcode transaction structure */
+	transaction.count = 3;
+	transaction.txBuf = (Ptr)&txBuffer;
+	transaction.rxBuf = (Ptr)&rxBuffer;
+
+	/* Hold SPI chip select low */
+	GPIO_write(handle->boardCS, PIN_LOW);
+
+	/* Initiate SPI transfer of opcode */
+	if(!SPI_transfer(handle->spiHandle, &transaction))
+	{
+	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
+	    return false;
+	}
+
+	/* Release SPI chip select */
+	GPIO_write(handle->boardCS, PIN_HIGH);
+
+	return true;
+}
+
+/*****************************************************************************
+ * Read a register command byte from MCP23S17 expansion I/O controller.
+ *****************************************************************************/
+
+bool MCP23S17_read(
+	IOExpander_Handle	handle,
+    uint8_t				ucRegAddr,
+    uint8_t*			pucData
+    )
+{
+	uint8_t txBuffer[3];
+	uint8_t rxBuffer[3];
+	SPI_Transaction transaction;
+
+	txBuffer[0] = 0x41;			/* read opcode */
+	txBuffer[1] = ucRegAddr;	/* register address */
+	txBuffer[2] = 0;			/* dummy byte */
+
+	/* Initialize opcode transaction structure */
+	transaction.count = 3;
+	transaction.txBuf = (Ptr)&txBuffer;
+	transaction.rxBuf = (Ptr)&rxBuffer;
+
+	/* Hold SPI chip select low */
+	GPIO_write(handle->boardCS, PIN_LOW);
+
+	/* Initiate SPI transfer of opcode */
+	if(!SPI_transfer(handle->spiHandle, &transaction))
+	{
+	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
+	    return false;
+	}
+
+	/* Release SPI chip select */
+	GPIO_write(handle->boardCS, PIN_HIGH);
+
+	/* Return the register data byte */
+	*pucData = rxBuffer[2];
+
+	return true;
+}
+
+/*****************************************************************************
+ * Read the INTF interrupt flags register
+ *****************************************************************************/
+
+#if BUTTON_INTERRUPTS != 0
+uint32_t GetInterruptFlags(uint8_t* pucIntFlags, uint8_t* pucCapFlags)
+{
+	uint32_t rc = 0;
+
+	/* Acquire the semaphore for exclusive access */
+    if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
+    {
+    	/* Read the interrupt flag register (bit that caused interrupt) */
+    	MCP23S17_read(g_handleSPI1, MCP_INTFA, pucIntFlags);
+
+    	/* Read the interrupt capture data register */
+    	MCP23S17_read(g_handleSPI1, MCP_INTCAPA, pucCapFlags);
+
+    	Semaphore_post(g_semaSPI);
+    }
+
+    return rc;
+}
+#endif
 
 /*****************************************************************************
  * Read the transport control switches, returns any of the following bits:
@@ -360,160 +526,6 @@ uint8_t GetLampMask(void)
     }
 
     return mask;
-}
-
-/*****************************************************************************
- * STATIC PRIVATE FUNCTIONS
- *****************************************************************************/
-
-/*****************************************************************************
- * Initialize the MCP23017 I/O Expander Chips U5 on SS1 and U8 on SSI2
- *****************************************************************************/
-
-IOExpander_Handle IOExpander_open(uint32_t index)
-{
-	uint32_t i, key;
-	IOExpander_Handle handle;
-	IOExpander_InitData* initData;
-	SPI_Params	spiParams;
-
-	handle = &(IOExpanderObjects[index]);
-
-	/* Determine if the device index was already opened */
-	key = Hwi_disable();
-	if (handle->spiHandle) {
-		Hwi_restore(key);
-		return NULL;
-	}
-	Hwi_restore(key);
-
-	SPI_Params_init(&spiParams);
-
-	spiParams.transferMode	= SPI_MODE_BLOCKING;
-	spiParams.mode 			= SPI_MASTER;
-	spiParams.frameFormat 	= SPI_POL0_PHA0;
-	spiParams.bitRate 		= 1000000;
-	spiParams.dataSize 		= 8;
-
-	/* Open SPI driver to the IO Expander */
-	handle->spiHandle = SPI_open(handle->boardSPI, &spiParams);
-
-	if (handle->spiHandle == NULL) {
-		System_printf("Error opening I/O Expander SPI port\n");
-		return NULL;
-	}
-
-	/* Initialize the I/O expander */
-
-	initData = IOExpanderObjects[index].initData;
-
-	for (i=0; i < IOExpanderObjects[index].initDataCount; i++)
-	{
-		MCP23S17_write(handle, initData->addr, initData->data);
-	     ++initData;
-	}
-
-	return handle;
-}
-
-/*****************************************************************************
- * Write a register command byte to MCP23S17 expansion I/O controller.
- *****************************************************************************/
-
-bool MCP23S17_write(
-	IOExpander_Handle	handle,
-    uint8_t   			ucRegAddr,
-    uint8_t   			ucData
-    )
-{
-	SPI_Transaction opcodeTransaction;
-	SPI_Transaction dataTransaction;
-	uint8_t txBuffer[2];
-	uint8_t rxBuffer[2];
-	uint8_t dummyBuffer = 0;
-
-	txBuffer[0] = 0x40;			/* write opcode */
-	txBuffer[1] = ucRegAddr;	/* register address */
-
-	/* Initialize opcode transaction structure */
-	opcodeTransaction.count = 2;
-	opcodeTransaction.txBuf = (Ptr)&txBuffer;
-	opcodeTransaction.rxBuf = (Ptr)&rxBuffer;
-
-	/* Initialize data transaction structure */
-	dataTransaction.count = 1;
-	dataTransaction.txBuf = (Ptr)&ucData;
-	dataTransaction.rxBuf = (Ptr)&dummyBuffer;
-
-	/* Hold SPI chip select low */
-	GPIO_write(handle->boardCS, PIN_LOW);
-
-	/* Initiate SPI transfer of opcode */
-	if(!SPI_transfer(handle->spiHandle, &opcodeTransaction)) {
-	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
-	    return false;
-	}
-
-	/* Initiate SPI transfer of data */
-	if(!SPI_transfer(handle->spiHandle, &dataTransaction)) {
-	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
-	    return false;
-	}
-
-	/* Release SPI chip select */
-	GPIO_write(handle->boardCS, PIN_HIGH);
-
-	return true;
-}
-
-/*****************************************************************************
- * Read a register command byte from MCP23S17 expansion I/O controller.
- *****************************************************************************/
-
-bool MCP23S17_read(
-	IOExpander_Handle	handle,
-    uint8_t				ucRegAddr,
-    uint8_t*			pucData
-    )
-{
-	SPI_Transaction opcodeTransaction;
-	SPI_Transaction dataTransaction;
-	uint8_t txBuffer[2];
-	uint8_t rxBuffer[2];
-	uint8_t dummyBuffer = 0;
-
-	txBuffer[0] = 0x41;			/* read opcode */
-	txBuffer[1] = ucRegAddr;	/* register address */
-
-	/* Initialize opcode transaction structure */
-	opcodeTransaction.count = 2;
-	opcodeTransaction.txBuf = (Ptr)&txBuffer;
-	opcodeTransaction.rxBuf = (Ptr)&rxBuffer;
-
-	/* Initialize data transaction structure */
-	dataTransaction.count = 1;
-	dataTransaction.txBuf = (Ptr)&dummyBuffer;
-	dataTransaction.rxBuf = (Ptr)pucData;
-
-	/* Hold SPI chip select low */
-	GPIO_write(handle->boardCS, PIN_LOW);
-
-	/* Initiate SPI transfer of opcode */
-	if(!SPI_transfer(handle->spiHandle, &opcodeTransaction)) {
-	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
-	    return false;
-	}
-
-	/* Initiate SPI transfer of data */
-	if(!SPI_transfer(handle->spiHandle, &dataTransaction)) {
-	    System_printf("Unsuccessful master SPI transfer to MCP23S17");
-	    return false;
-	}
-
-	/* Release SPI chip select */
-	GPIO_write(handle->boardCS, PIN_HIGH);
-
-	return true;
 }
 
 // End-Of-File

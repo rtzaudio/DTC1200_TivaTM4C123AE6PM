@@ -89,7 +89,7 @@ Semaphore_Handle g_semaServo;
 /* Static Function Prototypes */
 Int main();
 Void MainPollTask(UArg a0, UArg a1);
-int ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
+bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
 
 //*****************************************************************************
 // Main Program Entry Point
@@ -207,8 +207,291 @@ void InitPeripherals(void)
 }
 
 //*****************************************************************************
-//
+// The main application initialization, setup and button controler task.
 //*****************************************************************************
+
+#if BUTTON_INTERRUPTS != 0
+
+/**************** INTERRUPT DRIVEN BUTTON EVENTS ******************/
+
+Void MainControlTask(UArg a0, UArg a1)
+{
+	int status;
+    uint8_t blink = 0;
+    uint8_t intcap = 0;
+    uint8_t intflag;
+    uint8_t intmask;
+    uint8_t mask;
+    uint8_t tout;
+    uint8_t tout_prev;
+	uint32_t ticks;
+	uint32_t tdiff;
+    Error_Block eb;
+    Task_Params taskParams;
+
+    /* Initialize the default servo and program data values */
+    memset(&g_servo, 0, sizeof(SERVODATA));
+    memset(&g_sys, 0, sizeof(SYSPARMS));
+
+    InitPeripherals();
+
+    /* Read the initial mode switch states */
+    GetModeSwitches(&mask);
+    g_high_speed_flag = (mask & M_HISPEED) ? 1 : 0;
+    g_dip_switch      = (mask & M_DIPSW_MASK);
+
+    /* Read the initial transport switch states */
+    GetTransportSwitches(&tout);
+    tout &= S_TAPEOUT;
+	tout_prev = tout;
+	g_tape_out_flag   = (tout & S_TAPEOUT) ? 1 : 0;
+
+    /* Detect tape width from head stack mounted */
+    g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
+
+	/* Initialize system default values */
+	InitSysDefaults(&g_sys);
+
+	/* Read the system parameters from EEPROM */
+	status = SysParamsRead(&g_sys);
+
+    /* Initialize servo loop controller data */
+    g_servo.mode              = MODE_HALT;
+    g_servo.offset_sample_cnt = 0;
+    g_servo.offset_null_sum   = 0;
+    g_servo.tsense_sum        = 0;
+    g_servo.tsense_sample_cnt = 0;
+    g_servo.dac_halt_takeup   = 0;
+    g_servo.dac_halt_supply   = 0;
+	g_servo.play_tension_gain = g_sys.play_tension_gain;
+	g_servo.play_boost_count  = 0;
+	g_servo.rpm_takeup        = 0;
+	g_servo.rpm_takeup_sum    = 0;
+	g_servo.rpm_supply        = 0;
+	g_servo.rpm_supply_sum    = 0;
+	g_servo.rpm_sum_cnt       = 0;
+
+    /* Servo's start in halt mode! */
+    SET_SERVO_MODE(MODE_HALT);
+
+    /* Create the transport command/control and terminal tasks.
+     * The three tasks provide the bulk of the system control services.
+     */
+
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 1024;
+    taskParams.priority  = 9;
+
+    if (Task_create(TransportCommandTask, &taskParams, &eb) == NULL)
+    {
+        System_abort("Transport command task create failed!\n");
+    }
+
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 1024;
+    taskParams.priority  = 10;
+
+    if (Task_create(TransportControllerTask, &taskParams, &eb) == NULL)
+    {
+        System_abort("Transport controller task create failed!\n");
+    }
+
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 2048;
+    taskParams.priority  = 1;
+
+    if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
+    {
+        System_abort("Terminal task create failed!\n");
+    }
+
+    /* Initialize the tape tach timers and interrupt.
+     * This tach provides the tape speed from the tape
+     * counter roller.
+     */
+
+    Tachometer_initialize();
+
+    /* Start the transport servo loop timer clock running.
+     * We create an auto-reload periodic timer for the servo loop.
+     * Note we are servicing the servo task at 500 Hz.
+     */
+
+    Error_init(&eb);
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 500;
+    taskParams.priority  = 15;
+
+    if (Task_create(ServoLoopTask, &taskParams, &eb) == NULL)
+    {
+        System_abort("Servo loop task create failed!\n");
+    }
+
+    /* Send initial tape arm out state to transport ctrl/cmd task */
+
+    mask = (tout & S_TAPEOUT) ? S_TAPEOUT : S_TAPEIN;
+    Mailbox_post(g_mailboxCommander, &mask, 10);
+
+    /* Blink all lamps if error reading EPROM config data, otherwise
+     * blink each lamp sequentially on success.
+     */
+
+    if (status != 0)
+    	LampBlinkError();
+    else
+        LampBlinkChase();
+
+    g_lamp_blink_mask = L_STAT1;
+
+    /****************************************************************
+     * Enter the main application button processing loop forever.
+     ****************************************************************/
+
+    for(;;)
+    {
+    	/* Wait for ANY I/O expander ISR events to be posted */
+    	UInt events = Event_pend(g_eventSPI, Event_Id_NONE, Event_Id_00 | Event_Id_01, 50);
+
+    	/* U5 (SSI1) : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS */
+
+    	if (events & Event_Id_00)
+    	{
+    		/* Read the interrupt flag register (bit that caused interrupt)
+    		 * and the interrupt capture data register.
+    		 */
+    		GetInterruptFlags(&intflag, &intcap);
+
+    		/* Clear the GPIO interrupt status from U5 */
+    		GPIO_clearInt(Board_INT1A);
+
+            /* Determine if the tape out arm is active or not
+             * and send any change in the switch state to
+             * the transport control/command task.
+             */
+
+    		//if (intflag & S_TAPEOUT)
+    		//{
+    		//	tout = (intcap & S_TAPEOUT);
+    		//}
+			//else
+    		{
+				if (intcap & ~(S_REC))
+				{
+					/* Rising edge interrupt, button pressed */
+					ticks = Clock_getTicks();
+
+					/* Save bit mask that generated the interrupt */
+					intmask = intflag;
+				}
+				else
+				{
+					/* Falling edge interrupt, button released */
+					tdiff = Clock_getTicks() - ticks;
+
+					if (tdiff > g_sys.debounce)
+					{
+						/* First process the tape arm out switch */
+						if (intmask & S_STOP)
+						{
+							mask = S_STOP | (intcap & S_REC);;
+							Mailbox_post(g_mailboxCommander, &mask, 10);
+						}
+						else if (intmask & S_PLAY)
+						{
+							mask = S_PLAY | (intcap & S_REC);
+							Mailbox_post(g_mailboxCommander, &mask, 10);
+						}
+						else if (intmask & S_FWD)
+						{
+							mask = S_FWD;
+							Mailbox_post(g_mailboxCommander, &mask, 10);
+						}
+						else if (intmask & S_REW)
+						{
+							mask = S_REW;
+							Mailbox_post(g_mailboxCommander, &mask, 10);
+						}
+						else if (intmask & S_LDEF)
+						{
+							mask = S_LDEF;
+							Mailbox_post(g_mailboxCommander, &mask, 10);
+						}
+					}
+				}
+    		}
+    	}
+
+    	/* U8 (SSI2) : SPI MCP23S17SO SOLENOID, DIP SWITCH & TAPE SPEED */
+
+    	if (events & Event_Id_01)
+    	{
+    		/* Read the interrupt flag register (bit that caused interrupt) */
+    		MCP23S17_read(g_handleSPI2, MCP_INTFB, &intflag);
+
+    		/* Read the interrupt capture data register */
+    		MCP23S17_read(g_handleSPI2, MCP_INTCAPB, &intcap);
+
+    		/* Clear the GPIO interrupt status from U8 */
+    		GPIO_clearInt(Board_INT2B);
+
+    		/* Store the switch state changes */
+    	    g_high_speed_flag = (intcap & M_HISPEED) ? 1 : 0;
+    	    g_dip_switch      = (intcap & M_DIPSW_MASK);
+    	}
+
+        /* If no interrupt events, handle tape out arm state & LED's */
+
+    	if (!events)
+    	{
+    		/* Poll the tape out arm switch state */
+    		GetTransportSwitches(&tout);
+
+    		tout &= S_TAPEOUT;
+
+    		if (tout != tout_prev)
+        	{
+	            /* Save the new state */
+	            tout_prev = tout;
+
+	            /* Set the tape out arm state */
+	            g_tape_out_flag = (tout & S_TAPEOUT) ? 1 : 0;
+
+	            mask = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
+
+	            /* Send the button press to transport ctrl/cmd task */
+	            Mailbox_post(g_mailboxCommander, &mask, 10);
+        	}
+
+			/* See if its time to blink any LED(s) mask */
+
+			if (++blink >= 10)
+			{
+				blink = 0;
+				g_lamp_mask ^= g_lamp_blink_mask;
+			}
+
+			/* Set any new led/lamp state. We only update the LED
+			 * output port if the lamp mask state changed.
+			 */
+
+			if (g_lamp_mask != g_lamp_mask_prev)
+			{
+				/* Set the new lamp state */
+				SetLamp(g_lamp_mask);
+
+				/* Update the previous lamp state*/
+				g_lamp_mask_prev = g_lamp_mask;
+			}
+    	}
+    }
+}
+
+#else
+
+/**************** POLLED TRANSPORT BUTTON EVENTS ******************/
 
 #define DEBOUNCE	6
 
@@ -223,6 +506,7 @@ Void MainPollTask(UArg a0, UArg a1)
     uint8_t debounce_tran = 0;
     uint8_t debounce_mode = 0;
     uint8_t debounce_tout = 0;
+    int status;
     Error_Block eb;
     Task_Params taskParams;
 
@@ -247,13 +531,7 @@ Void MainPollTask(UArg a0, UArg a1)
     g_tape_out_flag   = (tran_prev & S_TAPEOUT) ? 1 : 0;
 
     /* Read the system config parameters from storage */
-    if (SysParamsRead(&g_sys) != 0) {
-        /* blink ALL lamps on error */
-        LampBlinkError();
-    } else {
-        /* blink each lamp individually on success */
-        LampBlinkChase();
-    }
+    status = SysParamsRead(&g_sys);
 
     /* Detect tape width from head stack mounted */
     g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
@@ -334,6 +612,16 @@ Void MainPollTask(UArg a0, UArg a1)
      * Enter the main application button processing loop forever.
      ****************************************************************/
 
+    /* Blink all lamps if error reading EPROM config data, otherwise
+     * blink each lamp sequentially on success.
+     */
+
+    if (status != 0)
+        LampBlinkError();
+    else
+        LampBlinkChase();
+
+    /* Set initial status blink LED mask */
     g_lamp_blink_mask = L_STAT1;
 
     for(;;)
@@ -434,6 +722,8 @@ Void MainPollTask(UArg a0, UArg a1)
     }
 }
 
+#endif
+
 //*****************************************************************************
 // Set default runtime values
 //*****************************************************************************
@@ -452,6 +742,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
     p->record_pulse_length      = REC_PULSE_DURATION;
+    p->debounce                 = 30;
 
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
@@ -497,7 +788,7 @@ void InitSysDefaults(SYSPARMS* p)
 //          -1 = Error writing EEPROM data
 //*****************************************************************************
 
-int SysParamsWrite(SYSPARMS* sp)
+int32_t SysParamsWrite(SYSPARMS* sp)
 {
     int32_t rc = 0;
 
@@ -515,12 +806,12 @@ int SysParamsWrite(SYSPARMS* sp)
 //*****************************************************************************
 // Read system parameters into our global settings buffer from EEPROM.
 //
-// Returns:  0 = Sucess
+// Returns:  0 = Success
 //          -1 = Error reading flash
 //
 //*****************************************************************************
 
-int SysParamsRead(SYSPARMS* sp)
+int32_t SysParamsRead(SYSPARMS* sp)
 {
     InitSysDefaults(sp);
 
@@ -558,7 +849,7 @@ int SysParamsRead(SYSPARMS* sp)
 // the AT24CS01 I2C serial EPROM and serial# number device.
 //*****************************************************************************
 
-int ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16])
+bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16])
 {
 	bool			ret;
 	uint8_t			txByte;

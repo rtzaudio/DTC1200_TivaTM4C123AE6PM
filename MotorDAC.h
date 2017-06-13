@@ -43,6 +43,14 @@
 #ifndef DTC1200_MOTORDAC_H_
 #define DTC1200_MOTORDAC_H_
 
+#define DAC_CLAMP(dac, min, max)    \
+{                                   \
+    if (dac < min)                  \
+        dac = min;                  \
+    else if (dac > max)             \
+        dac = max;                  \
+}                                   \
+
 void MotorDAC_initialize(void);
 void MotorDAC_write(uint32_t supply, uint32_t takeup);
 

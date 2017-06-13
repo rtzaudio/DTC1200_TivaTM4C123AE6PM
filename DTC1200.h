@@ -40,8 +40,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ============================================================================ */
 
-#define DEBUG	1
-
 /* Standard includes */
 #include <file.h>
 #include <stdio.h>
@@ -83,35 +81,40 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        3        	/* firmware revision */
+#define FIRMWARE_REV        4        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
 
-#define UNDEFINED           (-1)
+#define UNDEFINED           ((uint32_t)(-1))
 
 /* Timeout for SPI communications */
-#define TIMEOUT_SPI			1000
+#define TIMEOUT_SPI			500
 
 /* Default record strobe pulse length */
 #define REC_PULSE_DURATION	20
 
+/*** Build/Config Options **************************************************/
+
+#define DEBUG_LEVEL			0
+#define BUTTON_INTERRUPTS	0			/* 1=interrupt, 0=polled buttons */
+#define CAPDATA_SIZE		0			/* 250 = 0.5 sec of capture data */
+
 /*** System Structures *****************************************************/
 
-//#define CAPDATA_SIZE		250				/* 0.5 seconds of capture data */
-// #define CAPDATA_SIZE		0				/* 0.5 seconds of capture data */
-
+#if (CAPDATA_SIZE > 0)
 typedef struct _CAPDATA
 {
-	long dac_takeup;
-	long dac_supply;
-	long vel_takeup;
-	long vel_supply;
-	long rad_supply;
-	long rad_takeup;
-	long tape_tach;
-	long tension;
+	uint32_t dac_takeup;
+	uint32_t dac_supply;
+	int32_t vel_takeup;
+	int32_t vel_supply;
+	int32_t rad_supply;
+	int32_t rad_takeup;
+	int32_t tape_tach;
+	int32_t tension;
 } CAPDATA;
+#endif
 
 /* This structure contains runtime and program configuration data that is
  * stored and read from EEPROM. The structure size must be 4 byte aligned.
@@ -119,66 +122,67 @@ typedef struct _CAPDATA
 
 typedef struct _SYSPARMS
 {
-    unsigned long magic;
-    unsigned long version;
+	uint32_t magic;
+	uint32_t version;
 
     /*** GLOBAL PARAMETERS ***/
 
-    long debug;                     	/* debug level */
-    long vel_detect_threshold;         	/* vel detect threshold (10) 	     */
-    long null_offset_gain;          	/* reel servo null offset gain 		 */
-    long shuttle_slow_velocity;     	/* velocity to reduce sppeed to      */
-    long shuttle_slow_offset;       	/* null offset to reduce velocity at */
-    long pinch_settle_time;		   		/* delay before engaging play mode   */
-    long lifter_settle_time;		  	/* tape lifer settling time in ms    */
-    long record_pulse_length;			/* record pulse length time          */
-    long tension_sensor_gain;			/* tension sensor gain divisor       */
+    int32_t debug;                     	/* debug level */
+    int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
+    int32_t null_offset_gain;          	/* reel servo null offset gain 		 */
+    int32_t shuttle_slow_velocity;     	/* velocity to reduce sppeed to      */
+    int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
+    int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
+    int32_t lifter_settle_time;		  	/* tape lifer settling time in ms    */
+    int32_t record_pulse_length;		/* record pulse length time          */
+    int32_t tension_sensor_gain;		/* tension sensor gain divisor       */
 
+    uint32_t debounce;					/* debounce transport buttons time   */
     uint32_t sysflags;					/* global system bit flags           */
 
     /*** STOP SERVO PARAMETERS ***/
 
-    long stop_supply_tension;       	/* supply tension level (0-DAC_MAX)  */
-    long stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
-    long stop_max_torque;           	/* must be <= DAC_MAX */
-    long stop_min_torque;
-    long stop_brake_torque;   			/* stop brake torque in shuttle mode */
-    long reserved3;
-    long reserved4;
+    int32_t stop_supply_tension;       	/* supply tension level (0-DAC_MAX)  */
+    int32_t stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
+    int32_t stop_max_torque;           	/* must be <= DAC_MAX */
+    int32_t stop_min_torque;
+    int32_t stop_brake_torque;   		/* stop brake torque in shuttle mode */
+    int32_t reserved3;
+    int32_t reserved4;
 
     /*** SHUTTLE SERVO PARAMETERS ***/
 
-    long shuttle_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
-    long shuttle_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
-    long shuttle_max_torque;        	/* must be <= DAC_MAX */
-    long shuttle_min_torque;
-    long shuttle_velocity;          	/* max shuttle speed (2000 - 10000)      */
+    int32_t shuttle_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
+    int32_t shuttle_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t shuttle_max_torque;        	/* must be <= DAC_MAX */
+    int32_t shuttle_min_torque;
+    int32_t shuttle_velocity;          	/* max shuttle speed (2000 - 10000)      */
     /* reel servo PID values */
-    long reserved5;
-    long shuttle_servo_pgain;       	/* P-gain */
-    long shuttle_servo_igain;       	/* I-gain */
-    long shuttle_servo_dgain;       	/* D-gain */
+    int32_t reserved5;
+    int32_t shuttle_servo_pgain;       	/* P-gain */
+    int32_t shuttle_servo_igain;       	/* I-gain */
+    int32_t shuttle_servo_dgain;       	/* D-gain */
     /* tension sensor PID values */
-    long reserved6;
+    int32_t reserved6;
 
     /*** PLAY SERVO PARAMETERS ***/
 
-    long play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
-    long play_lo_takeup_tension;     	/* play takeup tension level (0-DAC_MAX) */
-    long play_hi_supply_tension;     	/* play supply tension level (0-DAC_MAX) */
-    long play_hi_takeup_tension;     	/* play takeup tension level (0-DAC_MAX) */
-    long play_max_torque;            	/* must be <= DAC_MAX */
-    long play_min_torque;
-    long play_tension_gain;				/* play tension velocity gain factor   ) */
-    long play_hi_boost_start;
-    long play_hi_boost_end;
-    long play_lo_boost_start;
-    long play_lo_boost_end;
-    long play_lo_boost_time;			/* duration of play boost acceleration   */
-    long play_lo_boost_step;		 	/* amount to decrement boost count by    */
-    long play_hi_boost_time;
-    long play_hi_boost_step;
-    long reserved10;
+    int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
+    int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
+    int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t play_max_torque;           	/* must be <= DAC_MAX */
+    int32_t play_min_torque;
+    int32_t play_tension_gain;			/* play tension velocity gain factor   ) */
+    int32_t play_hi_boost_start;
+    int32_t play_hi_boost_end;
+    int32_t play_lo_boost_start;
+    int32_t play_lo_boost_end;
+    int32_t play_lo_boost_time;			/* duration of play boost acceleration   */
+    int32_t play_lo_boost_step;		 	/* amount to decrement boost count by    */
+    int32_t play_hi_boost_time;
+    int32_t play_hi_boost_step;
+    int32_t reserved10;
 } SYSPARMS;
 
 /* System Bit Flags for SYSPARAMS.sysflags */
@@ -187,7 +191,6 @@ typedef struct _SYSPARMS
 #define SF_BRAKES_AT_STOP			0x0002	/* leave brakes engaged at stop */
 #define SF_BRAKES_STOP_PLAY			0x0004	/* use brakes to stop play mode */
 #define SF_ENGAGE_PINCH_ROLLER		0x0008	/* engage pinch roller at play  */
-#define SF_ONE_BUTTON_RECORD		0x0010	/* rec button alone to record   */
 
 /*** SERVO & PID LOOP DATA *************************************************/
 
@@ -195,88 +198,56 @@ typedef struct _SYSPARMS
 
 typedef struct _SERVODATA
 {
-	long			mode;				/* the current servo mode        */
-	long 			direction;			/* 1 = fwd or -1 = reverse       */
-	long			velocity;		    /* sum of both reel velocities   */
-	long			velocity_supply;	/* supply tach count per sample  */
-	long 			velocity_takeup;    /* takeup tach count per sample  */
-	unsigned long	tape_tach;			/* tape roller tachometer        */
-	long			stop_null_supply;	/* stop mode supply null         */
-	long			stop_null_takeup;	/* stop mode takeup null         */
-	long			stop_brake_state;	/* stop servo dynamic brake state*/
-	long			offset_null;       	/* takeup/supply tach difference */
-	long			offset_null_sum;
-	long			offset_sample_cnt;
-	long 			offset_takeup;		/* takeup null offset value      */
-	long			offset_supply;		/* supply null offset value      */
-	long			play_boost_count;
-    long 			play_boost_time;	/* play boost timer counter      */
-    long			play_boost_step;	/* decrement boost time step     */
-    long			play_boost_start;
-    long			play_boost_end;
-    long			play_tension_gain;
-    long 			play_supply_tension;
-    long 			play_takeup_tension;
-	long			rpm_takeup;
-	long			rpm_takeup_sum;
-	long			rpm_supply;
-	long			rpm_supply_sum;
-	long			rpm_sum_cnt;
-	uint32_t		qei_takeup_error_cnt;
-	uint32_t		qei_supply_error_cnt;
-    long			tsense;				/* tension sensor value 		 */
-    long 			tsense_sum;
-	long			tsense_sample_cnt;
-    uint32_t		adc[8];				/* ADC values (tension, etc)     */
-	unsigned long	dac_takeup;			/* current takeup DAC level      */
-	unsigned long	dac_supply;			/* current supply DAC level      */
-	unsigned long 	dac_halt_supply;	/* halt mode DAC level           */
-	unsigned long	dac_halt_takeup;	/* halt mode DAC level           */
-	IPID 			pid;				/* servo loop PID data           */
+	uint32_t	mode;				/* the current servo mode        */
+	int32_t		motion;				/* servo motion flag             */
+	int32_t 	direction;			/* 1 = fwd or -1 = reverse       */
+	int32_t		velocity;		    /* sum of both reel velocities   */
+	int32_t		velocity_supply;	/* supply tach count per sample  */
+	int32_t 	velocity_takeup;    /* takeup tach count per sample  */
+	uint32_t	tape_tach;			/* tape roller tachometer        */
+	int32_t		stop_null_supply;	/* stop mode supply null         */
+	int32_t		stop_null_takeup;	/* stop mode takeup null         */
+	int32_t		stop_brake_state;	/* stop servo dynamic brake state*/
+	int32_t		offset_null;       	/* takeup/supply tach difference */
+	int32_t		offset_null_sum;
+	int32_t		offset_sample_cnt;
+	int32_t 	offset_takeup;		/* takeup null offset value      */
+	int32_t		offset_supply;		/* supply null offset value      */
+	int32_t		play_boost_count;
+    int32_t 	play_boost_time;	/* play boost timer counter      */
+    int32_t		play_boost_step;	/* decrement boost time step     */
+    int32_t		play_boost_start;
+    int32_t		play_boost_end;
+    int32_t		play_tension_gain;
+    int32_t 	play_supply_tension;
+    int32_t 	play_takeup_tension;
+	int32_t		rpm_takeup;
+	int32_t		rpm_takeup_sum;
+	int32_t		rpm_supply;
+	int32_t		rpm_supply_sum;
+	int32_t		rpm_sum_cnt;
+	uint32_t	qei_takeup_error_cnt;
+	uint32_t	qei_supply_error_cnt;
+    int32_t		tsense;				/* tension sensor value 		 */
+    int32_t 	tsense_sum;
+	int32_t		tsense_sample_cnt;
+    uint32_t	adc[8];				/* ADC values (tension, etc)     */
+    uint32_t	dac_takeup;			/* current takeup DAC level      */
+    uint32_t	dac_supply;			/* current supply DAC level      */
+    uint32_t 	dac_halt_supply;	/* halt mode DAC level           */
+    uint32_t	dac_halt_takeup;	/* halt mode DAC level           */
+	IPID 		pid;				/* servo loop PID data           */
 	/*** Debug Variables ***/
-	long 			db_cv;
-	long 			db_error;
-	long			db_debug;
+	int32_t 	db_cv;
+	int32_t 	db_error;
+	int32_t		db_debug;
 } SERVODATA;
 
 /*** Macros & Function Prototypes ******************************************/
 
-/* Servo Mode Constants */
-
-#define MODE_HALT       0       		/* all servo motion halted		*/
-#define MODE_STOP       1       		/* servo stop mode				*/
-#define MODE_PLAY       2       		/* servo play mode				*/
-#define MODE_FWD        3       		/* servo forward mode			*/
-#define MODE_REW        4       		/* servo rewind mode			*/
-
-#define M_RECORD		0x080			/* upper bit indicates record   */
-
-#define MODE_MASK		0x07
-
-/* Macros to get/set servo mode */
-
-#define SET_SERVO_MODE(m)		(g_servo.mode = (m & MODE_MASK))
-#define GET_SERVO_MODE()		(g_servo.mode & MODE_MASK)
-#define IS_SERVO_MODE(m)		(((g_servo.mode & MODE_MASK) == m) ? 1 : 0)
-#define IS_STOPPED()         	((g_servo.velocity <= g_sys.vel_detect_threshold) ? 1 : 0)
-
-/* General Purpose Defines and Macros */
-
-#define TAPE_DIR_FWD			(-1)	/* play, fwd direction */
-#define TAPE_DIR_REW			(1)		/* rewind direction    */
-
-#define DAC_CLAMP(dac, min, max)    \
-{                                   \
-    if (dac < min)                  \
-        dac = min;                  \
-    else if (dac > max)             \
-        dac = max;                  \
-}                                   \
-
 /* main.c */
-void MotorDAC_write(uint32_t supply, uint32_t takeup);
 void InitSysDefaults(SYSPARMS* p);
-int SysParamsWrite(SYSPARMS* sp);
-int SysParamsRead(SYSPARMS* sp);
+int32_t SysParamsWrite(SYSPARMS* sp);
+int32_t SysParamsRead(SYSPARMS* sp);
 
 /* End-Of-File */

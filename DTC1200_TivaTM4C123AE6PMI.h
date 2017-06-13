@@ -58,16 +58,16 @@ extern "C" {
 #define PIN_LOW			( 0)
 #define PIN_HIGH		(~0)
 
-/*** Hardware Constants ****************************************************/
+/*** Hardware Constants *******************************************************/
 
-#define DAC_MIN             0           	/* zero scale dac setting  */
-#define DAC_MAX             0x03FF        	/* 10-bit full scale DAC   */
+#define DAC_MIN			0           /* zero scale DAC setting  */
+#define DAC_MAX			0x03FF      /* 10-bit full scale DAC   */
 
-#define ADC_MIN             0           	/* zero scale adc input    */
-#define ADC_MAX             0x0FFF      	/* full scale adc input    */
+#define ADC_MIN			0           /* zero scale ADC input    */
+#define ADC_MAX			0x0FFF      /* 12-bit full scale ADC   */
 
 /*******************************************************************************
- * MCP23017 I/O Expander U5 Lamp Definitions
+ * MCP23017 I/O Expander U5 Button/Switch and Lamp Definitions
  ******************************************************************************/
 
 /* Transport Switch Inputs */
@@ -123,28 +123,28 @@ extern "C" {
  * MCP23017 Register Addresses (IOCON.BANK = 0)
  ******************************************************************************/
 
-#define MCP_IODIRA      0x00
-#define MCP_IODIRB      0x01
-#define MCP_IOPOLA      0x02
-#define MCP_IOPOLB      0x03
-#define MCP_GPINTENA    0x04
-#define MCP_GPINTENB    0x05
-#define MCP_DEFVALA     0x06
-#define MCP_DEFVALB     0x07
-#define MCP_INTCONA     0x08
-#define MCP_INTCONB     0x09
-#define MCP_IOCONA      0x0A
-#define MCP_IOCONB      0x0B
-#define MCP_GPPUA       0x0C
-#define MCP_GPPUB       0x0D
-#define MCP_INTFA       0x0E
-#define MCP_INTFB       0x0F
-#define MCP_INTCAPA     0x10
-#define MCP_INTCAPB     0x11
-#define MCP_GPIOA       0x12
-#define MCP_GPIOB       0x13
-#define MCP_OLATA       0x14
-#define MCP_OLATB       0x15
+#define MCP_IODIRA      0x00		// I/O DIRECTION REGISTER
+#define MCP_IODIRB      0x01		// I/O DIRECTION REGISTER
+#define MCP_IOPOLA      0x02		// INPUT POLARITY REGISTER
+#define MCP_IOPOLB      0x03		// INPUT POLARITY REGISTER
+#define MCP_GPINTENA    0x04		// INTERRUPT-ON-CHANGE CONTROL REGISTER
+#define MCP_GPINTENB    0x05		// INTERRUPT-ON-CHANGE CONTROL REGISTER
+#define MCP_DEFVALA     0x06		// DEFAULT COMPARE REGISTER FOR INT-ON-CHANGE
+#define MCP_DEFVALB     0x07		// DEFAULT COMPARE REGISTER FOR INT-ON-CHANGE
+#define MCP_INTCONA     0x08		// INTERRUPT CONTROL REGISTER
+#define MCP_INTCONB     0x09		// INTERRUPT CONTROL REGISTER
+#define MCP_IOCONA      0x0A		// I/O EXPANDER CONFIGURATION REGISTER
+#define MCP_IOCONB      0x0B		// I/O EXPANDER CONFIGURATION REGISTER
+#define MCP_GPPUA       0x0C		// GPIO PULL-UP RESISTOR REGISTER
+#define MCP_GPPUB       0x0D		// GPIO PULL-UP RESISTOR REGISTER
+#define MCP_INTFA       0x0E		// INTERRUPT FLAG REGISTER
+#define MCP_INTFB       0x0F		// INTERRUPT FLAG REGISTER
+#define MCP_INTCAPA     0x10		// INTERRUPT CAPTURED VALUE FOR PORT REGISTER
+#define MCP_INTCAPB     0x11		// INTERRUPT CAPTURED VALUE FOR PORT REGISTER
+#define MCP_GPIOA       0x12		// GENERAL PURPOSE I/O PORT REGISTER
+#define MCP_GPIOB       0x13		// GENERAL PURPOSE I/O PORT REGISTER
+#define MCP_OLATA       0x14		// OUTPUT LATCH REGISTER
+#define MCP_OLATB       0x15		// OUTPUT LATCH REGISTER
 
 /* IOCON Configuration Register Bits */
 #define C_INTPOL        0x02	/* INT output 1=Active-high, 0=Active-low. */
@@ -164,8 +164,8 @@ extern "C" {
  *  @brief  Enum of LED names on the DTC1200 dev board
  */
 typedef enum DTC1200_GPIOName {
-	DTC1200_MCP23S17T_INT1A = 0,	/* PG4 */
-	DTC1200_MCP23S17T_INT2B,		/* PG3 */
+	DTC1200_MCP23S17T_INT1A = 0,	/* PG3 */
+	DTC1200_MCP23S17T_INT2B,		/* PG4 */
 	DTC1200_TAPE_END,				/* PC7 */
 	DTC1200_TAPE_WIDTH,				/* PG2 */
 	DTC1200_SSI0FSS,				/* PA3 */

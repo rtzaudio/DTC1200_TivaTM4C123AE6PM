@@ -74,6 +74,7 @@
 /* XDCtools Header files */
 #include "Board.h"
 #include "DTC1200.h"
+#include "MotorDAC.h"
 #include "Globals.h"
 
 static SPI_Handle g_handleSpi0 = 0;

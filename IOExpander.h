@@ -49,9 +49,9 @@ typedef struct IOExpander_InitData {
 } IOExpander_InitData;
 
 typedef struct IOExpander_Object {
-    SPI_Handle      		spiHandle;	/* Handle for SPI object */
-    uint32_t    			boardSPI; 	/* Board SPI in Board.h */
-    uint32_t    			boardCS;  	/* Board chip select in Board.h */
+    SPI_Handle      		spiHandle;		/* Handle for SPI object */
+    uint32_t    			boardSPI; 		/* Board SPI in Board.h */
+    uint32_t    			boardCS;  		/* Board chip select in Board.h */
     IOExpander_InitData* 	initData;
     uint32_t				initDataCount;
 } IOExpander_Object;
@@ -64,7 +64,19 @@ typedef IOExpander_Object *IOExpander_Handle;
 
 void IOExpander_initialize(void);
 
-// These functions access the I/O Expanders
+bool MCP23S17_write(
+	IOExpander_Handle	handle,
+    uint8_t   			ucRegAddr,
+    uint8_t   			ucData
+    );
+
+bool MCP23S17_read(
+	IOExpander_Handle	handle,
+    uint8_t				ucRegAddr,
+    uint8_t*			pucData
+    );
+
+/* These functions access the I/O Expanders */
 
 uint32_t GetTransportSwitches(uint8_t* pucMask);
 uint32_t GetModeSwitches(uint8_t* pucMask);

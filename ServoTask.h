@@ -88,14 +88,30 @@
 /* Calculate RPM from the velocity value */
 #define RPM(s)				((25 * s) / 6)
 
+/*** Servo Mode Constants **************************************************/
 
-/* Function Prototypes */
+#define MODE_HALT       	0       		/* all servo motion halted		*/
+#define MODE_STOP       	1       		/* servo stop mode				*/
+#define MODE_PLAY       	2       		/* servo play mode				*/
+#define MODE_FWD        	3       		/* servo forward mode			*/
+#define MODE_REW        	4       		/* servo rewind mode			*/
 
-void SetServoMode(long mode);
-long GetServoMode(void);
+#define M_RECORD			0x080			/* upper bit indicates record   */
+
+#define MODE_MASK			0x07
+
+/* General Purpose Defines and Macros */
+
+#define TAPE_DIR_FWD		(-1)			/* play, fwd direction */
+#define TAPE_DIR_REW		(1)				/* rewind direction    */
+
+/*** Function Prototypes ***************************************************/
+
+#define SET_SERVO_MODE(m)		(g_servo.mode = (m & MODE_MASK))
+#define GET_SERVO_MODE()		(g_servo.mode & MODE_MASK)
+#define IS_SERVO_MODE(m)		(((g_servo.mode & MODE_MASK) == m) ? 1 : 0)
+#define IS_STOPPED()			((g_servo.motion == 0) ? 1 : 0)
 
 Void ServoLoopTask(UArg a0, UArg a1);
-
-void MotorDAC_write(uint32_t supply, uint32_t takeup);
 
 #endif /* DTC1200_TIVATM4C123AE6PMI_SERVOTASK_H_ */

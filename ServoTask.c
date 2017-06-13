@@ -327,6 +327,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
         /* Calculate the current total reel velocity. */
         g_servo.velocity = g_servo.velocity_supply + g_servo.velocity_takeup;
 
+        /* Set the motion active status flag */
+        g_servo.motion = (g_servo.velocity > g_sys.vel_detect_threshold) ? 1 : 0;
+
         /* Read the current direction and make sure both reels are
          * moving and moving in the same direction before changing
          * state to avoid jitter at near stopped conditions.

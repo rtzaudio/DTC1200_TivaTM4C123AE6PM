@@ -325,24 +325,6 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    	if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
 			    	QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
 		    }
-		    else if (mbutton == S_REC)
-		    {
-#if 0
-		        /* one-touch record if DIP switch #1 is on! */
-		        if (g_sys.sysflags & SF_ONE_BUTTON_RECORD)
-		        {
-		            /* One-touch punch in/out mode */
-		            if (IS_SERVO_MODE(MODE_PLAY))
-		            {
-		                /* Is transport already in record mode? */
-		                if (GetTransportMask() & T_RECH)
-		                	RecordDisable();
-		                else
-		                	RecordEnable();
-		            }
-		        }
-#endif
-		    }
 	    }
     }
 }
@@ -365,12 +347,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
 	uint8_t temp;
 	uint8_t playrec;
 	uint8_t lamp_mask;
-    long mode = UNDEFINED;
-    long prev_mode = UNDEFINED;
-    long last_mode = UNDEFINED;
-    long pendstop = 0;
-    long stoptimer = 0;
-    long shuttling = 0;
+    int32_t shuttling = 0;
+    uint32_t mode = UNDEFINED;
+    uint32_t prev_mode = UNDEFINED;
+    uint32_t last_mode = UNDEFINED;
+    uint32_t pendstop = 0;
+    uint32_t stoptimer = 0;
     CMDMSG msg;
 
     for(;;)
@@ -498,6 +480,26 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					pendstop = MODE_STOP;
 					break;
 
+				case MODE_PLAY:
+
+					/* Ignore if already in play mode */
+					if (IS_SERVO_MODE(MODE_PLAY))
+						break;
+
+					/* upper bit indicates record when starting play mode */
+				    playrec = (msg.op & M_RECORD) ? 1 : 0;
+
+					/* Turn on the play lamp */
+					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
+
+					/* Set the reel servos to stop mode initially */
+					ResetStopServo(2);
+					SET_SERVO_MODE(MODE_STOP);
+
+			    	prev_mode = MODE_PLAY;
+					pendstop = MODE_PLAY;
+					break;
+
 				case MODE_REW:
 
 					/* Disable record if active! */
@@ -521,16 +523,15 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					/* Initialize shuttle mode PID values */
 
-				    //Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+				    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
 					ipid_init(&g_servo.pid,
 							 g_sys.shuttle_servo_pgain,     // P-gain
 							 g_sys.shuttle_servo_igain,     // I-gain
 							 g_sys.shuttle_servo_dgain,     // D-gain
-							 PID_TOLERANCE);                 // PID deadband
+							 PID_TOLERANCE);                // PID deadband
 
-				    //Semaphore_post(g_semaServo);
-
+				    Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
         			if (IS_STOPPED())
@@ -566,16 +567,15 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					 /* Initialize the shuttle tension sensor and velocity PID data */
 
-					//Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+					Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-					/* Initialize shuttle mode PID values */
 					ipid_init(&g_servo.pid,
 							 g_sys.shuttle_servo_pgain,     // P-gain
 							 g_sys.shuttle_servo_igain,     // I-gain
 							 g_sys.shuttle_servo_dgain,     // D-gain
 							 PID_TOLERANCE);                // PID deadband
 
-					//Semaphore_post(g_semaServo);
+					Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
         			if (IS_STOPPED())
@@ -586,26 +586,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 			    	prev_mode = MODE_FWD;
 					mode = UNDEFINED;
-					break;
-
-				case MODE_PLAY:
-
-					/* Ignore if already in play mode */
-					if (IS_SERVO_MODE(MODE_PLAY))
-						break;
-
-					/* upper bit indicates record when starting play mode */
-				    playrec = (msg.op & M_RECORD) ? 1 : 0;
-
-					/* Turn on the play lamp */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
-
-					/* Set the reel servos to stop mode initially */
-					ResetStopServo(2);
-					SET_SERVO_MODE(MODE_STOP);
-
-			    	prev_mode = MODE_PLAY;
-					pendstop = MODE_PLAY;
 					break;
 
 				default:
@@ -789,5 +769,59 @@ Void TransportControllerTask(UArg a0, UArg a1)
  	    }
     }
 }
+
+//*****************************************************************************
+//
+//
+//*****************************************************************************
+
+#if 0
+void HandleImmediateCommand(CMDMSG *p)
+{
+	switch(p->command)
+	{
+		case CMD_SET_RECORD:
+			/* Enabled, disable or toggle record mode! */
+			if (IS_SERVO_MODE(MODE_PLAY))
+			{
+				if (p->opcode == 0)
+				{
+					/* punch out */
+					RecordDisable();
+				}
+				else if (p->opcode == 1)
+				{
+					/* punch in */
+					RecordEnable();
+				}
+				else
+				{
+					/* toggle record mode */
+					if (GetTransportMask() & T_RECH)
+						RecordDisable();
+					else
+						RecordEnable();
+				}
+			}
+			break;
+
+		case CMD_TOGGLE_LIFTER:
+			/* Must be in STOP or PLAY mode */
+			if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
+			{
+				/* toggle lifter defeat */
+				if (GetTransportMask() & T_TLIFT)
+					SetTransportMask(0, T_TLIFT);
+				else
+					SetTransportMask(T_TLIFT, 0);
+			}
+			break;
+
+		default:
+			/* invalid command */
+			break;
+	}
+}
+#endif
 
 // End-Of-File

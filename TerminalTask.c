@@ -236,6 +236,9 @@ static MENUITEM general_items[] = {
 { 6, 1, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
 		DT_LONG, &g_sys.record_pulse_length },
 
+{ 7, 1, "3", "Button Debounce Time (ms) ", MI_NRANGE, 10, 50, NULL, set_mdata,
+		DT_LONG, &g_sys.debounce },
+
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
 /* GENERAL MENU */

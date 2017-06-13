@@ -45,13 +45,13 @@
 
 /* Transport Message Command Structure */
 typedef struct _CMDMSG {
-    uint32_t cmd;		/* command code   */
-    uint32_t op;		/* operation code */
+    uint32_t command;		/* command code   */
+    uint32_t opcode;		/* operation code */
 } CMDMSG;
 
 /* Transport Control Command Codes */
 #define CMD_TRANSPORT_MODE		1		/* set the current transport mode */
-#define CMD_PUNCH				2		/* op=1 punch-in, op=0 punch out */
+#define CMD_STROBE_RECORD		2		/* op=1 punch-in, op=0 punch out */
 #define CMD_TOGGLE_LIFTER		3		/* toggle tape lifter state */
 
 /* Transport Controller Function Prototypes */

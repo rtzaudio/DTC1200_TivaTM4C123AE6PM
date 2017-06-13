@@ -78,6 +78,7 @@
 /* Static Function Prototypes */
 static void ResetPlayServo(void);
 static void ResetStopServo(int state);
+static void HandleImmediateCommand(CMDMSG *p);
 
 extern Semaphore_Handle g_semaServo;
 
@@ -162,11 +163,12 @@ void ResetStopServo(int state)
 // Set the next or immediate transport mode requested.
 //*****************************************************************************
 
-void QueueTransportCommand(uint8_t cmd, uint8_t op)
+void QueueTransportCommand(uint8_t command, uint8_t opcode)
 {
     CMDMSG msg;
-    msg.cmd = cmd;		/* Set the command message type */
-    msg.op  = op;		/* Set any cmd specfic op-code  */
+
+    msg.command = command;		/* Set the command message type */
+    msg.opcode  = opcode;		/* Set any cmd specfic op-code  */
 
     Mailbox_post(g_mailboxController, &msg, 10);
 }
@@ -288,7 +290,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    else if (mbutton == (S_STOP | S_REC))
 		    {
 		    	if (IS_SERVO_MODE(MODE_PLAY))
-		    		QueueTransportCommand(CMD_PUNCH, 0);	/* punch out */
+		    		QueueTransportCommand(CMD_STROBE_RECORD, 0);	/* punch out */
 		    }
 		    else if (mbutton == S_PLAY)			    /* play only button pressed? */
 		    {
@@ -302,9 +304,9 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        {
 		        	/* Is transport already in record mode? */
 		        	if (GetTransportMask() & T_RECH)
-		        		QueueTransportCommand(CMD_PUNCH, 0);	/* punch out */
+		        		QueueTransportCommand(CMD_STROBE_RECORD, 0);	/* punch out */
 		        	else
-		        		QueueTransportCommand(CMD_PUNCH, 1);	/* punch in */
+		        		QueueTransportCommand(CMD_STROBE_RECORD, 1);	/* punch in */
 		        }
 		        else if (IS_SERVO_MODE(MODE_STOP))
 		        {
@@ -322,8 +324,8 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    }
 		    else if (mbutton == S_LDEF)			/* lift defeat button */
 		    {
-		    	if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
-			    	QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
+		    	//if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
+			    QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
 		    }
 	    }
     }
@@ -361,35 +363,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
     	if (Mailbox_pend(g_mailboxController, &msg, 50) == TRUE)
 	    {
+
 			/* Process immediate command messages first */
 
-			if (msg.cmd != CMD_TRANSPORT_MODE)
+			if (msg.command != CMD_TRANSPORT_MODE)
 			{
-				switch(msg.cmd)
-				{
-				case CMD_PUNCH:
-					/* Punch in/out, must be in PLAY mode! */
-    		    	if (IS_SERVO_MODE(MODE_PLAY))
-    		    	{
-    		    		if (msg.op)
-    		    			RecordEnable();		/* punch in */
-    		    		else
-	    	        		RecordDisable();	/* punch out */
-    		    	}
-					break;
-
-				case CMD_TOGGLE_LIFTER:
-					/* Must be in STOP or PLAY mode */
-			    	if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
-			    	{
-			    		/* toggle lifter defeat */
-			    		if (GetTransportMask() & T_TLIFT)
-			    			SetTransportMask(0, T_TLIFT);
-			    		else
-			    			SetTransportMask(T_TLIFT, 0);
-			    	}
-					break;
-				}
+	    		/* Dispatch any immediate commands */
+				HandleImmediateCommand(&msg);
 				/* Loop back waiting for the next message */
 				continue;
 			}
@@ -398,7 +378,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 			 * transport operating mode.
 			 */
 
-			temp = msg.op & MODE_MASK;
+			temp = msg.opcode & MODE_MASK;
 
 			/* Skip if same command requested */
     		if ((mode == UNDEFINED) && (temp == prev_mode))
@@ -487,7 +467,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 						break;
 
 					/* upper bit indicates record when starting play mode */
-				    playrec = (msg.op & M_RECORD) ? 1 : 0;
+				    playrec = (msg.opcode & M_RECORD) ? 1 : 0;
 
 					/* Turn on the play lamp */
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
@@ -771,16 +751,15 @@ Void TransportControllerTask(UArg a0, UArg a1)
 }
 
 //*****************************************************************************
-//
-//
+// This function handles immediate mode commands to set/toggle
+// record mode or the tape lifters.
 //*****************************************************************************
 
-#if 0
 void HandleImmediateCommand(CMDMSG *p)
 {
 	switch(p->command)
 	{
-		case CMD_SET_RECORD:
+		case CMD_STROBE_RECORD:
 			/* Enabled, disable or toggle record mode! */
 			if (IS_SERVO_MODE(MODE_PLAY))
 			{
@@ -822,6 +801,5 @@ void HandleImmediateCommand(CMDMSG *p)
 			break;
 	}
 }
-#endif
 
 // End-Of-File

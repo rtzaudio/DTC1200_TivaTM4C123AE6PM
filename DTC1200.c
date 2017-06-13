@@ -49,6 +49,7 @@
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Event.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Clock.h>
@@ -74,6 +75,7 @@
 #include "Board.h"
 #include "DTC1200.h"
 #include "Globals.h"
+#include "IOExpander.h"
 #include "TransportTask.h"
 #include "ServoTask.h"
 #include "TerminalTask.h"
@@ -86,9 +88,13 @@
 Semaphore_Handle g_semaSPI;
 Semaphore_Handle g_semaServo;
 
+#if BUTTON_INTERRUPTS != 0
+Event_Handle g_eventSPI;
+#endif
+
 /* Static Function Prototypes */
 Int main();
-Void MainPollTask(UArg a0, UArg a1);
+Void MainControlTask(UArg a0, UArg a1);
 bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
 
 //*****************************************************************************
@@ -132,8 +138,6 @@ Int main()
     }
 
     /* Create a global binary semaphore for serialized access to the SPI bus */
-    //Semaphore_Params_init(&semaParams);
-    //semaParams.mode =
 
     Error_init(&eb);
     if ((g_semaSPI = Semaphore_create(1, NULL, &eb)) == NULL)
@@ -156,7 +160,7 @@ Int main()
     taskParams.stackSize = 1024;
     taskParams.priority  = 13;
 
-    if (Task_create(MainPollTask, &taskParams, &eb) == NULL)
+    if (Task_create(MainControlTask, &taskParams, &eb) == NULL)
     {
         System_abort("MainPollTask create failed!\n");
     }
@@ -179,14 +183,12 @@ void InitPeripherals(void)
      */
 
     /* Open I2C0 for U14 CAT24C08 EPROM */
-
     I2C_Params_init(&i2cParams);
     i2cParams.transferMode  = I2C_MODE_BLOCKING;
     i2cParams.bitRate       = I2C_100kHz;
     g_handleI2C0 = I2C_open(Board_I2C0, &i2cParams);
 
     /* Open I2C1 for U9 AT24CS01 EPROM/Serial# */
-
     I2C_Params_init(&i2cParams);
     i2cParams.transferMode  = I2C_MODE_BLOCKING;
     i2cParams.bitRate       = I2C_100kHz;
@@ -300,7 +302,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 2048;
+    taskParams.stackSize = 1500;
     taskParams.priority  = 1;
 
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
@@ -322,7 +324,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 500;
+    taskParams.stackSize = 700;
     taskParams.priority  = 15;
 
     if (Task_create(ServoLoopTask, &taskParams, &eb) == NULL)
@@ -428,11 +430,10 @@ Void MainControlTask(UArg a0, UArg a1)
 
     	if (events & Event_Id_01)
     	{
-    		/* Read the interrupt flag register (bit that caused interrupt) */
-    		MCP23S17_read(g_handleSPI2, MCP_INTFB, &intflag);
-
-    		/* Read the interrupt capture data register */
-    		MCP23S17_read(g_handleSPI2, MCP_INTCAPB, &intcap);
+    		/* Read the interrupt flag register (bit that caused interrupt)
+    		 * and the interrupt capture data register.
+    		 */
+    		GetInterruptFlags(&intflag, &intcap);
 
     		/* Clear the GPIO interrupt status from U8 */
     		GPIO_clearInt(Board_INT2B);
@@ -495,7 +496,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
 #define DEBOUNCE	6
 
-Void MainPollTask(UArg a0, UArg a1)
+Void MainControlTask(UArg a0, UArg a1)
 {
     uint8_t count = 0;
     uint8_t bits = 0x00;

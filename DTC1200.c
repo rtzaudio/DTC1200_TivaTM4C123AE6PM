@@ -528,8 +528,8 @@ Void MainControlTask(UArg a0, UArg a1)
     g_dip_switch      = (mode_prev & M_DIPSW_MASK);
 
     /* Read the initial transport switch states */
-    GetTransportSwitches(&tran_prev);
-    g_tape_out_flag   = (tran_prev & S_TAPEOUT) ? 1 : 0;
+    GetTransportSwitches(&tout_prev);
+    g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
 
     /* Read the system config parameters from storage */
     status = SysParamsRead(&g_sys);
@@ -612,6 +612,11 @@ Void MainControlTask(UArg a0, UArg a1)
     /****************************************************************
      * Enter the main application button processing loop forever.
      ****************************************************************/
+
+    /* Send initial tape arm out state to transport ctrl/cmd task */
+
+    temp = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
+    Mailbox_post(g_mailboxCommander, &temp, 10);
 
     /* Blink all lamps if error reading EPROM config data, otherwise
      * blink each lamp sequentially on success.

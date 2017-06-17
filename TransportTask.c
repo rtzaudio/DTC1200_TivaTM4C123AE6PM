@@ -140,6 +140,9 @@ void ResetPlayServo(void)
 			g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
 	}
 
+	//System_printf("Boost %u\n", g_servo.play_boost_time);
+	//System_flush();
+
 	ResetTapeTach();
 
 	Semaphore_post(g_semaServo);
@@ -514,7 +517,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 				    Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
-        			if (IS_STOPPED())
+        			if (IS_SERVO_MOTION())
         				Task_sleep(g_sys.lifter_settle_time);
 
 					/* Set servos to REW mode */
@@ -558,7 +561,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
-        			if (IS_STOPPED())
+        			if (IS_SERVO_MOTION())
         				Task_sleep(g_sys.lifter_settle_time);
 
 					/* Set servos to FWD mode */
@@ -620,7 +623,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		/* Has all motion stopped yet? */
             		if (last_mode != MODE_PLAY)
             		{
-            			if (!IS_STOPPED())
+            			if (!IS_SERVO_MOTION())
             				break;
             		}
 
@@ -681,7 +684,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
            			/* Has all motion stopped yet? */
             	    if (last_mode != MODE_PLAY)
             	    {
-            	    	if (!IS_STOPPED())
+            	    	if (!IS_SERVO_MOTION())
             	    		break;
             	    }
 

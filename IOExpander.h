@@ -78,8 +78,6 @@ bool MCP23S17_read(
 
 /* These functions access the I/O Expanders */
 
-uint32_t GetInterruptFlags(uint8_t* pucIntFlags, uint8_t* pucCapFlags);
-
 uint32_t GetTransportSwitches(uint8_t* pucMask);
 uint32_t GetModeSwitches(uint8_t* pucMask);
 

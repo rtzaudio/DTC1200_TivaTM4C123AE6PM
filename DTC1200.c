@@ -87,6 +87,10 @@
 
 Semaphore_Handle g_semaSPI;
 Semaphore_Handle g_semaServo;
+Semaphore_Handle g_semaTransportMode;
+
+extern IOExpander_Handle g_handleSPI1;
+extern IOExpander_Handle g_handleSPI2;
 
 #if BUTTON_INTERRUPTS != 0
 Event_Handle g_eventSPI;
@@ -123,33 +127,24 @@ Int main()
 
     Error_init(&eb);
     Mailbox_Params_init(&mboxParams);
-    if ((g_mailboxCommander = Mailbox_create(sizeof(uint8_t), 8, &mboxParams, &eb)) == NULL)
-    {
-        System_abort("Mailbox_create() failed!\n");
-    }
+    g_mailboxCommander = Mailbox_create(sizeof(uint8_t), 8, &mboxParams, &eb);
 
     /* Create servo controller task mailbox */
 
     Error_init(&eb);
     Mailbox_Params_init(&mboxParams);
-    if ((g_mailboxController = Mailbox_create(sizeof(CMDMSG), 8, &mboxParams, &eb)) == NULL)
-    {
-        System_abort("Mailbox_create() failed!\n");
-    }
+    g_mailboxController = Mailbox_create(sizeof(CMDMSG), 8, &mboxParams, &eb);
 
-    /* Create a global binary semaphore for serialized access to the SPI bus */
+    /* Create a global binary semaphores for serialized access items */
 
     Error_init(&eb);
-    if ((g_semaSPI = Semaphore_create(1, NULL, &eb)) == NULL)
-    {
-        System_abort("Semaphore_create() failed!\n");
-    }
+    g_semaSPI = Semaphore_create(1, NULL, &eb);
 
     Error_init(&eb);
-    if ((g_semaServo = Semaphore_create(1, NULL, &eb)) == NULL)
-    {
-        System_abort("Semaphore_create() failed!\n");
-    }
+    g_semaServo = Semaphore_create(1, NULL, &eb);
+
+    Error_init(&eb);
+    g_semaTransportMode = Semaphore_create(1, NULL, &eb);
 
     /*
      * Now start the main application button polling task
@@ -161,9 +156,7 @@ Int main()
     taskParams.priority  = 13;
 
     if (Task_create(MainControlTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("MainPollTask create failed!\n");
-    }
+        System_abort("MainControlTask!\n");
 
     BIOS_start();    /* does not return */
 
@@ -224,38 +217,38 @@ Void MainControlTask(UArg a0, UArg a1)
     uint8_t intflag;
     uint8_t intmask;
     uint8_t mask;
-    uint8_t tout;
     uint8_t tout_prev;
+    uint8_t mode_prev;
 	uint32_t ticks;
 	uint32_t tdiff;
     Error_Block eb;
     Task_Params taskParams;
 
+    System_printf("MainPollTask()\n");
+
     /* Initialize the default servo and program data values */
+
     memset(&g_servo, 0, sizeof(SERVODATA));
     memset(&g_sys, 0, sizeof(SYSPARMS));
+
+    InitSysDefaults(&g_sys);
 
     InitPeripherals();
 
     /* Read the initial mode switch states */
-    GetModeSwitches(&mask);
-    g_high_speed_flag = (mask & M_HISPEED) ? 1 : 0;
-    g_dip_switch      = (mask & M_DIPSW_MASK);
+    GetModeSwitches(&mode_prev);
+    g_high_speed_flag = (mode_prev & M_HISPEED) ? 1 : 0;
+    g_dip_switch      = (mode_prev & M_DIPSW_MASK);
 
     /* Read the initial transport switch states */
-    GetTransportSwitches(&tout);
-    tout &= S_TAPEOUT;
-	tout_prev = tout;
-	g_tape_out_flag   = (tout & S_TAPEOUT) ? 1 : 0;
+    GetTransportSwitches(&tout_prev);
+    g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
+
+    /* Read the system config parameters from storage */
+    status = SysParamsRead(&g_sys);
 
     /* Detect tape width from head stack mounted */
     g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
-
-	/* Initialize system default values */
-	InitSysDefaults(&g_sys);
-
-	/* Read the system parameters from EEPROM */
-	status = SysParamsRead(&g_sys);
 
     /* Initialize servo loop controller data */
     g_servo.mode              = MODE_HALT;
@@ -282,33 +275,24 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1024;
+    taskParams.stackSize = 800;
     taskParams.priority  = 9;
-
     if (Task_create(TransportCommandTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Transport command task create failed!\n");
-    }
+        System_abort("TransportCommandTask()!n");
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1024;
+    taskParams.stackSize = 800;
     taskParams.priority  = 10;
-
     if (Task_create(TransportControllerTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Transport controller task create failed!\n");
-    }
+        System_abort("TransportControllerTask()!n");
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
     taskParams.stackSize = 1500;
     taskParams.priority  = 1;
-
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Terminal task create failed!\n");
-    }
+        System_abort("TerminalTask()!\n");
 
     /* Initialize the tape tach timers and interrupt.
      * This tach provides the tape speed from the tape
@@ -324,17 +308,19 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 700;
+    taskParams.stackSize = 800;
     taskParams.priority  = 15;
 
     if (Task_create(ServoLoopTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Servo loop task create failed!\n");
-    }
+        System_abort("ServoLoopTask()!\n");
+
+    /****************************************************************
+     * Enter the main application button processing loop forever.
+     ****************************************************************/
 
     /* Send initial tape arm out state to transport ctrl/cmd task */
 
-    mask = (tout & S_TAPEOUT) ? S_TAPEOUT : S_TAPEIN;
+    mask = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
     Mailbox_post(g_mailboxCommander, &mask, 10);
 
     /* Blink all lamps if error reading EPROM config data, otherwise
@@ -342,10 +328,11 @@ Void MainControlTask(UArg a0, UArg a1)
      */
 
     if (status != 0)
-    	LampBlinkError();
+        LampBlinkError();
     else
         LampBlinkChase();
 
+    /* Set initial status blink LED mask */
     g_lamp_blink_mask = L_STAT1;
 
     /****************************************************************
@@ -364,7 +351,18 @@ Void MainControlTask(UArg a0, UArg a1)
     		/* Read the interrupt flag register (bit that caused interrupt)
     		 * and the interrupt capture data register.
     		 */
-    		GetInterruptFlags(&intflag, &intcap);
+
+    		/* Acquire the semaphore for exclusive access */
+    	    if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
+    	    {
+    	    	/* Read the interrupt flag register (bit that caused interrupt) */
+    	    	MCP23S17_read(g_handleSPI1, MCP_INTFA, &intflag);
+
+    	    	/* Read the interrupt capture data register */
+    	    	MCP23S17_read(g_handleSPI1, MCP_INTCAPA, &intcap);
+
+    	    	Semaphore_post(g_semaSPI);
+    	    }
 
     		/* Clear the GPIO interrupt status from U5 */
     		GPIO_clearInt(Board_INT1A);
@@ -374,73 +372,49 @@ Void MainControlTask(UArg a0, UArg a1)
              * the transport control/command task.
              */
 
-    		//if (intflag & S_TAPEOUT)
-    		//{
-    		//	tout = (intcap & S_TAPEOUT);
-    		//}
-			//else
-    		{
-				if (intcap & ~(S_REC))
-				{
-					/* Rising edge interrupt, button pressed */
-					ticks = Clock_getTicks();
+			if (intcap & ~(S_REC))
+			{
+				/* Rising edge interrupt, button pressed */
+				ticks = Clock_getTicks();
 
-					/* Save bit mask that generated the interrupt */
-					intmask = intflag;
-				}
-				else
-				{
-					/* Falling edge interrupt, button released */
-					tdiff = Clock_getTicks() - ticks;
+				/* Save bit mask that generated the interrupt */
+				intmask = intflag;
+			}
+			else
+			{
+				/* Falling edge interrupt, button released */
+				tdiff = Clock_getTicks() - ticks;
 
-					if (tdiff > g_sys.debounce)
+				if (tdiff > g_sys.debounce)
+				{
+					/* First process the tape arm out switch */
+					if (intmask & S_STOP)
 					{
-						/* First process the tape arm out switch */
-						if (intmask & S_STOP)
-						{
-							mask = S_STOP | (intcap & S_REC);;
-							Mailbox_post(g_mailboxCommander, &mask, 10);
-						}
-						else if (intmask & S_PLAY)
-						{
-							mask = S_PLAY | (intcap & S_REC);
-							Mailbox_post(g_mailboxCommander, &mask, 10);
-						}
-						else if (intmask & S_FWD)
-						{
-							mask = S_FWD;
-							Mailbox_post(g_mailboxCommander, &mask, 10);
-						}
-						else if (intmask & S_REW)
-						{
-							mask = S_REW;
-							Mailbox_post(g_mailboxCommander, &mask, 10);
-						}
-						else if (intmask & S_LDEF)
-						{
-							mask = S_LDEF;
-							Mailbox_post(g_mailboxCommander, &mask, 10);
-						}
+						mask = S_STOP | (intcap & S_REC);;
+						Mailbox_post(g_mailboxCommander, &mask, 10);
+					}
+					else if (intmask & S_PLAY)
+					{
+						mask = S_PLAY | (intcap & S_REC);
+						Mailbox_post(g_mailboxCommander, &mask, 10);
+					}
+					else if (intmask & S_FWD)
+					{
+						mask = S_FWD;
+						Mailbox_post(g_mailboxCommander, &mask, 10);
+					}
+					else if (intmask & S_REW)
+					{
+						mask = S_REW;
+						Mailbox_post(g_mailboxCommander, &mask, 10);
+					}
+					else if (intmask & S_LDEF)
+					{
+						mask = S_LDEF;
+						Mailbox_post(g_mailboxCommander, &mask, 10);
 					}
 				}
     		}
-    	}
-
-    	/* U8 (SSI2) : SPI MCP23S17SO SOLENOID, DIP SWITCH & TAPE SPEED */
-
-    	if (events & Event_Id_01)
-    	{
-    		/* Read the interrupt flag register (bit that caused interrupt)
-    		 * and the interrupt capture data register.
-    		 */
-    		GetInterruptFlags(&intflag, &intcap);
-
-    		/* Clear the GPIO interrupt status from U8 */
-    		GPIO_clearInt(Board_INT2B);
-
-    		/* Store the switch state changes */
-    	    g_high_speed_flag = (intcap & M_HISPEED) ? 1 : 0;
-    	    g_dip_switch      = (intcap & M_DIPSW_MASK);
     	}
 
         /* If no interrupt events, handle tape out arm state & LED's */
@@ -448,23 +422,40 @@ Void MainControlTask(UArg a0, UArg a1)
     	if (!events)
     	{
     		/* Poll the tape out arm switch state */
-    		GetTransportSwitches(&tout);
 
-    		tout &= S_TAPEOUT;
+    		GetTransportSwitches(&mask);
 
-    		if (tout != tout_prev)
+    		mask &= S_TAPEOUT;
+
+    		if (mask != tout_prev)
         	{
 	            /* Save the new state */
-	            tout_prev = tout;
+	            tout_prev = mask;
 
 	            /* Set the tape out arm state */
-	            g_tape_out_flag = (tout & S_TAPEOUT) ? 1 : 0;
+	            g_tape_out_flag = (mask & S_TAPEOUT) ? 1 : 0;
 
 	            mask = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
 
 	            /* Send the button press to transport ctrl/cmd task */
 	            Mailbox_post(g_mailboxCommander, &mask, 10);
         	}
+
+    		/* Poll the tape speed select and DIP switch states */
+
+            GetModeSwitches(&mask);
+
+            if (mask != mode_prev)
+            {
+            	/* We debounced a switch change, reset and process it */
+                mode_prev = mask;
+
+                /* Save the transport speed select setting */
+                g_high_speed_flag = (mask & M_HISPEED) ? 1 : 0;
+
+                /* Save the updated DIP switch settings */
+                g_dip_switch = mask & M_DIPSW_MASK;
+            }
 
 			/* See if its time to blink any LED(s) mask */
 
@@ -556,36 +547,26 @@ Void MainControlTask(UArg a0, UArg a1)
     /* Servo's start in halt mode! */
     SET_SERVO_MODE(MODE_HALT);
 
-    /* Create the transport command/control and terminal tasks.
-     * The three tasks provide the bulk of the system control services.
-     */
-
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1024;
+    taskParams.stackSize = 800;
     taskParams.priority  = 9;
     if (Task_create(TransportCommandTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Transport command task create failed!\n");
-    }
+        System_abort("TransportCommandTask()!n");
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1024;
+    taskParams.stackSize = 800;
     taskParams.priority  = 10;
     if (Task_create(TransportControllerTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Transport controller task create failed!\n");
-    }
+        System_abort("TransportControllerTask()!n");
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 2048;
+    taskParams.stackSize = 1500;
     taskParams.priority  = 1;
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
-    {
-        System_abort("Terminal task create failed!\n");
-    }
+        System_abort("TerminalTask()!\n");
 
     /* Initialize the tape tach timers and interrupt.
      * This tach provides the tape speed from the tape
@@ -601,13 +582,11 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 500;
+    taskParams.stackSize = 800;
     taskParams.priority  = 15;
 
     if (Task_create(ServoLoopTask, &taskParams, &eb) == NULL)
-    {
         System_abort("Servo loop task create failed!\n");
-    }
 
     /****************************************************************
      * Enter the main application button processing loop forever.

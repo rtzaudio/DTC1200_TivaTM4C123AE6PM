@@ -233,7 +233,7 @@ int diag_dacramp(MENUITEM* mp)
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
-    if ((!IS_SERVO_MODE(MODE_HALT)) || (!IS_STOPPED()))
+    if ((!IS_SERVO_MODE(MODE_HALT)) || (!IS_SERVO_MOTION()))
     {
         tty_printf("%sWARNING%s - Transport must be in HALT mode with no tape/reels mounted!!\r\n",
                    VT100_UL_ON, VT100_UL_OFF);
@@ -309,7 +309,7 @@ int diag_transport(MENUITEM* mp)
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
-    if ((!IS_SERVO_MODE(MODE_HALT)) || (!IS_STOPPED()))
+    if ((!IS_SERVO_MODE(MODE_HALT)) || (!IS_SERVO_MOTION()))
     {
         tty_printf("%sWARNING:%s\r\n\nTransport must be in HALT mode with no tape reels mounted or motion!!\r\n",
                    VT100_UL_ON, VT100_UL_OFF);

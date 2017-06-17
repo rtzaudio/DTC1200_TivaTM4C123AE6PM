@@ -94,6 +94,7 @@
 
 /* External Global Data */
 extern Semaphore_Handle g_semaServo;
+extern Semaphore_Handle g_semaTransportMode;
 
 /* Hwi_Struct used in the init Hwi_construct call */
 static Hwi_Struct qei0HwiStruct;
@@ -283,6 +284,44 @@ Void QEITakeupHwi(UArg arg)
 }
 
 /*****************************************************************************
+ * SERVO MODE CONTROL INTERFACE FUNCTIONS (thread safe)
+ *****************************************************************************/
+
+void ServoSetMode(uint32_t mode)
+{
+    Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+	g_servo.mode = (mode & MODE_MASK);
+	Semaphore_post(g_semaTransportMode);
+}
+
+uint32_t ServoGetMode()
+{
+	uint32_t mode;
+	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+	mode = g_servo.mode & MODE_MASK;
+	Semaphore_post(g_semaTransportMode);
+	return mode;
+}
+
+int32_t IsServoMode(uint32_t mode)
+{
+	int32_t flag;
+	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+	flag = ((g_servo.mode & MODE_MASK) == (mode & MODE_MASK)) ? 1 : 0;
+	Semaphore_post(g_semaTransportMode);
+	return flag;
+}
+
+int32_t IsServoMotion()
+{
+	int32_t motion;
+	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+	motion = (g_servo.motion == 0) ? 1 : 0;
+	Semaphore_post(g_semaTransportMode);
+	return motion;
+}
+
+/*****************************************************************************
  * MAIN SERVO LOOP CONTROLLER TASK
  *
  * This is the highest priority system task for the reel motor servo loop.
@@ -464,7 +503,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * DISPATCH TO THE CURRENT SERVO MODE HANDLER
          **********************************************/
 
-        (*jmptab[g_servo.mode & MODE_MASK])();
+        (*jmptab[ServoGetMode()])();
 
         /* Toggle I/O pin for debug timing measurement*/
         GPIO_write(DTC1200_EXPANSION_PF3, PIN_LOW);

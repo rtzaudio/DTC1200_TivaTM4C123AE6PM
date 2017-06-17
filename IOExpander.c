@@ -87,36 +87,29 @@ extern Event_Handle g_eventSPI;
 
 /* U5 (SSI1) : MCP23S17SO TRANSPORT SWITCHES & LAMPS */
 
-#define INT1A_MASK	(S_STOP | S_PLAY | S_REW | S_FWD | S_LDEF /* | S_TAPEOUT*/ )
+#define INT1A_MASK	(S_STOP | S_PLAY | S_REW | S_FWD | S_LDEF )
 
 static IOExpander_InitData initData_SPI1[] = {
-    { MCP_IOCONA, C_SEQOP },		/* Configure for byte mode, INT active low */
-    { MCP_IOCONB, C_SEQOP },		/* Configure for byte mode, INT active low */
-    { MCP_IODIRA, 0xFF },	    	/* Port A - all inputs from transport switches */
-    { MCP_IODIRB, 0x00 },			/* Port B - all outputs to lamp/led drivers */
-    { MCP_IOPOLA, 0x40 },			/* Invert input polarity of tape-out switch */
+    { MCP_IOCONA, C_SEQOP | C_ODR},		/* Configure for byte mode, INT active low */
+    { MCP_IOCONB, C_SEQOP },			/* Configure for byte mode, INT active low */
+    { MCP_IODIRA, 0xFF },	    		/* Port A - all inputs from transport switches */
+    { MCP_IODIRB, 0x00 },				/* Port B - all outputs to lamp/led drivers */
+    { MCP_IOPOLA, 0x40 },				/* Invert input polarity of tape-out switch */
 #if BUTTON_INTERRUPTS != 0
-	{ MCP_DEFVALA, 0x00 },			/* Default interrupt compare */
-	{ MCP_INTCONA, 0x00 },			/* Interrupt on change */
-	{ MCP_GPINTENA, INT1A_MASK },	/* Interrupt enable mask */
+	{ MCP_DEFVALA, 0x00 },				/* Default interrupt compare */
+	{ MCP_INTCONA, 0x00 },				/* Interrupt on change */
+	{ MCP_GPINTENA, INT1A_MASK },		/* Interrupt enable mask */
 #endif
 };
 
 /* U8 (SSI2) : MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE SPEED */
 
-#define INT2B_MASK	(M_DIPSW1 | M_DIPSW2 | M_DIPSW3 | M_DIPSW4 | M_HISPEED)
-
 static IOExpander_InitData initData_SPI2[] = {
-    { MCP_IOCONA, C_SEQOP },		/* Configure for byte mode, INT active low */
-    { MCP_IOCONB, C_SEQOP },		/* Configure for byte mode, INT active low */
-    { MCP_IODIRA, 0x00 },	    	/* Port A - solenoid and other drivers, all outputs */
-    { MCP_IODIRB, 0xFF },			/* Port B - DIP switches and tape-speed switch, all inputs. */
-    { MCP_IOPOLB, 0x8F },			/* Invert input polarity of DIP switches and tape-speed switch */
-#if BUTTON_INTERRUPTS != 0
-    { MCP_DEFVALB, 0x00 },			/* Default interrupt compare */
-	{ MCP_INTCONB, 0x00 },			/* Interrupt on change */
-	{ MCP_GPINTENB, INT2B_MASK },	/* Interrupt enable mask */
-#endif
+    { MCP_IOCONA, C_SEQOP },			/* Configure for byte mode, INT active low */
+    { MCP_IOCONB, C_SEQOP | C_ODR},		/* Configure for byte mode, INT active low */
+    { MCP_IODIRA, 0x00 },	    		/* Port A - solenoid and other drivers, all outputs */
+    { MCP_IODIRB, 0xFF },				/* Port B - DIP switches and tape-speed switch, all inputs. */
+    { MCP_IOPOLB, 0x8F },				/* Invert input polarity of DIP switches and tape-speed switch */
 };
 
 #define NUM_OBJ		2
@@ -140,7 +133,6 @@ static IOExpander_Handle IOExpander_open(uint32_t index);
 
 #if BUTTON_INTERRUPTS != 0
 static void gpioExpanderSSI1AHwi(unsigned int index);
-static void gpioExpanderSSI2BHwi(unsigned int index);
 #endif
 
 /*****************************************************************************
@@ -170,31 +162,22 @@ void IOExpander_initialize(void)
 
 	/* Setup the callback Hwi handler for interrupt notify pins */
     GPIO_setCallback(Board_INT1A, gpioExpanderSSI1AHwi);
-    GPIO_setCallback(Board_INT2B, gpioExpanderSSI2BHwi);
+    //GPIO_setCallback(Board_INT2B, gpioExpanderSSI2BHwi);
 
     /* Enable keypad button interrupts */
     GPIO_enableInt(Board_INT1A);
-    GPIO_enableInt(Board_INT2B);
+    //GPIO_enableInt(Board_INT2B);
 #endif
 }
 
-#if BUTTON_INTERRUPTS != 0
 /*****************************************************************************
  * U5 (SSI1) : MCP23S17SO INT HANDLER TRANSPORT SWITCHES & LAMPS
  *****************************************************************************/
 
+#if BUTTON_INTERRUPTS != 0
 void gpioExpanderSSI1AHwi(unsigned int index)
 {
 	Event_post(g_eventSPI, Event_Id_00);
-}
-
-/*****************************************************************************
- * U8 (SSI2) : MCP23S17SO INT HANDLER (SOLENOID, CONFIG DIP SWITCH & TAPE SPEED
- *****************************************************************************/
-
-void gpioExpanderSSI2BHwi(unsigned int index)
-{
-	Event_post(g_eventSPI, Event_Id_01);
 }
 #endif
 
@@ -330,31 +313,6 @@ bool MCP23S17_read(
 
 	return true;
 }
-
-/*****************************************************************************
- * Read the INTF interrupt flags register
- *****************************************************************************/
-
-#if BUTTON_INTERRUPTS != 0
-uint32_t GetInterruptFlags(uint8_t* pucIntFlags, uint8_t* pucCapFlags)
-{
-	uint32_t rc = 0;
-
-	/* Acquire the semaphore for exclusive access */
-    if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
-    {
-    	/* Read the interrupt flag register (bit that caused interrupt) */
-    	MCP23S17_read(g_handleSPI1, MCP_INTFA, pucIntFlags);
-
-    	/* Read the interrupt capture data register */
-    	MCP23S17_read(g_handleSPI1, MCP_INTCAPA, pucCapFlags);
-
-    	Semaphore_post(g_semaSPI);
-    }
-
-    return rc;
-}
-#endif
 
 /*****************************************************************************
  * Read the transport control switches, returns any of the following bits:

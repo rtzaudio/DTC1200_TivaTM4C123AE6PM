@@ -75,8 +75,8 @@ extern "C" {
 #define Board_CS_SPI1				DTC1200_SSI1FSS				/* PD1 */
 #define Board_EXPANSION_PF3			DTC1200_EXPANSION_PF3		/* PF3 */
 #define Board_EXPANSION_PF2			DTC1200_EXPANSION_PF2		/* PF2 */
-#define Board_INT1A					DTC1200_MCP23S17T_INT1A		/* PG4 */
-#define Board_INT2B					DTC1200_MCP23S17T_INT2B		/* PG3 */
+#define Board_INT1A					DTC1200_MCP23S17T_INT1A		/* PG3 */
+#define Board_INT2B					DTC1200_MCP23S17T_INT2B		/* PG4 */
 #define Board_TAPE_WIDTH			DTC1200_TAPE_WIDTH			/* PG2 */
 
 /* Board specific I2C addresses */

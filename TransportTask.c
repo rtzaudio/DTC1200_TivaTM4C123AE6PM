@@ -193,13 +193,13 @@ void RecordEnable(void)
 		SetTransportMask(T_RECH, 0);
 
 		/* 2) Settling time for record hold */
-		Task_sleep(5);
+		Task_sleep(g_sys.rechold_settle_time);
 
 		/* 3) Generate a record latch pulse */
 		SetTransportMask(T_RECP, 0);
 
 		/* 4) Sleep for pulse length duration */
-		Task_sleep(g_sys.record_pulse_length);
+		Task_sleep(g_sys.record_pulse_time);
 
 		/* 5) Drop the record pulse line low */
 		SetTransportMask(0, T_RECP);

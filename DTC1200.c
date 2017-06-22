@@ -726,7 +726,8 @@ void InitSysDefaults(SYSPARMS* p)
     p->tension_sensor_gain      = 3;
     p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
-    p->record_pulse_length      = REC_PULSE_DURATION;
+    p->record_pulse_time     	= REC_PULSE_TIME;
+    p->rechold_settle_time    	= REC_SETTLE_TIME;
     p->debounce                 = 30;
 
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */

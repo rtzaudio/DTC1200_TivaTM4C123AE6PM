@@ -234,9 +234,12 @@ static MENUITEM general_items[] = {
 		DT_LONG, &g_sys.vel_detect_threshold },
 
 { 6, 1, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
-		DT_LONG, &g_sys.record_pulse_length },
+		DT_LONG, &g_sys.record_pulse_time },
 
-{ 7, 1, "3", "Button Debounce Time (ms) ", MI_NRANGE, 10, 50, NULL, set_mdata,
+{ 7, 1, "3", "Record Hold Settle Time   ", MI_NRANGE, 5, 20, NULL, set_mdata,
+		DT_LONG, &g_sys.rechold_settle_time },
+
+{ 8, 1, "4", "Transport Button Debounce ", MI_NRANGE, 5, 50, NULL, set_mdata,
 		DT_LONG, &g_sys.debounce },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };

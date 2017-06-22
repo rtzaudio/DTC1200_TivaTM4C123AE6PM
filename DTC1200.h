@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        4        	/* firmware revision */
+#define FIRMWARE_REV        5        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -92,7 +92,8 @@
 #define TIMEOUT_SPI			500
 
 /* Default record strobe pulse length */
-#define REC_PULSE_DURATION	20
+#define REC_PULSE_TIME		20
+#define REC_SETTLE_TIME		5
 
 /*** Build/Config Options **************************************************/
 
@@ -134,7 +135,8 @@ typedef struct _SYSPARMS
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
     int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
     int32_t lifter_settle_time;		  	/* tape lifer settling time in ms    */
-    int32_t record_pulse_length;		/* record pulse length time          */
+    int32_t record_pulse_time;			/* record pulse length time          */
+    int32_t rechold_settle_time;		/* record pulse length time          */
     int32_t tension_sensor_gain;		/* tension sensor gain divisor       */
 
     uint32_t debounce;					/* debounce transport buttons time   */

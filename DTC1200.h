@@ -98,7 +98,7 @@
 /*** Build/Config Options **************************************************/
 
 #define DEBUG_LEVEL			0
-#define BUTTON_INTERRUPTS	1			/* 1=interrupt, 0=polled buttons */
+#define BUTTON_INTERRUPTS	0			/* 1=interrupt, 0=polled buttons */
 #define CAPDATA_SIZE		0			/* 250 = 0.5 sec of capture data */
 
 /*** System Structures *****************************************************/

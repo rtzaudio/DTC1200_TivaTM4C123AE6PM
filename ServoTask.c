@@ -286,12 +286,28 @@ Void QEITakeupHwi(UArg arg)
 void ServoSetMode(uint32_t mode)
 {
     Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+
+    /* Only the mode number bits */
+    mode &= MODE_MASK;
+
+    /* Set the new servo mode state */
+	g_servo.mode = mode;
 	
-	g_servo.mode = (mode & MODE_MASK);
+	/* Set dynamic brake state if STOP mode requested and
+	 * the previous mode was FF or REW, otherwise clear it.
+	 */
+
+	if (mode == MODE_STOP)
+	{
+		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW))
+			g_servo.stop_brake_state = 1;
+		else
+			g_servo.stop_brake_state = 0;
+	}
 	
-	/* Set dynamic brake state if stop mode requested, otherwise clear it */
-	g_servo.stop_brake_state = (g_servo.mode == MODE_STOP) ? 1 : 0;
-		
+	/* Save the previous servo mode state */
+	g_servo.mode_prev = g_servo.mode;
+
 	Semaphore_post(g_semaTransportMode);
 }
 

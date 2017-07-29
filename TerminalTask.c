@@ -1570,7 +1570,7 @@ void show_monitor_screen()
 		tty_pos(7, 1);
 		tty_puts("Errors      :");
 		tty_pos(8, 1);
-		tty_puts("Stop Null   :");
+		tty_puts("Stop Torque :");
 		tty_pos(9, 1);
 		tty_puts("Offset      :");
 
@@ -1583,7 +1583,7 @@ void show_monitor_screen()
 		tty_pos(7, 35);
 		tty_puts("Errors      :");
 		tty_pos(8, 35);
-		tty_puts("Stop Null   :");
+		tty_puts("Stop Torque :");
 		tty_pos(9, 35);
 		tty_puts("Offset      :");
 
@@ -1629,7 +1629,7 @@ void show_monitor_data()
 		tty_pos(7, 15);
 		tty_printf("%-8u", g_servo.qei_supply_error_cnt);
 		tty_pos(8, 15);
-		tty_printf("%-8d", g_servo.stop_null_supply);
+		tty_printf("%-8d", g_servo.stop_torque_supply);
 		tty_pos(9, 15);
 		tty_printf("%-8d", g_servo.offset_supply);
 
@@ -1641,7 +1641,7 @@ void show_monitor_data()
 		tty_pos(7, 49);
 		tty_printf("%-8u", g_servo.qei_takeup_error_cnt);
 		tty_pos(8, 49);
-		tty_printf("%-8d", g_servo.stop_null_takeup);
+		tty_printf("%-8d", g_servo.stop_torque_takeup);
 		tty_pos(9, 49);
 		tty_printf("%-8d", g_servo.offset_takeup);
 

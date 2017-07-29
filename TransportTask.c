@@ -77,7 +77,6 @@
 
 /* Static Function Prototypes */
 static void ResetPlayServo(void);
-static void ResetStopServo(int state);
 static void HandleImmediateCommand(CMDMSG *p);
 
 extern Semaphore_Handle g_semaServo;
@@ -146,20 +145,6 @@ void ResetPlayServo(void)
 	ResetTapeTach();
 
 	Semaphore_post(g_semaServo);
-}
-
-//*****************************************************************************
-// Reset STOP servo parameters. This function gets called every time the
-// the machine enters stop servo mode. Here we reset the brake state machine
-// and counters used by the stop servo task to perform dynamic braking.
-//*****************************************************************************
-
-void ResetStopServo(int state)
-{
-    //Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
-	//g_servo.stop_null_torque = 0;
-	//g_servo.stop_brake_state  = 0;
-	//Semaphore_post(g_semaServo);
 }
 
 //*****************************************************************************
@@ -456,7 +441,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					SetTransportMask(0, T_RECH);
 
 					/* Set the reel servos for stop mode */
-					ResetStopServo(0);
 					SET_SERVO_MODE(MODE_STOP);
 
 			    	prev_mode = MODE_STOP;
@@ -476,7 +460,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
 					/* Set the reel servos to stop mode initially */
-					ResetStopServo(2);
 					SET_SERVO_MODE(MODE_STOP);
 
 			    	prev_mode = MODE_PLAY;
@@ -601,7 +584,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
         	    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | L_STAT3;
 
 				/* Set reel servos to stop */
-        	    ResetStopServo(0);
     		    SET_SERVO_MODE(MODE_STOP);
 
     		    prev_mode = MODE_STOP;

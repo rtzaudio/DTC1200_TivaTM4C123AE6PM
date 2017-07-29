@@ -177,11 +177,7 @@ void DTC1200_initQEI(void)
     // capture. The divided signal is accumulated over ulPeriod system clock
     // before being saved and resetting the accumulator.
 
-    //Configure the Velocity capture period - 500000 is 10ms at 50MHz
-
-    //QEIVelocityConfigure(QEI_BASE_SUPPLY, QEI_VELDIV_4, g_ulSystemClock);
-    //QEIVelocityConfigure(QEI_BASE_TAKEUP, QEI_VELDIV_4, g_ulSystemClock);
-
+    //Configure the Velocity capture period - 800000 is 10ms at 80MHz
     QEIVelocityConfigure(QEI_BASE_SUPPLY, QEI_VELDIV_1, QE_TIMER_PERIOD);
     QEIVelocityConfigure(QEI_BASE_TAKEUP, QEI_VELDIV_1, QE_TIMER_PERIOD);
 
@@ -290,7 +286,12 @@ Void QEITakeupHwi(UArg arg)
 void ServoSetMode(uint32_t mode)
 {
     Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+	
 	g_servo.mode = (mode & MODE_MASK);
+	
+	/* Set dynamic brake state if stop mode requested, otherwise clear it */
+	g_servo.stop_brake_state = (g_servo.mode == MODE_STOP) ? 1 : 0;
+		
 	Semaphore_post(g_semaTransportMode);
 }
 
@@ -538,24 +539,37 @@ static void SvcServoStop(void)
 {
     long dac_t;
     long dac_s;
-    long dynbrake;
+    long braketorque = 0;
 
-    /*** Calculate the dynamic null braking torque ***/
+    /*** Calculate the dynamic braking torque from velocity ***/
 
-    if (g_servo.velocity <= g_sys.vel_detect_threshold)
-    {
-        dynbrake = 0;
-    }
-    else
-    {
-        dynbrake = (g_sys.stop_brake_torque - g_servo.velocity);
+	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
 
-        if (dynbrake < 0)
-        	dynbrake = g_sys.stop_brake_torque;
-    }
+	/* Is dynamic braking enabled for STOP servo mode? */
+	if (g_servo.stop_brake_state)
+	{
+		/* Has velocity reached zero yet? */
+	    if (g_servo.velocity <= g_sys.vel_detect_threshold)
+	    {
+	    	/* Disable dynamic brake state */
+	        g_servo.stop_brake_state = 0;
+	    }
+	    else
+	    {
+	    	/* Calculate dynamic braking torque from current velocity */
+	        braketorque = (g_sys.stop_brake_torque - g_servo.velocity);
+	
+	        /* Check for brake torque limit overflow */
+	        if (braketorque < 0)
+	        	braketorque = g_sys.stop_brake_torque;
+	    }
+	}
+	
+	Semaphore_post(g_semaTransportMode);
 
-    g_servo.stop_null_supply = dynbrake;
-    g_servo.stop_null_takeup = dynbrake;
+	/* Save brake torque for debug purposes */
+    g_servo.stop_torque_supply = braketorque;
+    g_servo.stop_torque_takeup = braketorque;
 
 	/*
 	 * DYNAMIC BRAKING: Apply the braking torque required to null motion.
@@ -564,16 +578,16 @@ static void SvcServoStop(void)
     if (g_servo.direction == TAPE_DIR_FWD)
     {
         /* FORWARD DIR MOTION - increase supply torque */
-        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) + g_servo.stop_null_supply) + g_servo.offset_supply;
+        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) + braketorque) + g_servo.offset_supply;
         /* decrease takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) - g_servo.stop_null_takeup) + g_servo.offset_takeup;
+        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) - braketorque) + g_servo.offset_takeup;
     }
     else if (g_servo.direction == TAPE_DIR_REW)
     {
         /* REWIND DIR MOTION - decrease supply torque */
-        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) - g_servo.stop_null_supply) + g_servo.offset_supply;
+        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) - braketorque) + g_servo.offset_supply;
         /* increase takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.stop_null_takeup) + g_servo.offset_takeup;
+        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) + braketorque) + g_servo.offset_takeup;
     }
     else
     {
@@ -612,10 +626,11 @@ static void SvcServoPlay(void)
     rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
 
     /* Play acceleration boost state? */
+    
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+    
     if (g_servo.play_boost_time)
     {
-        Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
-
         g_servo.play_boost_count += 1;
 
         dac_t = (g_servo.play_boost_start << 1) / ((g_servo.velocity_takeup / 8) + 1);
@@ -649,8 +664,6 @@ static void SvcServoPlay(void)
             /* Turn off boost status LED */
             g_lamp_mask &= ~(L_STAT3);
         }
-
-        Semaphore_post(g_semaServo);
     }
     else
     {
@@ -661,13 +674,14 @@ static void SvcServoPlay(void)
         dac_t = ((g_servo.play_takeup_tension * rad_t) / g_servo.play_tension_gain) + g_servo.play_takeup_tension;
     }
 
+    Semaphore_post(g_semaServo);
+    
     // DEBUG
     g_servo.db_debug = rad_t;
 
     /* Play Mode Diagnostic Data Capture */
 
 #if (CAPDATA_SIZE > 0)
-
     if (g_capdata_count < CAPDATA_SIZE)
     {
         g_capdata[g_capdata_count].dac_supply = dac_s;

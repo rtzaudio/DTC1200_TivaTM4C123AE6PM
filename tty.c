@@ -92,11 +92,48 @@ int tty_getc(int* pch)
 
 void tty_putc(char c)
 {
-	UART_write( g_handleUartTTY, &c, sizeof(c) );
+	UART_write(g_handleUartTTY, &c, sizeof(c));
 } 
 
 void tty_rxflush(void)
 {
+}
+
+void tty_puts(const char* s)
+{
+	int len = strlen(s);
+	UART_write(g_handleUartTTY, s, len);\
+}
+
+/* postion the cursor (row, col) */
+
+void tty_pos(int row, int col)
+{
+	int n;
+    static char buf[32];
+    /* Position the cursor */
+    n = sprintf(buf, VT100_POS, row, col);
+
+    if (n >= 32)
+    	System_abort("tty_pos() overflow!\n");
+
+    tty_puts(buf);
+}
+
+void tty_printf(const char *fmt, ...)
+{
+    int n;
+    va_list arg;
+    static char buf[256];
+
+    va_start(arg, fmt);
+	n = vsprintf(buf, fmt, arg);
+    va_end(arg);
+
+    if (n >= 256)
+    	System_abort("tty_printf() overflow!\n");
+
+    UART_write(g_handleUartTTY, buf, strlen(buf));
 }
 
 void tty_cls(void)
@@ -105,25 +142,10 @@ void tty_cls(void)
     tty_puts(VT100_CLS);
 }
 
-void tty_puts(const char* s)
-{
-	UART_write(g_handleUartTTY, s, strlen(s));
-}
-
 void tty_aputs(int row, int col, char* s)
 {
     tty_pos(row, col);
     tty_puts(s);
-}
-
-/* postion the cursor (row, col) */
-
-void tty_pos(int row, int col)
-{
-    static char buf[32];
-    /* Postion the cursor */
-    sprintf(buf, VT100_POS, row, col);
-    tty_puts(buf);
 }
 
 void tty_erase_line(void)
@@ -134,19 +156,6 @@ void tty_erase_line(void)
 void tty_erase_eol(void)
 {
     tty_puts(VT100_ERASE_EOL);
-}
-
-void tty_printf(const char *fmt, ...)
-{
-    static char buf[256];
-
-    va_list arg;
-
-    va_start(arg, fmt);
-	vsprintf(buf, fmt, arg);
-    va_end(arg);
-
-    UART_write(g_handleUartTTY, buf, strlen(buf));
 }
 
 /* end-of-file */

@@ -18,9 +18,9 @@ TARGET_INC = -I"C:/ti/tirex-content/tirtos_tivac_2_16_00_08/products/bios_6_45_0
 
 INCS = $(BIOS_INC) $(TARGET_INC)  
 
-CC = C:/ti/ccsv6/tools/compiler/ti-cgt-arm_16.9.1.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv6/tools/compiler/ti-cgt-arm_16.9.1.LTS/include
-ASM = C:/ti/ccsv6/tools/compiler/ti-cgt-arm_16.9.1.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv6/tools/compiler/ti-cgt-arm_16.9.1.LTS/include
-AR = C:/ti/ccsv6/tools/compiler/ti-cgt-arm_16.9.1.LTS/bin/armar rq
+CC = C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS/include
+ASM = C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS/bin/armcl -c $(CCOPTS) -I C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS/include
+AR = C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.3.LTS/bin/armar rq
 
 DEL = C:/ti/xdctools_3_32_01_22_core/packages/../bin/rm -f
 CP = C:/ti/xdctools_3_32_01_22_core/packages/../bin/cp -f

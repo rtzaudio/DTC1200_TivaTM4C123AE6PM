@@ -523,6 +523,14 @@ Void TerminalTask(UArg a0, UArg a1)
 
 	int ch;
 
+#if 0
+	/* DEBUG SERIAL TX */
+	for( ;; )
+    {
+		tty_putc('.');
+		Task_sleep(1000);
+    }
+#else
 	/* Show the home menu screen initially. */
     show_home_menu();
 
@@ -567,6 +575,7 @@ Void TerminalTask(UArg a0, UArg a1)
 
 		do_menu_keystate(ch);
     }
+#endif
 }
 
 /*****************************************************************************

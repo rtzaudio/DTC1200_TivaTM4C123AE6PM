@@ -399,6 +399,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Disable record if active! */
 	        		RecordDisable();
 
+	        		/* Indicate shuttle mode not active */
+					shuttling = 0;
+
 					/* All lamps off, diag leds preserved */
 					g_lamp_mask &= L_LED_MASK;
 
@@ -424,6 +427,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					if (IS_SERVO_MODE(MODE_STOP))
 						continue;
 
+					/* Indicate shuttle mode not active */
+					shuttling = 0;
+
 					/* Set the lamps to indicate the stop mode */
 					if (prev_mode == MODE_FWD)
 						lamp_mask = L_FWD;
@@ -434,8 +440,14 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					else
 						lamp_mask = 0;
 
+					/* If we're blink the stop lamp during pending stop
+					 * requests, then turn on the STOP lamp also.
+					 */
+					if (!(g_dip_switch & M_DIPSW2))
+						lamp_mask |= L_STOP;
+
 					/* Stop and new lamp mask, diag leds preserved */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | lamp_mask;
+					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | lamp_mask;
 
 					/* Disable record if active */
 					SetTransportMask(0, T_RECH);
@@ -452,6 +464,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Ignore if already in play mode */
 					if (IS_SERVO_MODE(MODE_PLAY))
 						break;
+
+					/* Indicate shuttle mode not active */
+					shuttling = 0;
 
 					/* upper bit indicates record when starting play mode */
 				    playrec = (msg.opcode & M_RECORD) ? 1 : 0;
@@ -500,7 +515,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 				    Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
-        			if (IS_SERVO_MOTION())
+        			if (!IS_SERVO_MOTION())
         				Task_sleep(g_sys.lifter_settle_time);
 
 					/* Set servos to REW mode */
@@ -544,7 +559,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					Semaphore_post(g_semaServo);
 
        		        // 500 ms delay for tape lifter settling time
-        			if (IS_SERVO_MOTION())
+        			if (!IS_SERVO_MOTION())
         				Task_sleep(g_sys.lifter_settle_time);
 
 					/* Set servos to FWD mode */
@@ -577,6 +592,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             if (++stoptimer >= 1200)
             {
+            	System_printf("Wait for STOP timeout!\n");
+            	System_flush();
+
                 /* error, the motion didn't stop within timeout period */
                 playrec = pendstop = stoptimer = 0;
 
@@ -593,8 +611,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             /* Blink the stop lamp to indicate stop is pending */
 
-			if ((stoptimer % 6) == 5)
-				g_lamp_mask ^= L_STOP;
+            if (!(g_dip_switch & M_DIPSW2))
+            {
+            	if ((stoptimer % 6) == 5)
+            		g_lamp_mask ^= L_STOP;
+            }
 
 			/* Process the pending command state */
 
@@ -605,7 +626,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		/* Has all motion stopped yet? */
             		if (last_mode != MODE_PLAY)
             		{
-            			if (!IS_SERVO_MOTION())
+            			if (IS_SERVO_MOTION())
             				break;
             		}
 
@@ -664,20 +685,17 @@ Void TransportControllerTask(UArg a0, UArg a1)
            		case MODE_PLAY:
 
            			/* Has all motion stopped yet? */
-            	    if (last_mode != MODE_PLAY)
+            	    if ((last_mode == MODE_REW) || (last_mode == MODE_FWD) || (last_mode == MODE_STOP))
             	    {
-            	    	if (!IS_SERVO_MOTION())
+            	    	if (IS_SERVO_MOTION())
             	    		break;
             	    }
 
                     /* All motion has stopped, allow 1 second settling
                      * time prior to engaging play after shuttle mode.
                      */
-            	    if (shuttling)
-            	    {
-            	    	shuttling = 0;
+            	    //if ((last_mode == MODE_REW) || (last_mode == MODE_FWD))
             	    	Task_sleep(1000);
-            	    }
 
         		    /* Disengage tape lifters & brakes. */
         		    SetTransportMask(0, T_TLIFT | T_BRAKE);
@@ -723,12 +741,14 @@ Void TransportControllerTask(UArg a0, UArg a1)
        		        }
 
                		mode = UNDEFINED;
-           		    pendstop = 0;
+               		shuttling = pendstop = 0;
            		    break;
 
    		        default:
+   		        	System_printf("invalid pend stop state %d!\n", pendstop);
+	            	System_flush();
            		    //mode = prev_mode = UNDEFINED;
-           		    pendstop = 0;
+               		shuttling = pendstop = 0;
            		    break;
             }
  	    }

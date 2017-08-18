@@ -333,7 +333,7 @@ int32_t IsServoMotion()
 {
 	int32_t motion;
 	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
-	motion = (g_servo.motion == 0) ? 1 : 0;
+	motion = (g_servo.motion) ? 1 : 0;
 	Semaphore_post(g_semaTransportMode);
 	return motion;
 }

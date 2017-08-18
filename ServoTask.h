@@ -118,11 +118,6 @@ int32_t IsServoMotion(void);
 #define IS_SERVO_MODE(m)		IsServoMode(m)
 #define IS_SERVO_MOTION()		IsServoMotion()
 
-//#define SET_SERVO_MODE(m)		(g_servo.mode = (m & MODE_MASK))
-//#define GET_SERVO_MODE()		(g_servo.mode & MODE_MASK)
-//#define IS_SERVO_MODE(m)		(((g_servo.mode & MODE_MASK) == m) ? 1 : 0)
-//#define IS_SERVO_MOTION()		((g_servo.motion == 0) ? 1 : 0)
-
 Void ServoLoopTask(UArg a0, UArg a1);
 
 #endif /* DTC1200_TIVATM4C123AE6PMI_SERVOTASK_H_ */

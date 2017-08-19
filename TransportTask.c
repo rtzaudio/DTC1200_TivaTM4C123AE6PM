@@ -312,7 +312,6 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    }
 		    else if (mbutton == S_LDEF)			/* lift defeat button */
 		    {
-		    	//if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
 			    QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
 		    }
 	    }
@@ -334,14 +333,13 @@ Void TransportCommandTask(UArg a0, UArg a1)
 
 Void TransportControllerTask(UArg a0, UArg a1)
 {
-	uint8_t temp;
-	uint8_t playrec;
+	uint8_t mode;
+	uint8_t record;
 	uint8_t lamp_mask;
-    int32_t shuttling = 0;
-    uint32_t mode = UNDEFINED;
-    uint32_t prev_mode = UNDEFINED;
-    uint32_t last_mode = UNDEFINED;
-    uint32_t pendstop = 0;
+	uint8_t last_mode_completed = 0xFF;
+	uint8_t last_mode_requested = 0xFF;
+	uint8_t prev_mode_requested = 0xFF;
+	uint8_t mode_pending = 0;
     uint32_t stoptimer = 0;
     CMDMSG msg;
 
@@ -362,24 +360,27 @@ Void TransportControllerTask(UArg a0, UArg a1)
 				continue;
 			}
 
-			/* Otherwise, we received a command to change the current
-			 * transport operating mode.
-			 */
+			/* Otherwise, we received a command to change the transport mode */
 
-			temp = msg.opcode & MODE_MASK;
+			/* mask out only the mode bits */
+			mode = msg.opcode & MODE_MASK;
 
 			/* Skip if same command requested */
-    		if ((mode == UNDEFINED) && (temp == prev_mode))
-        		continue;
+    		if ((last_mode_completed == mode) && (mode_pending == 0))
+    			continue;
 
-		    /* Save the new mode currently requested */
-            mode = temp;
+    		prev_mode_requested = last_mode_requested;
 
-            /* Get the previous mode executed */
-            last_mode = prev_mode;
+    		last_mode_requested = mode;
 
-		    /* Reset any pending rec, stop cmd and timer counter */
-            playrec = pendstop = stoptimer = 0;
+    		//System_printf("%u\n", mode);
+    		//System_flush();
+
+		    /* Save the new transport mode that was requested */
+            //new_mode = mode;
+
+		    /* Reset pending record enable and pending stop timer counter */
+            record = stoptimer = 0;
 
 		    /* Set or Reset error LED indicators. The STAT2 LED
 		     * indicates tape out. STAT3 LED indicates timeout
@@ -399,9 +400,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Disable record if active! */
 	        		RecordDisable();
 
-	        		/* Indicate shuttle mode not active */
-					shuttling = 0;
-
 					/* All lamps off, diag leds preserved */
 					g_lamp_mask &= L_LED_MASK;
 
@@ -414,8 +412,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Set servo mode to HALT */
 					SET_SERVO_MODE(MODE_HALT);
 
-			    	prev_mode = MODE_HALT;
-					mode = UNDEFINED;
+			    	last_mode_completed = MODE_HALT;
+					mode_pending = 0;
 					break;
 
 				case MODE_STOP:
@@ -423,25 +421,25 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Disable record if active! */
 	        		RecordDisable();
 
-					/* Ignore if already in stop mode */
-					if (IS_SERVO_MODE(MODE_STOP))
-						continue;
+					//if (mode_pending)
+					//	break;
 
-					/* Indicate shuttle mode not active */
-					shuttling = 0;
+					/* Ignore if already in stop mode */
+					//if (IS_SERVO_MODE(MODE_STOP))
+					//	break;
 
 					/* Set the lamps to indicate the stop mode */
-					if (prev_mode == MODE_FWD)
+					if (last_mode_completed == MODE_FWD)
 						lamp_mask = L_FWD;
-					else if (prev_mode == MODE_REW)
+					else if (last_mode_completed == MODE_REW)
 						lamp_mask = L_REW;
-					else if (prev_mode == MODE_PLAY)
+					else if (last_mode_completed == MODE_PLAY)
 						lamp_mask = L_PLAY;
 					else
 						lamp_mask = 0;
 
-					/* If we're blink the stop lamp during pending stop
-					 * requests, then turn on the STOP lamp also.
+					/* If we're blinking the stop lamp during pending stop
+					 * requests, then turn on the STOP lamp initially also.
 					 */
 					if (!(g_dip_switch & M_DIPSW2))
 						lamp_mask |= L_STOP;
@@ -455,30 +453,28 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Set the reel servos for stop mode */
 					SET_SERVO_MODE(MODE_STOP);
 
-			    	prev_mode = MODE_STOP;
-					pendstop = MODE_STOP;
+					mode_pending = MODE_STOP;
 					break;
 
 				case MODE_PLAY:
+
+					if (mode_pending)
+						break;
 
 					/* Ignore if already in play mode */
 					if (IS_SERVO_MODE(MODE_PLAY))
 						break;
 
-					/* Indicate shuttle mode not active */
-					shuttling = 0;
-
-					/* upper bit indicates record when starting play mode */
-				    playrec = (msg.opcode & M_RECORD) ? 1 : 0;
-
 					/* Turn on the play lamp */
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
+
+					/* upper bit indicates record when starting play mode */
+				    record = (msg.opcode & M_RECORD) ? 1 : 0;
 
 					/* Set the reel servos to stop mode initially */
 					SET_SERVO_MODE(MODE_STOP);
 
-			    	prev_mode = MODE_PLAY;
-					pendstop = MODE_PLAY;
+					mode_pending = MODE_PLAY;
 					break;
 
 				case MODE_REW:
@@ -490,10 +486,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					if (IS_SERVO_MODE(MODE_REW))
 						break;
 
-					/* Indicate shuttle mode active */
-					shuttling = 1;
-
-					/* Light the rewind lamp only */
+	        		/* Light the rewind lamp only */
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_REW;
 
 					/* REW - stop the capstan servo, disengage brakes,
@@ -521,8 +514,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Set servos to REW mode */
 					SET_SERVO_MODE(MODE_REW);
 
-			    	prev_mode = MODE_REW;
-					mode = UNDEFINED;
+			    	last_mode_completed = MODE_REW;
+					mode_pending = 0;
 					break;
 
 				case MODE_FWD:
@@ -533,9 +526,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Ignore if already in ffwd mode */
 					if (IS_SERVO_MODE(MODE_FWD))
 						break;
-
-					/* Indicate shuttle mode active */
-					shuttling = 1;
 
 					/* Reset all lamps & light fast fwd lamp */
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_FWD;
@@ -565,8 +555,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* Set servos to FWD mode */
 					SET_SERVO_MODE(MODE_FWD);
 
-			    	prev_mode = MODE_FWD;
-					mode = UNDEFINED;
+			    	last_mode_completed = MODE_FWD;
+					mode_pending = 0;
 					break;
 
 				default:
@@ -585,7 +575,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
              * In this case we treat it as an error and just revert to stop mode.
              */
 
-            if (!pendstop)
+            if (!mode_pending)
             	continue;
 
             /* 60 seconds motion stop detect timeout */
@@ -596,7 +586,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
             	System_flush();
 
                 /* error, the motion didn't stop within timeout period */
-                playrec = pendstop = stoptimer = 0;
+                record = mode_pending = stoptimer = 0;
 
                 /* Stop lamp only, diag leds preserved */
         	    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | L_STAT3;
@@ -604,8 +594,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 				/* Set reel servos to stop */
     		    SET_SERVO_MODE(MODE_STOP);
 
-    		    prev_mode = MODE_STOP;
-	    	    mode = UNDEFINED;
+    		    last_mode_completed = MODE_STOP;
                 continue;
             }
 
@@ -619,12 +608,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 			/* Process the pending command state */
 
-        	switch(pendstop)
+        	switch(mode_pending)
         	{
             	case MODE_STOP:
 
             		/* Has all motion stopped yet? */
-            		if (last_mode != MODE_PLAY)
+            		if (last_mode_completed != MODE_PLAY)
             		{
             			if (IS_SERVO_MOTION())
             				break;
@@ -635,11 +624,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                 	 * the final state portion of the previous pending command.
                 	 */
 
-            	    if ((last_mode == MODE_FWD) ||
-            	        (last_mode == MODE_REW) ||
-            	        (last_mode == MODE_PLAY))
+            	    if ((prev_mode_requested == MODE_FWD) ||
+            	        (prev_mode_requested == MODE_REW) ||
+            	        (prev_mode_requested == MODE_PLAY))
             	    {
-            	        if ((last_mode == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
+            	        if ((prev_mode_requested == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
             	        {
                             /* STOP - Stop capstan servo, engage brakes,
                              * disengage pinch roller, disable record.
@@ -678,14 +667,14 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		/* Tape lifter settling Time */
             		Task_sleep(g_sys.lifter_settle_time);
 
-            		mode = UNDEFINED;
-            		shuttling = pendstop = 0;
+            		last_mode_completed = MODE_STOP;
+            		mode_pending = 0;
             		break;
 
            		case MODE_PLAY:
 
            			/* Has all motion stopped yet? */
-            	    if ((last_mode == MODE_REW) || (last_mode == MODE_FWD) || (last_mode == MODE_STOP))
+            	    //if ((prev_mode_completed == MODE_REW) || (prev_mode_completed == MODE_FWD) || (prev_mode_completed == MODE_STOP))
             	    {
             	    	if (IS_SERVO_MOTION())
             	    		break;
@@ -694,7 +683,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* All motion has stopped, allow 1 second settling
                      * time prior to engaging play after shuttle mode.
                      */
-            	    //if ((last_mode == MODE_REW) || (last_mode == MODE_FWD))
+
+            	    //System_printf("%u:%u\n", last_mode_requested, prev_mode_requested);
+            	    //System_flush();
+
+            	    if (prev_mode_requested != MODE_PLAY)
             	    	Task_sleep(1000);
 
         		    /* Disengage tape lifters & brakes. */
@@ -734,21 +727,19 @@ Void TransportControllerTask(UArg a0, UArg a1)
        		        SetTransportMask(T_SERVO, 0);
 
        		        /* [4] Enable record if record flag was set */
-       		        if (playrec)
+       		        if (record)
        		        {
+       		        	record = 0;
        		        	RecordEnable();
-       		        	playrec = 0;
        		        }
 
-               		mode = UNDEFINED;
-               		shuttling = pendstop = 0;
+       		        last_mode_completed = MODE_PLAY;
+               		mode_pending = 0;
            		    break;
 
    		        default:
-   		        	System_printf("invalid pend stop state %d!\n", pendstop);
-	            	System_flush();
-           		    //mode = prev_mode = UNDEFINED;
-               		shuttling = pendstop = 0;
+   		        	//System_printf("invalid pend stop state %d!\n", mode_pending);
+	            	//System_flush();
            		    break;
             }
  	    }

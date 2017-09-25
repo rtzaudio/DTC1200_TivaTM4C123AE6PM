@@ -299,7 +299,7 @@ void ServoSetMode(uint32_t mode)
 
 	if (mode == MODE_STOP)
 	{
-		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW))
+		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP))
 			g_servo.stop_brake_state = 1;
 		else
 			g_servo.stop_brake_state = 0;

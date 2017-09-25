@@ -684,10 +684,10 @@ Void TransportControllerTask(UArg a0, UArg a1)
                      * time prior to engaging play after shuttle mode.
                      */
 
-            	    //System_printf("%u:%u\n", last_mode_requested, prev_mode_requested);
+            	    //System_printf("%u:%u:%d:%d\n", last_mode_requested, prev_mode_requested, prev_mode_requested, mode_pending);
             	    //System_flush();
 
-            	    if (prev_mode_requested != MODE_PLAY)
+            	    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
             	    	Task_sleep(1000);
 
         		    /* Disengage tape lifters & brakes. */

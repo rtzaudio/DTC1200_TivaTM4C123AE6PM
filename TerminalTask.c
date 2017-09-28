@@ -366,18 +366,17 @@ static MENUITEM shuttle_items[] = {
 
 { 9, 5, NULL, "SHUTTLE SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 11, 1, "7", "Shuttle Mode Velocity     ", MI_NRANGE, 50, 500, NULL, set_mdata,
+{ 11, 1, "7", "Shuttle Mode Velocity         ", MI_NRANGE, 50, 500, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_velocity },
 
-{ 12, 1, "8", "Auto Decelerate Velocity  ", MI_NRANGE, 0, 200, NULL, set_mdata,
+{ 12, 1, "8", "Auto Decelerate Velocity      ", MI_NRANGE, 0, 200, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_slow_velocity },
 
-{ 13, 1, "9", "Auto Decelerate at offset ", MI_NRANGE, 50, 100, NULL, set_mdata,
+{ 13, 1, "9", "Auto Decelerate at offset     ", MI_NRANGE, 50, 100, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_slow_offset },
 
-{ 14, 1, "10","Tape Lifter Settling Time ", MI_NRANGE, 0,2000, NULL, set_mdata,
+{ 14, 1, "10","Lifter Settle Time            ", MI_NRANGE, 0,2000, NULL, set_mdata,
 		DT_LONG, &g_sys.lifter_settle_time },
-
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
@@ -420,16 +419,22 @@ static MENUITEM play_items[] = {
 
 { 12, 5, NULL, "PLAY SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 14, 1, "10", "Play Tension Velocity Gain   ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
+{ 14, 1, "10", "Play Tension Velocity Gain    ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
 		&g_sys.play_tension_gain },
 
-{ 15, 1, "11", "Pinch Roller Settling Time   ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+{ 15, 1, "11", "Pinch Roller Settling Time    ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
 		&g_sys.pinch_settle_time },
 
-{ 16, 1, "12", "Use Brakes to Stop Play Mode ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
+{ 16, 1, "12", "Shuttle to Play Settling Time ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+		&g_sys.play_settle_time },
+
+{ 17, 1, "13", "Brake Settle Time             ", MI_NRANGE, 0, 2000, NULL, set_mdata,
+		DT_LONG, &g_sys.brake_settle_time },
+
+{ 18, 1, "14", "Use Brakes to Stop Play Mode  ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 17, 1, "13", "Engage Pinch Roller at Play  ", MI_BITBOOL, SF_ENGAGE_PINCH_ROLLER, SF_ENGAGE_PINCH_ROLLER,
+{ 19, 1, "15", "Engage Pinch Roller at Play   ", MI_BITBOOL, SF_ENGAGE_PINCH_ROLLER, SF_ENGAGE_PINCH_ROLLER,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };

@@ -724,20 +724,23 @@ void InitSysDefaults(SYSPARMS* p)
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
     p->tension_sensor_gain      = 3;
-    p->lifter_settle_time       = 800;      /* tape lifter settling delay in ms */
+
+    p->lifter_settle_time       = 400;      /* tape lifter settling delay in ms */
+    p->brake_settle_time        = 300;
+    p->play_settle_time			= 800;		/* play after shuttle settle time   */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
     p->record_pulse_time     	= REC_PULSE_TIME;
     p->rechold_settle_time    	= REC_SETTLE_TIME;
     p->debounce                 = 30;
 
     p->stop_supply_tension      = 200;      /* supply tension level (0-DAC_MAX) */
-    p->stop_takeup_tension      = 200;      /* takeup tension level (0-DAC_MAX) */
+    p->stop_takeup_tension      = 300;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
     p->stop_min_torque          = 10;       /* min stop servo torque            */
     p->stop_brake_torque        = 650;    	/* max dynamic stop brake torque   */
 
     p->shuttle_supply_tension   = 200;      /* shuttle supply reel tension      */
-    p->shuttle_takeup_tension   = 200;      /* shuttle takeup reel tension      */
+    p->shuttle_takeup_tension   = 300;      /* shuttle takeup reel tension      */
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
     p->shuttle_velocity         = 450;      /* max shuttle velocity             */
@@ -749,9 +752,9 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->play_tension_gain        = 9;        /* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 200;      /* supply tension level (0-DAC_MAX) */
-    p->play_lo_takeup_tension   = 200;      /* takeup tension level (0-DAC_MAX) */
     p->play_hi_supply_tension   = 200;      /* supply tension level (0-DAC_MAX) */
-    p->play_hi_takeup_tension   = 200;      /* takeup tension level (0-DAC_MAX) */
+    p->play_lo_takeup_tension   = 186;      /* takeup tension level (0-DAC_MAX) */
+    p->play_hi_takeup_tension   = 188;      /* takeup tension level (0-DAC_MAX) */
     p->play_max_torque          = DAC_MAX;  /* play mode max torque (0-DAC_MAX) */
     p->play_min_torque          = 10;       /* play mode min torque (0-DAC_MAX) */
     p->play_lo_boost_time       = 1500;     /* play mode accel boost from stop  */

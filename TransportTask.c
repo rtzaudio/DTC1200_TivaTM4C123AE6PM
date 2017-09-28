@@ -630,21 +630,21 @@ Void TransportControllerTask(UArg a0, UArg a1)
             	    {
             	        if ((prev_mode_requested == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
             	        {
-                            /* STOP - Stop capstan servo, engage brakes,
-                             * disengage pinch roller, disable record.
+                            /* STOP - Engage brakes, stop capstan servo,
+                             *        disengage pinch roller, disable record.
                              */
                             SetTransportMask(T_BRAKE, T_SERVO | T_PROL | T_RECH);
            		        }
            		        else
            		        {
-                            /* STOP - Stop capstan servo, release brakes,
-                             * disengage pinch roller, disable record.
+                            /* STOP - Release brakes, stop capstan servo,
+                             *        disengage pinch roller, disable record.
                              */
                             SetTransportMask(0, T_BRAKE | T_SERVO | T_PROL | T_RECH);
            		        }
 
-           		        // 600 ms delay
-           		        Task_sleep(600);
+           		        /* Brake settle time after stop (~300 ms) */
+        		    	Task_sleep(g_sys.brake_settle_time);
            		    }
 
             		/* Stop lamp only, diag leds preserved */
@@ -656,16 +656,24 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             		/* Leave lifter engaged at stop if DIP switch #2 enabled. */
             		if (g_sys.sysflags & SF_LIFTER_AT_STOP)
-                		SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
+            		{
+            			/* Assure lifter engaged */
+                		SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH);
+            		}
             		else
-            			SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH | T_BRAKE);
-
-            		/* Leave brakes engaged at stop DIP switch #3 enabled. */
-            		if (g_sys.sysflags & SF_BRAKES_AT_STOP)
-            		    SetTransportMask(T_BRAKE, 0);
+            		{
+            			/* Release the lifter */
+            			SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH);
+            		}
 
             		/* Tape lifter settling Time */
             		Task_sleep(g_sys.lifter_settle_time);
+
+            		/* Leave brakes engaged if DIP switch #3 enabled, otherwise release brakes */
+            		if (g_sys.sysflags & SF_BRAKES_AT_STOP)
+            		    SetTransportMask(T_BRAKE, 0);
+            		else
+        		    	SetTransportMask(0, T_BRAKE);
 
             		last_mode_completed = MODE_STOP;
             		mode_pending = 0;
@@ -684,11 +692,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                      * time prior to engaging play after shuttle mode.
                      */
 
-            	    //System_printf("%u:%u:%d:%d\n", last_mode_requested, prev_mode_requested, prev_mode_requested, mode_pending);
-            	    //System_flush();
-
             	    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
-            	    	Task_sleep(1000);
+            	    {
+            	    	/* Setting time before engaging play after shuttle */
+            	    	Task_sleep(g_sys.play_settle_time);
+            	    }
 
         		    /* Disengage tape lifters & brakes. */
         		    SetTransportMask(0, T_TLIFT | T_BRAKE);

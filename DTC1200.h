@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        6        	/* firmware revision */
+#define FIRMWARE_REV        8        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -131,14 +131,15 @@ typedef struct _SYSPARMS
     int32_t debug;                     	/* debug level */
     int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
     int32_t null_offset_gain;          	/* reel servo null offset gain 		 */
-    int32_t shuttle_slow_velocity;     	/* velocity to reduce sppeed to      */
+    int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
     int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
-    int32_t lifter_settle_time;		  	/* tape lifer settling time in ms    */
-    int32_t record_pulse_time;			/* record pulse length time          */
+    int32_t lifter_settle_time;	  	    /* lifter settling time in ms        */
+    int32_t brake_settle_time;  		/* break settling time after STOP    */
+    int32_t play_settle_time;			/* play after shuttle settling time  */
     int32_t rechold_settle_time;		/* record pulse length time          */
+    int32_t record_pulse_time;			/* record pulse length time          */
     int32_t tension_sensor_gain;		/* tension sensor gain divisor       */
-
     uint32_t debounce;					/* debounce transport buttons time   */
     uint32_t sysflags;					/* global system bit flags           */
 

@@ -433,8 +433,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 						lamp_mask = L_FWD;
 					else if (last_mode_completed == MODE_REW)
 						lamp_mask = L_REW;
-					else if (last_mode_completed == MODE_PLAY)
-						lamp_mask = L_PLAY;
+					//else if (last_mode_completed == MODE_PLAY)
+					//	lamp_mask = L_PLAY;
 					else
 						lamp_mask = 0;
 
@@ -458,6 +458,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 				case MODE_PLAY:
 
+					/* Don't engage play if another mode is pending! */
 					if (mode_pending)
 						break;
 
@@ -606,7 +607,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		g_lamp_mask ^= L_STOP;
             }
 
-			/* Process the pending command state */
+			/*** PROCESS PENDING COMMAND STATES ***/
 
         	switch(mode_pending)
         	{
@@ -692,6 +693,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                      * time prior to engaging play after shuttle mode.
                      */
 
+            	    /* Play lamp only, diag leds preserved */
+        		    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
+
             	    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
             	    {
             	    	/* Setting time before engaging play after shuttle */
@@ -704,9 +708,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
         		    /* Settling time for tape lifter release */
         		    if (g_sys.sysflags & SF_LIFTER_AT_STOP)
         		    	Task_sleep(g_sys.lifter_settle_time);
-
-        		    /* Play lamp only, diag leds preserved */
-        		    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
         		    /* Things happen pretty quickly from here. First we engage the
         		     * pinch roller and allow it time to settle. Next we start

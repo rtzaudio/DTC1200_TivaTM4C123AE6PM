@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        8        	/* firmware revision */
+#define FIRMWARE_REV        9        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -92,8 +92,8 @@
 #define TIMEOUT_SPI			500
 
 /* Default record strobe pulse length */
-#define REC_PULSE_TIME		20
-#define REC_SETTLE_TIME		5
+#define REC_PULSE_TIME		50
+#define REC_SETTLE_TIME		10
 
 /*** Build/Config Options **************************************************/
 

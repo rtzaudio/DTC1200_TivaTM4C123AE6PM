@@ -612,7 +612,7 @@ Void MainControlTask(UArg a0, UArg a1)
     for(;;)
     {
         /* Blink heartbeat LED1 on the transport interface card */
-        if (++count >= 50)
+        if (++count >= 125)
         {
             count = 0;
             g_lamp_mask ^= g_lamp_blink_mask;

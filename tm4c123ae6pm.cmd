@@ -12,8 +12,8 @@
  * Settings for standard compilation.
  */
 
-#define APP_BASE 0x00000000
-#define APP_LENG 0x00020000
+//#define APP_BASE 0x00000000
+//#define APP_LENG 0x00020000
 
 /*
  * Settings for use with bootloader compilation (app base is offset, app length is smaller)
@@ -27,8 +27,8 @@
  * 4k space for our bootloader and the application starts at this offset.
  */
 
-//#define	APP_BASE 0x00001000
-//#define	APP_LENG 0x0001F000
+#define	APP_BASE 0x00001000
+#define	APP_LENG 0x0001F000
 
 #define	RAM_BASE 0x20000000
 #define RAM_LENG 0x00008000

@@ -299,6 +299,18 @@ void ServoSetMode(uint32_t mode)
 
 	if (mode == MODE_STOP)
 	{
+#if 0
+		if ((g_servo.mode_prev == MODE_PLAY) || (g_servo.mode_prev == MODE_FWD) ||
+            (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP))
+		{
+			g_servo.stop_brake_state = (g_servo.mode_prev == MODE_PLAY) ? 2 : 1;
+		}
+		else
+		{
+			g_servo.stop_brake_state = 0;
+		}
+#endif
+
 		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP))
 			g_servo.stop_brake_state = 1;
 		else
@@ -572,11 +584,18 @@ static void SvcServoStop(void)
 	    }
 	    else
 	    {
-	    	/* Calculate dynamic braking torque from current velocity */
-	        braketorque = (g_sys.stop_brake_torque - g_servo.velocity);
+    		/* Calculate dynamic braking torque from current velocity */
+
+	    	if (g_servo.stop_brake_state > 1)
+	    		braketorque = (g_servo.velocity * 10);
+	    	else
+	    		braketorque = (g_sys.stop_brake_torque - g_servo.velocity);
 	
 	        /* Check for brake torque limit overflow */
 	        if (braketorque < 0)
+	        	braketorque = g_sys.stop_brake_torque;
+
+	        if (braketorque > g_sys.stop_brake_torque)
 	        	braketorque = g_sys.stop_brake_torque;
 	    }
 	}

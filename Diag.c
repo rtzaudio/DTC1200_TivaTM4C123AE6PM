@@ -187,6 +187,8 @@ void LampBlinkError(void)
  
 int diag_dacadjust(MENUITEM* mp)
 {
+	int ch;
+
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
@@ -205,14 +207,24 @@ int diag_dacadjust(MENUITEM* mp)
         /* Release the brakes */
         SetTransportMask(0, T_BRAKE);
 
-        tty_printf("DAC levels set to 0V, adjust takeup and supply MDA gain levels for no motion.\r\n");
-        tty_printf("Adjust pots until reel motion just begins and trim back till no motion occurs.\r\n\n");
-        
-        g_servo.dac_halt_takeup = 0;
-        g_servo.dac_halt_supply = 0;
+        tty_printf("DAC level 0\r\n");
+        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 0;
+        while (tty_getc(&ch) == 0);
 
-        /* Wait for a keystroke */
-        wait4continue();
+        tty_printf("DAC level 50\r\n");
+        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 50;
+        while (tty_getc(&ch) == 0);
+
+        tty_printf("DAC level 100 (adjust MDA for initial torque)\r\n");
+        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 100;
+        while (tty_getc(&ch) == 0);
+
+        tty_printf("DAC level 150\r\n");
+        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 100;
+        while (tty_getc(&ch) == 0);
+
+        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = DAC_MIN;
+        SetTransportMask(T_BRAKE, 0);
 
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);

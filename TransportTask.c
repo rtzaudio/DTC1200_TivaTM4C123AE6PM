@@ -333,6 +333,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 
 Void TransportControllerTask(UArg a0, UArg a1)
 {
+	uint8_t mask;
 	uint8_t mode;
 	uint8_t record;
 	uint8_t lamp_mask;
@@ -347,7 +348,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
     {
         /* Wait for a mode change command from the transport controller queue */
 
-    	if (Mailbox_pend(g_mailboxController, &msg, 50) == TRUE)
+    	if (Mailbox_pend(g_mailboxController, &msg, 25) == TRUE)
 	    {
 
 			/* Process immediate command messages first */
@@ -452,6 +453,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					/* Set the reel servos for stop mode */
 					SET_SERVO_MODE(MODE_STOP);
+
+					if (last_mode_completed == MODE_PLAY)
+					{
+            	        if (g_sys.sysflags & SF_BRAKES_STOP_PLAY)
+            	        	SetTransportMask(T_BRAKE, 0);
+					}
 
 					mode_pending = MODE_STOP;
 					break;
@@ -581,7 +588,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             /* 60 seconds motion stop detect timeout */
 
-            if (++stoptimer >= 1200)
+            if (++stoptimer >= 2400)
             {
             	System_printf("Wait for STOP timeout!\n");
             	System_flush();
@@ -603,7 +610,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             if (!(g_dip_switch & M_DIPSW2))
             {
-            	if ((stoptimer % 6) == 5)
+            	if ((stoptimer % 12) == 0)
             		g_lamp_mask ^= L_STOP;
             }
 
@@ -644,7 +651,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                             SetTransportMask(0, T_BRAKE | T_SERVO | T_PROL | T_RECH);
            		        }
 
-           		        /* Brake settle time after stop (~300 ms) */
+            	        /* Brake settle time after stop (~300 ms) */
         		    	Task_sleep(g_sys.brake_settle_time);
            		    }
 
@@ -654,6 +661,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		/* Stop capstan servo, relase brakes, release lifter,
             		 * release pinch roller and end any record mode.
             		 */
+
+            		mask = GetTransportMask();
 
             		/* Leave lifter engaged at stop if DIP switch #2 enabled. */
             		if (g_sys.sysflags & SF_LIFTER_AT_STOP)
@@ -668,7 +677,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		}
 
             		/* Tape lifter settling Time */
-            		Task_sleep(g_sys.lifter_settle_time);
+            		if (mask & T_TLIFT)
+            			Task_sleep(g_sys.lifter_settle_time);
 
             		/* Leave brakes engaged if DIP switch #3 enabled, otherwise release brakes */
             		if (g_sys.sysflags & SF_BRAKES_AT_STOP)
@@ -702,12 +712,17 @@ Void TransportControllerTask(UArg a0, UArg a1)
             	    	Task_sleep(g_sys.play_settle_time);
             	    }
 
+            	    mask = GetTransportMask();
+
         		    /* Disengage tape lifters & brakes. */
         		    SetTransportMask(0, T_TLIFT | T_BRAKE);
 
         		    /* Settling time for tape lifter release */
-        		    if (g_sys.sysflags & SF_LIFTER_AT_STOP)
-        		    	Task_sleep(g_sys.lifter_settle_time);
+        		    if (mask & T_TLIFT)
+        		    {
+        		    	if (g_sys.sysflags & SF_LIFTER_AT_STOP)
+        		    		Task_sleep(g_sys.lifter_settle_time);
+        		    }
 
         		    /* Things happen pretty quickly from here. First we engage the
         		     * pinch roller and allow it time to settle. Next we start

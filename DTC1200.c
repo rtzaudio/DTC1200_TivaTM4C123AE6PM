@@ -723,7 +723,7 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
-    p->tension_sensor_gain      = 3;
+    p->tension_sensor_gain      = 2;
 
     p->lifter_settle_time       = 600;      /* tape lifter settling delay in ms */
     p->brake_settle_time        = 450;

@@ -201,27 +201,23 @@ int diag_dacadjust(MENUITEM* mp)
     }
     else
     {
+    	size_t i;
+    	static uint32_t dac[] = { 0, 50, 75, 100, 125, 150, 175, 200 };
+
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
 
         /* Release the brakes */
         SetTransportMask(0, T_BRAKE);
 
-        tty_printf("DAC level 0\r\n");
-        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 0;
-        while (tty_getc(&ch) == 0);
-
-        tty_printf("DAC level 50\r\n");
-        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 50;
-        while (tty_getc(&ch) == 0);
-
-        tty_printf("DAC level 100 (adjust MDA for initial torque)\r\n");
-        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 100;
-        while (tty_getc(&ch) == 0);
-
-        tty_printf("DAC level 150\r\n");
-        g_servo.dac_halt_takeup = g_servo.dac_halt_supply = 100;
-        while (tty_getc(&ch) == 0);
+        for (i=0; i < sizeof(dac)/sizeof(uint32_t); i++)
+        {
+            tty_printf("DAC level %u\r\n", dac[i]);
+            g_servo.dac_halt_takeup = g_servo.dac_halt_supply = dac[i];
+            while (tty_getc(&ch) == 0);
+            if (ch == ESC)
+            	break;
+        }
 
         g_servo.dac_halt_takeup = g_servo.dac_halt_supply = DAC_MIN;
         SetTransportMask(T_BRAKE, 0);

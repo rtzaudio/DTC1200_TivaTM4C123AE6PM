@@ -62,6 +62,7 @@
 
 /* Tivaware Driver files */
 #include <driverlib/eeprom.h>
+#include <driverlib/fpu.h>
 
 /* Generic Includes */
 #include <file.h>
@@ -110,6 +111,11 @@ Int main()
     Error_Block eb;
     Mailbox_Params mboxParams;
     Task_Params taskParams;
+
+    /* Enables Floating Point Hardware Unit */
+    FPUEnable();
+    /* Allows the FPU to be used inside interrupt service routines */
+    FPULazyStackingEnable();
 
     /* Call board init functions */
     Board_initGeneral();
@@ -573,7 +579,9 @@ Void MainControlTask(UArg a0, UArg a1)
      * counter roller.
      */
 
-    Tachometer_initialize();
+    //Tachometer_initialize();
+
+    TapeTach_initialize();
 
     /* Start the transport servo loop timer clock running.
      * We create an auto-reload periodic timer for the servo loop.

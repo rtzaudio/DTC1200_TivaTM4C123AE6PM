@@ -73,7 +73,7 @@
 #include "ServoTask.h"
 #include "TransportTask.h"
 #include "IOExpander.h"
-#include "TachTimer.h"
+#include "TapeTach.h"
 
 /* Static Function Prototypes */
 static void ResetPlayServo(void);
@@ -142,7 +142,8 @@ void ResetPlayServo(void)
 	//System_printf("Boost %u\n", g_servo.play_boost_time);
 	//System_flush();
 
-	ResetTapeTach();
+	//ResetTapeTach();
+	TapeTach_reset();
 
 	Semaphore_post(g_semaServo);
 }
@@ -442,7 +443,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					/* If we're blinking the stop lamp during pending stop
 					 * requests, then turn on the STOP lamp initially also.
 					 */
-					if (!(g_dip_switch & M_DIPSW2))
+					if (g_dip_switch & M_DIPSW2)
 						lamp_mask |= L_STOP;
 
 					/* Stop and new lamp mask, diag leds preserved */
@@ -608,7 +609,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             /* Blink the stop lamp to indicate stop is pending */
 
-            if (!(g_dip_switch & M_DIPSW2))
+            if (g_dip_switch & M_DIPSW2)
             {
             	if ((stoptimer % 12) == 0)
             		g_lamp_mask ^= L_STOP;

@@ -84,6 +84,7 @@
 #include "IOExpander.h"
 #include "TransportTask.h"
 #include "TachTimer.h"
+#include "TapeTach.h"
 #include "MotorDAC.h"
 
 /* Calculate the tension value from the ADC reading */
@@ -386,7 +387,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
          ***********************************************************/
 
         /* Read the tape roller tachometer count */
-        g_servo.tape_tach = ReadTapeTach();
+        //g_servo.tape_tach = ReadTapeTach();
+
+        g_servo.tape_tach = (uint32_t)TapeTach_read();
 
         /* Read the takeup and supply reel motor velocity values */
         g_servo.velocity_supply = (long)QEIVelocityGet(QEI_BASE_SUPPLY);

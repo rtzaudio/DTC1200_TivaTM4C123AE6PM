@@ -2,10 +2,8 @@
  *
  * DTC-1200 Digital Transport Controller for Ampex MM-1200 Tape Machines
  *
- * Copyright (C) 2018, RTZ Professional Audio, LLC
+ * Copyright (C) 2016, RTZ Professional Audio, LLC
  * All Rights Reserved
- *
- * Timer Logic contributed by Bruno Saraiva
  *
  * RTZ is registered trademark of RTZ Professional Audio, LLC
  *
@@ -44,14 +42,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <inc/hw_sysctl.h>
+#include "inc/hw_sysctl.h"
 #include <inc/hw_memmap.h>
 #include <inc/hw_types.h>
 #include <inc/hw_ints.h>
 #include <inc/hw_gpio.h>
-#include <inc/hw_timer.h>
-#include <inc/hw_ssi.h>
-#include <inc/hw_i2c.h>
+#include "inc/hw_ssi.h"
+#include "inc/hw_i2c.h"
 
 /* TI-RTOS Driver files */
 #include <ti/drivers/GPIO.h>
@@ -84,28 +81,36 @@
 #include "DTC1200.h"
 #include "TapeTach.h"
 
+#ifndef WIDE_TIMER_TACH
+
 /****************************************************************************
  * Static Data Items
  ****************************************************************************/
 
-static TACHDATA g_tachData;
+#define TACH_EDGE_COUNT		(10)		//0x03E8
 
-static uint32_t g_systemClock = 1;
+static uint32_t s_count_timerA = 0;
+static uint32_t s_count_timerB = 0;
 
 /* Hardware Interrupt Handlers */
-static Void WTimer1AIntHandler(void);
-static Void WTimer1BIntHandler(void);
+static Void Timer2AIntHandler(void);
+static Void Timer2BIntHandler(void);
 
 /****************************************************************************
  * The transport has tape tach derived from the search-to-cue timer card
  * using the quadrature encoder from the tape timer roller. The pulse stream
  * is approximately 240 Hz with tape moving at 30 IPS. We configure
- * WTIMER1A as 32-bit input edge count mode.
-  ****************************************************************************/
+ * TIMER2A as 16-bit input edge count mode as described in the data sheet.
+ *
+ * In Input Edge Count Mode, the timer stops after the desired number of
+ * edge events has been detected. To re-enable the timer, ensure that the
+ * TnEN bit is cleared and repeat step 4 through step 9.
+ ****************************************************************************/
 
 void TapeTach_initialize(void)
 {
-    g_systemClock = SysCtlClockGet();
+	s_count_timerA = 0;
+	s_count_timerB = 0;
 
 	/* Map the timer interrupt handlers. We don't make sys/bios calls
 	 * from these interrupt handlers and there is no need to create a
@@ -113,151 +118,166 @@ void TapeTach_initialize(void)
 	 * just update some globals variables and need to execute as
 	 * quickly and efficiently as possible.
 	 */
-	Hwi_plug(INT_WTIMER1A, WTimer1AIntHandler);
-    Hwi_plug(INT_WTIMER1B, WTimer1BIntHandler);
+	Hwi_plug(INT_TIMER2A_TM4C123, Timer2AIntHandler);
+	Hwi_plug(INT_TIMER2B_TM4C123, Timer2BIntHandler);
 
-    /* Enable the wide timer peripheral */
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
-    while(!(SysCtlPeripheralReady(SYSCTL_PERIPH_GPIOC))){}
+	/* Disable interrupts */
+	IntMasterDisable();
 
-    /* First make sure the timer is disabled */
-    TimerDisable(WTIMER1_BASE, TIMER_A);
-    TimerDisable(WTIMER1_BASE, TIMER_B);
+	/* Enable Timers */
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
 
-    /* Disable global interrupts */
-    IntMasterDisable();
+    /* Enable pin PB0 for TIMER2 T2CCP0 */
+    GPIOPinConfigure(GPIO_PB0_T2CCP0);
+    GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_0);
 
-    /* Enable pin PC6 for WTIMER1 WT1CCP0 */
-    GPIOPinConfigure(GPIO_PC6_WT1CCP0);
-    GPIOPinTypeTimer(GPIO_PORTC_BASE, GPIO_PIN_6);
+    /* Enable pin PB1 for TIMER2 T2CCP1 */
+    GPIOPinConfigure(GPIO_PB1_T2CCP1);
+    GPIOPinTypeTimer(GPIO_PORTB_BASE, GPIO_PIN_1);
 
 	/* Configure Edge Count Timers */
 
-    /* Configure wide timer for time capture, split mode. Timer-B is
-     * used as a timeout timer that triggers when no edges are
-     * present after half second timeout period.
-     */
-    TimerConfigure(WTIMER1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_CAP_TIME | TIMER_CFG_B_PERIODIC);
+	/* Setup timer2 as two 16-bit timers in edge count mode. The counters
+	 * will count TACH_EDGE_COUNT edges then generate an interrupt.
+	 */
+	TimerConfigure(TIMER2_BASE, (TIMER_CFG_SPLIT_PAIR |
+								 TIMER_CFG_A_CAP_COUNT |
+								 TIMER_CFG_B_CAP_COUNT));
 
-    /* Define event which generates interrupt on timer A */
-    TimerControlEvent(WTIMER1_BASE, TIMER_A, TIMER_EVENT_NEG_EDGE);
+	/* The prescaler not available for Edge Count mode, set to 0 for good measure */
+	TimerPrescaleSet(TIMER2_BASE, TIMER_BOTH, 0);
+	/* Trigger on rising edges */
+	TimerControlEvent(TIMER2_BASE, TIMER_BOTH, TIMER_EVENT_POS_EDGE);
+	/* Load set timer value */
+	TimerLoadSet(TIMER2_BASE, TIMER_BOTH, TACH_EDGE_COUNT);
+	/* Load the match value */
+	TimerMatchSet(TIMER2_BASE, TIMER_BOTH, 0x0000);
 
-    /* Configure the timeout count on timer B for half a second */
-    TimerLoadSet(WTIMER1_BASE, TIMER_B, g_systemClock/2);
+	/* Enable interrupts */
+	IntMasterEnable();
 
-    /* Enable interrupt on timer A for capture event */
-    TimerIntEnable(WTIMER1_BASE, TIMER_CAPA_EVENT | TIMER_TIMB_TIMEOUT);
+	IntEnable(INT_TIMER2A);
+	IntEnable(INT_TIMER2B);
 
-    /* Enable timer A & B interrupts */
-    IntEnable(INT_WTIMER1A);
-    IntEnable(INT_WTIMER1B);
+	TimerIntEnable(TIMER2_BASE, TIMER_CAPA_MATCH);
+	TimerIntEnable(TIMER2_BASE, TIMER_CAPB_MATCH);
 
-    /* Enable master interrupts */
-    IntMasterEnable();
+	/* Configure time base timer (free running) */
 
-    /* Start timers A and B*/
-    TimerEnable(WTIMER1_BASE, TIMER_BOTH);
+	/* Setup timer as 32-bit periodic timer */
+	TimerConfigure(TIMER1_BASE, TIMER_CFG_PERIODIC);
+	/* Load timer value (TIMER_A for 32-bit operation) */
+	TimerLoadSet(TIMER1_BASE, TIMER_A, 0xFFFFFFFF);
+
+	/* Enable timers */
+	TimerEnable(TIMER2_BASE, TIMER_BOTH);
+	TimerEnable(TIMER1_BASE, TIMER_A);
 }
 
 /****************************************************************************
- * WTIMER1A FALLING EDGE CAPTURE TIMER INTERRUPT HANDLER
+ * INTERRUPT HANDLER : Compares timer count from previous interrupt and
+ * stores the difference in a global variable
  ****************************************************************************/
 
-Void WTimer1AIntHandler(void)
+Void Timer2AIntHandler(void)
 {
-    static uint32_t previousCount = 0;
-    static uint32_t averageCount[TACH_AVG_QTY];
-    static uint32_t averageSum = 0;
-    static size_t   averageIdx = 0;
+	static uint32_t previous_time = 0;
 
-    uint32_t thisCount;
-    uint32_t thisPeriod;
-    uint32_t key;
+	/* Clear the interrupt */
+	TimerIntClear(TIMER2_BASE, TIMER_CAPA_MATCH);
 
-    TimerIntClear(WTIMER1_BASE, TIMER_CAPA_EVENT);
+	/* Reset the edge count and enable the timer */
+	TimerLoadSet(TIMER2_BASE, TIMER_A, TACH_EDGE_COUNT);
+	TimerEnable(TIMER2_BASE, TIMER_A);
 
-    thisCount     = TimerValueGet(WTIMER1_BASE, TIMER_A);
-    thisPeriod    = previousCount - thisCount;
-    previousCount = thisCount;
-
-    if (thisPeriod)       /* Shield from dividing by zero */
-    {
-        /* Calculates and store averaged value */
-        averageSum              -= averageCount[averageIdx];
-        averageSum              += thisPeriod;
-        averageCount[averageIdx] = thisPeriod;
-        averageIdx++;
-        averageIdx %= TACH_AVG_QTY;
-
-        /* ENTER - Critical Section */
-        key = Hwi_disable();
-        {
-            /* Sets the status to indicate tach is alive */
-            g_tachData.tachAlive = true;
-
-            /* Store RAW value, which refers to one measurement only */
-            g_tachData.frequencyRawHz = (float)g_systemClock / (float)thisPeriod;
-
-            /* Update the average sum */
-            if (averageSum)
-                g_tachData.frequencyAvgHz = (float)g_systemClock / ((float)averageSum / (float)TACH_AVG_QTY);
-        }
-        /* EXIT - Critical Section */
-        Hwi_restore(key);
-
-        /* Resets timeout timer */
-        HWREG(WTIMER1_BASE + TIMER_O_TBV) = g_systemClock / 2;
-    }
+	/* Get the current periodic timer count */
+	s_count_timerA = previous_time - TimerValueGet(TIMER1_BASE, TIMER_A);
+	previous_time = TimerValueGet(TIMER1_BASE, TIMER_A);
 }
 
 /****************************************************************************
- * WTIMER1B 1/2 SECOND EDGE DETECT TIMEOUT TIMER INTERRUPT HANDLER
+ * INTERRUPT HANDLER : Compares timer count from previous interrupt and
+ * stores the difference in a global variable
  ****************************************************************************/
 
-Void WTimer1BIntHandler(void)
+Void Timer2BIntHandler(void)
 {
-    uint32_t key;
+	static uint32_t previous_time = 0;
 
-    TimerIntClear(WTIMER1_BASE, TIMER_TIMB_TIMEOUT);
+	/* Clear the interrupt */
+	TimerIntClear(TIMER2_BASE, TIMER_CAPB_MATCH);
 
-    key = Hwi_disable();
-    {
-        g_tachData.tachAlive      = false;
-        g_tachData.frequencyAvgHz = 0.0f;
-        g_tachData.frequencyRawHz = 0.0f;
-    }
-    Hwi_restore(key);
+	/* Reset the edge count and enable the timer */
+	TimerLoadSet(TIMER2_BASE, TIMER_B, TACH_EDGE_COUNT);
+	TimerEnable(TIMER2_BASE, TIMER_B);
+
+	/* Get the current periodic timer count */
+	s_count_timerB = previous_time - TimerValueGet(TIMER1_BASE, TIMER_A);
+	previous_time = TimerValueGet(TIMER1_BASE, TIMER_A);
 }
 
 /****************************************************************************
- * Read the current tape tachometer count.
+ * Read the current tape tachometer count
+ *	Clock running at 80MHz, counter is number of clock cycles
+ *	in TACH_EDGE_COUNT (1000) rising edges
+ *	total period = count/80000000 s
+ *	single period = count/(80000000 * 1000)
+ *	frequency = (80000000 * 1000)/count
+ *	to prevent overflow: (800000000/count) * 10
  ****************************************************************************/
 
 float TapeTach_read(void)
 {
-    uint32_t key;
-	float avg;
+	float a;
 
-	key = Hwi_disable();
-	{
-	    avg = g_tachData.frequencyAvgHz;
-	}
-	Hwi_restore(key);
+	IArg key = Gate_enterModule();  // enter critical section
 
-	return avg;
+	if (s_count_timerA == 0)
+		a = 0.0f;
+	else
+		a = (800000000.0f / (float)s_count_timerA);
+
+	Gate_leaveModule(key);
+
+	return a;
 }
 
 void TapeTach_reset(void)
 {
-    uint32_t key;
-
-    key = Hwi_disable();
-    {
-        g_tachData.tachAlive      = false;
-        g_tachData.frequencyAvgHz = 0.0f;
-        g_tachData.frequencyRawHz = 0.0f;
-    }
-    Hwi_restore(key);
+	IArg key = Gate_enterModule();  // enter critical section
+	s_count_timerA = 0;
+	Gate_leaveModule(key);
 }
+
+/****************************************************************************
+ * Read the current capstan motor tachometer count
+ ****************************************************************************/
+
+uint32_t CapstanTach_read(void)
+{
+	uint32_t b;
+
+	IArg key = Gate_enterModule();  // enter critical section
+
+	if (s_count_timerB == 0)
+		b = 0;
+	else
+		b = (800000000 / s_count_timerB);
+
+	Gate_leaveModule(key);
+
+	return b;
+}
+
+void CapstanTach_reset(void)
+{
+	IArg key = Gate_enterModule();  // enter critical section
+	s_count_timerB = 0;
+	Gate_leaveModule(key);
+}
+
+#endif
 
 /* End-Of-File */

@@ -43,7 +43,13 @@
 #ifndef DTC1200_TAPE_TACH_H_
 #define DTC1200_TAPE_TACH_H_
 
-#define TACH_AVG_QTY	128
+//#define WIDE_TIMER_TACH
+
+#define TACH_AVG_QTY	8
+
+//*****************************************************************************
+//  Wide Timer Tach Data
+//*****************************************************************************
 
 typedef struct _TACHDATA
 {
@@ -58,8 +64,12 @@ typedef struct _TACHDATA
     bool	tachAlive;
 } TACHDATA;
 
-/* Tachometer Functions */
+//*****************************************************************************
+//  Tachometer Functions
+//*****************************************************************************
+
 void TapeTach_initialize(void);
 float TapeTach_read(void);
+void TapeTach_reset(void);
 
 #endif

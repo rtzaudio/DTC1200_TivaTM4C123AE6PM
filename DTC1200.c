@@ -81,7 +81,7 @@
 #include "ServoTask.h"
 #include "TerminalTask.h"
 #include "ServoTask.h"
-#include "TachTimer.h"
+#include "TapeTach.h"
 #include "MotorDAC.h"
 #include "IOExpander.h"
 #include "Diag.h"
@@ -295,7 +295,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1500;
+    taskParams.stackSize = 1664;
     taskParams.priority  = 1;
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
         System_abort("TerminalTask()!\n");
@@ -569,7 +569,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1500;
+    taskParams.stackSize = 2048;
     taskParams.priority  = 1;
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
         System_abort("TerminalTask()!\n");
@@ -754,7 +754,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_velocity         = 450;      /* max shuttle velocity             */
     p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
     p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
-    p->shuttle_servo_pgain      = 200;      /* shuttle mode servo P-gain        */
+    p->shuttle_servo_pgain      = 75;       /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 
@@ -772,7 +772,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_lo_boost_start      = DAC_MAX;
     p->play_lo_boost_end        = 105;
     p->play_hi_boost_start      = DAC_MAX;
-    p->play_hi_boost_end        = 215;
+    p->play_hi_boost_end        = 235;		// 215;
 
     p->reserved3                = 0;        /* reserved */
     p->reserved4                = 0;        /* reserved */

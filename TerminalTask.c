@@ -112,6 +112,7 @@ int mc_cmd_stop(MENUITEM *item);
 int mc_cmd_play(MENUITEM *item);
 int mc_cmd_fwd(MENUITEM *item);
 int mc_cmd_rew(MENUITEM *item);
+int mc_monitor_mode(MENUITEM *item);
 int mc_default_config(MENUITEM *item);
 int mc_read_config(MENUITEM *item);
 int mc_write_config(MENUITEM *item);
@@ -203,7 +204,7 @@ static MENUITEM main_items[] = {
 
 { 5, 30, "10", "Diagnostics", MI_NMENU, MENU_DIAG, 0, NULL, NULL, 0, 0 },
 
-{ 7, 30, "11", "Monitor", MI_NRANGE, 0, 3, NULL, set_mdata, DT_LONG, &g_sys.debug },
+{ 7, 30, "11", "Monitor", MI_EXEC, 0, 0, NULL, mc_monitor_mode, 0, 0 },
 
 { 20, 1, "", "TRANSPORT:", MI_TEXT, 0, 1, NULL, NULL, 0, 0 },
 
@@ -1430,6 +1431,13 @@ int set_mdata(MENUITEM* item)
  * DIRECT EXECUTE MENU HANDLERS
  */
 
+int mc_monitor_mode(MENUITEM *item)
+{
+	g_sys.debug = 1;
+	show_monitor_screen();
+	return 1;
+}
+
 int mc_cmd_stop(MENUITEM *item)
 {
 	(void)item;
@@ -1575,51 +1583,55 @@ void show_monitor_screen()
 		tty_pos(1, 64);
 		tty_printf("%sMONITOR%s %u", s_inv_on, s_inv_off, g_sys.debug);
 
-		tty_pos(4, 1);
+		tty_pos(3, 1);
 		tty_printf("%sSUPPLY%s", s_ul_on, s_ul_off);
+		tty_pos(4, 1);
+		tty_puts("DAC Level");
 		tty_pos(5, 1);
-		tty_puts("DAC Level   :");
+		tty_puts("Velocity");
 		tty_pos(6, 1);
-		tty_puts("Velocity    :");
+		tty_puts("Errors");
 		tty_pos(7, 1);
-		tty_puts("Errors      :");
+		tty_puts("Stop Torque");
 		tty_pos(8, 1);
-		tty_puts("Stop Torque :");
+		tty_puts("Offset");
 		tty_pos(9, 1);
-		tty_puts("Offset      :");
+		tty_puts("Radius");
 
-		tty_pos(4, 35);
+		tty_pos(3, 35);
 		tty_printf("%sTAKEUP%s", s_ul_on, s_ul_off);
+		tty_pos(4, 35);
+		tty_puts("DAC Level");
 		tty_pos(5, 35);
-		tty_puts("DAC Level   :");
+		tty_puts("Velocity");
 		tty_pos(6, 35);
-		tty_puts("Velocity    :");
+		tty_puts("Errors");
 		tty_pos(7, 35);
-		tty_puts("Errors      :");
+		tty_puts("Stop Torque");
 		tty_pos(8, 35);
-		tty_puts("Stop Torque :");
+		tty_puts("Offset");
 		tty_pos(9, 35);
-		tty_puts("Offset      :");
+		tty_puts("Radius");
 
 		tty_pos(11, 1);
 		tty_printf("%sPID SERVO%s", s_ul_on, s_ul_off);
 		tty_pos(12, 1);
-		tty_puts("PID CV      :");
+		tty_puts("PID CV");
 		tty_pos(13, 1);
-		tty_puts("PID Error   :");
+		tty_puts("PID Error");
 		tty_pos(14, 1);
-		tty_puts("PID Debug   :");
+		tty_puts("PID Debug");
 		tty_pos(15, 1);
-		tty_puts("Velocity    :");
+		tty_puts("Velocity");
 
 		tty_pos(17, 1);
 		tty_printf("%sTAPE%s", s_ul_on, s_ul_off);
 		tty_pos(18, 1);
-		tty_printf("Tape Tach   :");
+		tty_printf("Tape Tach");
 		tty_pos(19, 1);
-		tty_printf("Offset Null :");
+		tty_printf("Offset Null");
 		tty_pos(20, 1);
-		tty_printf("Tension Arm :");
+		tty_printf("Tension Arm");
 
 		tty_pos(23, 1);
 		tty_puts(s_escstr);
@@ -1636,60 +1648,50 @@ void show_monitor_data()
 		tty_putc((int)get_dir_char());
 
 		/* SUPPLY */
+		tty_pos(4, 15);
+		tty_printf(": %-4d", g_servo.dac_supply);
 		tty_pos(5, 15);
-		tty_printf("%-4d", g_servo.dac_supply);
+		tty_printf(": %-8d", g_servo.velocity_supply);
 		tty_pos(6, 15);
-		tty_printf("%-8d", g_servo.velocity_supply);
+		tty_printf(": %-8u", g_servo.qei_supply_error_cnt);
 		tty_pos(7, 15);
-		tty_printf("%-8u", g_servo.qei_supply_error_cnt);
+		tty_printf(": %-8d", g_servo.stop_torque_supply);
 		tty_pos(8, 15);
-		tty_printf("%-8d", g_servo.stop_torque_supply);
+		tty_printf(": %-8d", g_servo.offset_supply);
 		tty_pos(9, 15);
-		tty_printf("%-8d", g_servo.offset_supply);
+		tty_printf(": %-8.2f", g_servo.radius_supply);
 
 		/* TAKEUP */
+		tty_pos(4, 49);
+		tty_printf(": %-4d", g_servo.dac_takeup);
 		tty_pos(5, 49);
-		tty_printf("%-4d", g_servo.dac_takeup);
+		tty_printf(": %-8d", g_servo.velocity_takeup);
 		tty_pos(6, 49);
-		tty_printf("%-8d", g_servo.velocity_takeup);
+		tty_printf(": %-8u", g_servo.qei_takeup_error_cnt);
 		tty_pos(7, 49);
-		tty_printf("%-8u", g_servo.qei_takeup_error_cnt);
+		tty_printf(": %-8d", g_servo.stop_torque_takeup);
 		tty_pos(8, 49);
-		tty_printf("%-8d", g_servo.stop_torque_takeup);
+		tty_printf(": %-8d", g_servo.offset_takeup);
 		tty_pos(9, 49);
-		tty_printf("%-8d", g_servo.offset_takeup);
+		tty_printf(": %-8.2f", g_servo.radius_takeup);
 
 		/* PID SERVO */
 		tty_pos(12, 15);
-		tty_printf("%-12d", g_servo.db_cv);
+		tty_printf(": %-12d", g_servo.db_cv);
 		tty_pos(13, 15);
-		tty_printf("%-12d", g_servo.db_error);
+		tty_printf(": %-12d", g_servo.db_error);
 		tty_pos(14, 15);
-		tty_printf("%-12d", g_servo.db_debug);
+		tty_printf(": %-12d", g_servo.db_debug);
 		tty_pos(15, 15);
-		tty_printf("%-12d", g_servo.velocity);
+		tty_printf(": %-12d", g_servo.velocity);
 
 		/* TAPE */
 		tty_pos(18, 15);
-		tty_printf("%-12d", g_servo.tape_tach);
+		tty_printf(": %-12d", g_servo.tape_tach);
 		tty_pos(19, 15);
-		tty_printf("%-4d", g_servo.offset_null);
+		tty_printf(": %-4d", g_servo.offset_null);
 		tty_pos(20, 15);
-		tty_printf("%-4d", g_servo.tsense);
-
-	} else if (g_sys.debug == 2) {
-		tty_printf(
-				"SVel=%-4.4d%c TVel=%-4.4d%c Vel=%-4.4d, Tach=%-4.4d, NullOff=%-4.4d, Debug=%d\r\n",
-				g_servo.velocity_supply, get_dir_char(),
-				g_servo.velocity_takeup, get_dir_char(),
-				g_servo.velocity, g_servo.tape_tach, g_servo.offset_null,
-				g_servo.db_debug);
-	} else if (g_sys.debug == 3) {
-		tty_printf(
-				"SDAC=%-4.4d TDAC=%-4.4d CV=%4.4d Vel=%-4.4d Err=%ld\r\n",
-				g_servo.dac_supply, g_servo.dac_takeup, g_servo.db_cv,
-				g_servo.velocity, g_servo.db_error);
-
+		tty_printf(": %-4d", g_servo.tsense);
 	}
 }
 

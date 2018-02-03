@@ -450,17 +450,19 @@ Void TransportControllerTask(UArg a0, UArg a1)
 					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | lamp_mask;
 
 					/* Disable record if active */
-					SetTransportMask(0, T_RECH);
+					SetTransportMask(0, T_PROL | T_SERVO | T_RECH);
 
 					/* Set the reel servos for stop mode */
 					SET_SERVO_MODE(MODE_STOP);
-
+#if 0
 					if (last_mode_completed == MODE_PLAY)
 					{
             	        if (g_sys.sysflags & SF_BRAKES_STOP_PLAY)
+            	        {
             	        	SetTransportMask(T_BRAKE, 0);
+            	        }
 					}
-
+#endif
 					mode_pending = MODE_STOP;
 					break;
 
@@ -633,6 +635,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                 	 * the final state portion of the previous pending command.
                 	 */
 
+                    /* STOP capstan servo, disengage pinch roller & disable record. */
+                    SetTransportMask(0, T_SERVO | T_PROL | T_RECH);
+
             	    if ((prev_mode_requested == MODE_FWD) ||
             	        (prev_mode_requested == MODE_REW) ||
             	        (prev_mode_requested == MODE_PLAY))
@@ -642,6 +647,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                             /* STOP - Engage brakes, stop capstan servo,
                              *        disengage pinch roller, disable record.
                              */
+
+            	        	/* Pre-brake delay, let servo stop loop have some effect */
+            	        	Task_sleep(225);
+
+            	        	/* Now apply the hard brakes */
                             SetTransportMask(T_BRAKE, T_SERVO | T_PROL | T_RECH);
            		        }
            		        else
@@ -659,13 +669,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
             		/* Stop lamp only, diag leds preserved */
             		g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP;
 
-            		/* Stop capstan servo, relase brakes, release lifter,
+            		/* Stop capstan servo, release brakes, release lifter,
             		 * release pinch roller and end any record mode.
             		 */
 
             		mask = GetTransportMask();
 
-            		/* Leave lifter engaged at stop if DIP switch #2 enabled. */
+            		/* Leave lifter engaged at stop if enabled. */
             		if (g_sys.sysflags & SF_LIFTER_AT_STOP)
             		{
             			/* Assure lifter engaged */
@@ -694,11 +704,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
            		case MODE_PLAY:
 
            			/* Has all motion stopped yet? */
-            	    //if ((prev_mode_completed == MODE_REW) || (prev_mode_completed == MODE_FWD) || (prev_mode_completed == MODE_STOP))
-            	    {
-            	    	if (IS_SERVO_MOTION())
-            	    		break;
-            	    }
+           	    	if (IS_SERVO_MOTION())
+           	    		break;
 
                     /* All motion has stopped, allow 1 second settling
                      * time prior to engaging play after shuttle mode.

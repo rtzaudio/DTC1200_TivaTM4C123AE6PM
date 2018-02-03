@@ -83,7 +83,6 @@
 
 #include "IOExpander.h"
 #include "TransportTask.h"
-#include "TachTimer.h"
 #include "TapeTach.h"
 #include "MotorDAC.h"
 
@@ -300,19 +299,7 @@ void ServoSetMode(uint32_t mode)
 
 	if (mode == MODE_STOP)
 	{
-#if 0
-		if ((g_servo.mode_prev == MODE_PLAY) || (g_servo.mode_prev == MODE_FWD) ||
-            (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP))
-		{
-			g_servo.stop_brake_state = (g_servo.mode_prev == MODE_PLAY) ? 2 : 1;
-		}
-		else
-		{
-			g_servo.stop_brake_state = 0;
-		}
-#endif
-
-		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP))
+		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP) || (g_servo.mode_prev == MODE_PLAY))
 			g_servo.stop_brake_state = 1;
 		else
 			g_servo.stop_brake_state = 0;
@@ -387,8 +374,6 @@ Void ServoLoopTask(UArg a0, UArg a1)
          ***********************************************************/
 
         /* Read the tape roller tachometer count */
-        //g_servo.tape_tach = ReadTapeTach();
-
         g_servo.tape_tach = (uint32_t)TapeTach_read();
 
         /* Read the takeup and supply reel motor velocity values */
@@ -458,6 +443,13 @@ Void ServoLoopTask(UArg a0, UArg a1)
         {
             long delta;
 
+            /* Calculate the current reeling radius as tape speed
+             * divided by the reel speed.
+             */
+            g_servo.radius_takeup = (float)g_servo.tape_tach / ((float)g_servo.velocity_takeup + 1.0f);
+            g_servo.radius_supply = (float)g_servo.tape_tach / ((float)g_servo.velocity_supply + 1.0f);
+
+            /* Calculate the difference in velocity of the two reels */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
                 delta = ((g_servo.velocity_takeup * OFFSET_SCALE) / g_servo.velocity_supply) - OFFSET_SCALE;
             else if (g_servo.velocity_supply > g_servo.velocity_takeup)
@@ -587,8 +579,6 @@ static void SvcServoStop(void)
 	    }
 	    else
 	    {
-    		/* Calculate dynamic braking torque from current velocity */
-
 	    	if (g_servo.stop_brake_state > 1)
 	    		braketorque = (g_servo.velocity * 10);
 	    	else
@@ -681,7 +671,7 @@ static void SvcServoPlay(void)
         if (g_servo.play_boost_time >= g_servo.play_boost_step)
         {
             g_servo.play_boost_time -= g_servo.play_boost_step;
-#if 1
+
             /* End boost if we're at the desired speed */
             if (g_servo.play_boost_end)
             {
@@ -693,7 +683,6 @@ static void SvcServoPlay(void)
                     g_lamp_mask &= ~(L_STAT3);
                 }
             }
-#endif
         }
         else
         {

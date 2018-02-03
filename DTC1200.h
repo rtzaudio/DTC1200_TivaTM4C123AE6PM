@@ -99,7 +99,7 @@
 
 #define DEBUG_LEVEL			0
 #define BUTTON_INTERRUPTS	0			/* 1=interrupt, 0=polled buttons */
-#define CAPDATA_SIZE		0			/* 250 = 0.5 sec of capture data */
+#define CAPDATA_SIZE		250			/* 250 = 0.5 sec of capture data */
 
 /*** System Structures *****************************************************/
 
@@ -209,7 +209,8 @@ typedef struct _SERVODATA
 	int32_t		velocity_supply;	/* supply tach count per sample  */
 	int32_t 	velocity_takeup;    /* takeup tach count per sample  */
 	uint32_t	tape_tach;			/* tape roller tachometer        */
-	float		tapeTach;
+	float		radius_takeup;		/* takeup reel reeling radius    */
+	float		radius_supply;		/* supply reel reeling radius    */
 	int32_t		stop_torque_supply;	/* stop mode supply null         */
 	int32_t		stop_torque_takeup;	/* stop mode takeup null         */
 	int32_t		stop_brake_state;	/* stop servo dynamic brake state*/

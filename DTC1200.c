@@ -579,8 +579,6 @@ Void MainControlTask(UArg a0, UArg a1)
      * counter roller.
      */
 
-    //Tachometer_initialize();
-
     TapeTach_initialize();
 
     /* Start the transport servo loop timer clock running.

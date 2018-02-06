@@ -204,7 +204,7 @@ static MENUITEM main_items[] = {
 
 { 5, 30, "10", "Diagnostics", MI_NMENU, MENU_DIAG, 0, NULL, NULL, 0, 0 },
 
-{ 7, 30, "11", "Monitor", MI_EXEC, 0, 0, NULL, mc_monitor_mode, 0, 0 },
+{ 6, 30, "11", "Monitor Screen", MI_EXEC, 0, 0, NULL, mc_monitor_mode, 0, 0 },
 
 { 20, 1, "", "TRANSPORT:", MI_TEXT, 0, 1, NULL, NULL, 0, 0 },
 

@@ -124,13 +124,13 @@ void tty_printf(const char *fmt, ...)
 {
     int n;
     va_list arg;
-    static char buf[256];
+    static char buf[128];
 
     va_start(arg, fmt);
 	n = vsprintf(buf, fmt, arg);
     va_end(arg);
 
-    if (n >= 256)
+    if (n >= 128)
     	System_abort("tty_printf() overflow!\n");
 
     UART_write(g_handleUartTTY, buf, strlen(buf));

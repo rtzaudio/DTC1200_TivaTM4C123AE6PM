@@ -95,6 +95,14 @@
 #define REC_PULSE_TIME		50
 #define REC_SETTLE_TIME		10
 
+/*** ADC Specific **********************************************************/
+
+#define VREF                3.3f
+
+#define ADC_TO_CELCIUS(c)           ( 147.5f - ((75.0f * VREF * (float)c) / 4096.0f) )
+
+#define CELCIUS_TO_FAHRENHEIT(c)    ( (float)c * 1.8f + 32.0f )
+
 /*** Build/Config Options **************************************************/
 
 #define DEBUG_LEVEL			0

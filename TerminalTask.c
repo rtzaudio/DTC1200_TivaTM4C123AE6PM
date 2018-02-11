@@ -1633,6 +1633,9 @@ void show_monitor_screen()
 		tty_pos(20, 1);
 		tty_printf("Tension Arm");
 
+        tty_pos(12, 35);
+        tty_puts("CPU Temp F");
+
 		tty_pos(23, 1);
 		tty_puts(s_escstr);
 	} else {
@@ -1642,7 +1645,11 @@ void show_monitor_screen()
 
 void show_monitor_data()
 {
+    float temp;
+
 	if (g_sys.debug == 1) {
+
+	    temp = ADC_TO_CELCIUS(g_servo.adc[4]);
 
 		tty_pos(4, 25);
 		tty_putc((int)get_dir_char());
@@ -1692,6 +1699,9 @@ void show_monitor_data()
 		tty_printf(": %-4d", g_servo.offset_null);
 		tty_pos(20, 15);
 		tty_printf(": %-4d", g_servo.tsense);
+
+        tty_pos(12, 49);
+        tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(temp));
 	}
 }
 

@@ -44,7 +44,7 @@
 #define DTC1200_TIVATM4C123AE6PMI_TERMINALTASK_H_
 
 #define PROMPT_ROW      23
-#define PROMPT_COL      1
+#define PROMPT_COL      2
 
 #define KEYBUF_SIZE     8   /* maximum keystroke input buffer size */
 

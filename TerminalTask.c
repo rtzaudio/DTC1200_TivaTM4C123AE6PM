@@ -73,51 +73,11 @@
 #include "Diag.h"
 #include "tty.h"
 
-/*-- STATIC FUNCTION PROTOTYPES --*/
+/*****************************************************************************
+ * MENU CONSTANTS
+ *****************************************************************************/
 
-static void show_home_menu(void);
-static void show_menu(void);
-
-static int do_menu_keystate(int key);
-static int do_hot_key(MENU *menu, int ch);
-static int is_valid_key(int ch, int fmt);
-static void change_menu(long n);
-static void do_backspace(void);
-static void do_bufkey(int ch);
-static void show_monitor_screen();
-static void show_monitor_data();
-
-static MENU* get_menu(void);
-
-static MENUITEM* search_menu_item(MENU* menu, char *optstr);
-
-static int prompt_menu_item(MENUITEM* item, int nextprev);
-
-static long get_item_data(MENUITEM* item);
-static void set_item_data(MENUITEM* item, long data);
-
-static char *get_item_text(MENUITEM* item);
-static void set_item_text(MENUITEM* item, char *text);
-
-static MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value);
-static MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value);
-
-static int set_mdata(MENUITEM* item);
-
-static int get_hex_str(char* pTextBuf, uint8_t* pDataBuf, int len);
-
-/* Menu Command Handlers */
-
-int mc_cmd_stop(MENUITEM *item);
-int mc_cmd_play(MENUITEM *item);
-int mc_cmd_fwd(MENUITEM *item);
-int mc_cmd_rew(MENUITEM *item);
-int mc_monitor_mode(MENUITEM *item);
-int mc_default_config(MENUITEM *item);
-int mc_read_config(MENUITEM *item);
-int mc_write_config(MENUITEM *item);
-
-/*-- MENU CONSTANTS --*/
+#define RETKEY	(LF)
 
 /* Arg types for prompt_menu_item() */
 #define NEXT                1
@@ -131,14 +91,18 @@ int mc_write_config(MENUITEM *item);
 #define ES_BITLIST_SELECT   4       /* select value from a list of bitflags */
 #define ES_VALLIST_SELECT   5       /* select value from a discrete list    */
 
-/*-- STATIC DATA ITEMS --*/
+/*****************************************************************************
+ * STATIC DATA ITEMS
+ *****************************************************************************/
 
-static char s_keybuf[KEYBUF_SIZE + 1]; /* keystroke input buffer */
-static int s_keycount = 0; /* input key buffer count */
-static int s_menu_num = 0; /* active menu number     */
-static int s_edit_state = 0; /* current edit state     */
-static int s_max_chars = 0;
-static int s_end_debug = 0;
+/* keystroke input buffer */
+static char s_keybuf[KEYBUF_SIZE+1];
+
+static int s_keycount   = 0;        /* input key buffer count */
+static int s_menu_num   = 0;        /* active menu number     */
+static int s_edit_state = 0;        /* current edit state     */
+static int s_max_chars  = 0;
+static int s_end_debug  = 0;
 
 static MENUITEM* s_menuitem = NULL; /* current menu item ptr  */
 static long s_bitbool = 0;
@@ -148,23 +112,62 @@ static MENU_ARGLIST* s_vallist = NULL;
 
 /* VT100 Terminal Attributes */
 
-static const char s_ul_on[] = VT100_UL_ON;
-static const char s_ul_off[] = VT100_UL_OFF;
-static const char s_inv_on[] = VT100_INV_ON;
+static const char s_ul_on[]   = VT100_UL_ON;
+static const char s_ul_off[]  = VT100_UL_OFF;
+static const char s_inv_on[]  = VT100_INV_ON;
 static const char s_inv_off[] = VT100_INV_OFF;
 
-static const char* s_escstr = "<ESC> Key Exits...";
-
-static const char* s_title = "MM-1200 Transport/Servo Controller - v%u.%-2.2u";
+static const char* s_escstr = "<ESC> to exit...";
+static const char* s_title  = "DTC-1200 Transport/Servo Controller - v%u.%-2.2u";
 
 //static MENU_ARGLIST s_onoff[] = {
 //	{ "On", 	1,	},
 //	{ "Off",	0	}
 //};
 
-/*
- *  Menu ID defines
- */
+/*****************************************************************************
+ * STATIC FUNCTION PROTOTYPES
+ *****************************************************************************/
+
+static void show_home_menu(void);
+static void show_menu(void);
+static int do_menu_keystate(int key);
+static int do_hot_key(MENU *menu, int ch);
+static int is_valid_key(int ch, int fmt);
+static void change_menu(long n);
+static void do_backspace(void);
+static void do_bufkey(int ch);
+static void show_monitor_screen();
+static void show_monitor_data();
+
+static MENU* get_menu(void);
+static MENUITEM* search_menu_item(MENU* menu, char *optstr);
+static int prompt_menu_item(MENUITEM* item, int nextprev);
+static long get_item_data(MENUITEM* item);
+static void set_item_data(MENUITEM* item, long data);
+static char *get_item_text(MENUITEM* item);
+static void set_item_text(MENUITEM* item, char *text);
+static MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value);
+static MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value);
+static int set_mdata(MENUITEM* item);
+static int get_hex_str(char* pTextBuf, uint8_t* pDataBuf, int len);
+
+/* Menu Command Handlers */
+
+static int mc_cmd_stop(MENUITEM *item);
+static int mc_cmd_play(MENUITEM *item);
+static int mc_cmd_fwd(MENUITEM *item);
+static int mc_cmd_rew(MENUITEM *item);
+static int mc_monitor_mode(MENUITEM *item);
+static int mc_default_config(MENUITEM *item);
+static int mc_read_config(MENUITEM *item);
+static int mc_write_config(MENUITEM *item);
+
+/*****************************************************************************
+ * MAIN MENU ITEMS
+ *****************************************************************************/
+
+/* Menu ID defines */
 
 #define MENU_MAIN           0
 #define MENU_DIAG           1
@@ -174,39 +177,35 @@ static const char* s_title = "MM-1200 Transport/Servo Controller - v%u.%-2.2u";
 #define MENU_SHUTTLE        5
 #define MENU_PLAY           6
 
-/*****************************************************************************
- * MAIN MENU ITEMS
- *****************************************************************************/
-
 static MENUITEM main_items[] = {
 
-{ 3, 5, "", "SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, "", "SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "General", MI_NMENU, MENU_GENERAL, 0, NULL, NULL, 0, 0 },
+{ 5, 2, "1", "General", MI_NMENU, MENU_GENERAL, 0, NULL, NULL, 0, 0 },
 
-{ 6, 1, "2", "Tensions", MI_NMENU, MENU_TENSION, 0, NULL, NULL, 0, 0 },
+{ 6, 2, "2", "Tensions", MI_NMENU, MENU_TENSION, 0, NULL, NULL, 0, 0 },
 
-{ 7, 1, "3", "Stop Servo", MI_NMENU, MENU_STOP, 0, NULL, NULL, 0, 0 },
+{ 7, 2, "3", "Stop Servo", MI_NMENU, MENU_STOP, 0, NULL, NULL, 0, 0 },
 
-{ 8, 1, "4", "Play Servo", MI_NMENU, MENU_PLAY, 0, NULL, NULL, 0, 0 },
+{ 8, 2, "4", "Play Servo", MI_NMENU, MENU_PLAY, 0, NULL, NULL, 0, 0 },
 
-{ 9, 1, "5", "Shuttle Servo", MI_NMENU, MENU_SHUTTLE, 0, NULL, NULL, 0, 0 },
+{ 9, 2, "5", "Shuttle Servo", MI_NMENU, MENU_SHUTTLE, 0, NULL, NULL, 0, 0 },
 
-{ 11, 5, "", "CONFIG", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 11, 6, "", "CONFIG", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 13, 1, "6", "Load Config", MI_EXEC, 0, 0, NULL, mc_read_config, 0, 0 },
+{ 13, 2, "6", "Load Config", MI_EXEC, 0, 0, NULL, mc_read_config, 0, 0 },
 
-{ 14, 1, "7", "Save Config", MI_EXEC, 0, 0, NULL, mc_write_config, 0, 0 },
+{ 14, 2, "7", "Save Config", MI_EXEC, 0, 0, NULL, mc_write_config, 0, 0 },
 
-{ 15, 1, "8", "Default Config", MI_EXEC, 0, 0, NULL, mc_default_config, 0, 0 },
+{ 15, 2, "8", "Default Config", MI_EXEC, 0, 0, NULL, mc_default_config, 0, 0 },
 
-{ 3, 35, "", "SYSTEM", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 34, "", "SYSTEM", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
 { 5, 30, "10", "Diagnostics", MI_NMENU, MENU_DIAG, 0, NULL, NULL, 0, 0 },
 
 { 6, 30, "11", "Monitor Screen", MI_EXEC, 0, 0, NULL, mc_monitor_mode, 0, 0 },
 
-{ 20, 1, "", "TRANSPORT:", MI_TEXT, 0, 1, NULL, NULL, 0, 0 },
+{ 20, 2, "", "TRANSPORT:", MI_TEXT, 0, 1, NULL, NULL, 0, 0 },
 
 { 20, 12, "S", "<S>top", MI_HOTKEY, 1, 0, NULL, mc_cmd_stop, 0, 0 },
 
@@ -229,18 +228,18 @@ static MENU menu_main = { MENU_MAIN, main_items, sizeof(main_items)
 
 static MENUITEM general_items[] = {
 
-{ 3, 5, "", "GENERAL SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, "", "GENERAL SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "Velocity Detect Threshold ", MI_NRANGE, 1, 50, NULL, set_mdata,
+{ 5, 2, "1", "Velocity Detect Threshold ", MI_NRANGE, 1, 50, NULL, set_mdata,
 		DT_LONG, &g_sys.vel_detect_threshold },
 
-{ 6, 1, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
+{ 6, 2, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
 		DT_LONG, &g_sys.record_pulse_time },
 
-{ 7, 1, "3", "Record Hold Settle Time   ", MI_NRANGE, 5, 20, NULL, set_mdata,
+{ 7, 2, "3", "Record Hold Settle Time   ", MI_NRANGE, 5, 20, NULL, set_mdata,
 		DT_LONG, &g_sys.rechold_settle_time },
 
-{ 8, 1, "4", "Transport Button Debounce ", MI_NRANGE, 5, 50, NULL, set_mdata,
+{ 8, 2, "4", "Transport Button Debounce ", MI_NRANGE, 5, 50, NULL, set_mdata,
 		DT_LONG, &g_sys.debounce },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -258,18 +257,18 @@ static MENU menu_general = { MENU_GENERAL, general_items, sizeof(general_items)
 
 static MENUITEM tension_items[] = {
 
-{ 3, 5, "", "SUPPLY TENSION", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, "", "SUPPLY TENSION", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 5, 2, "1", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.stop_supply_tension },
 
-{ 6, 1, "2", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 6, 2, "2", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.shuttle_supply_tension },
 
-{ 7, 1, "3", "Play LO ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 7, 2, "3", "Play LO ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.play_lo_supply_tension },
 
-{ 8, 1, "4", "Play HI ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 8, 2, "4", "Play HI ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.play_hi_supply_tension },
 
 { 3, 30, "", "TAKEUP TENSION", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
@@ -286,15 +285,15 @@ static MENUITEM tension_items[] = {
 { 8, 26, "8", "Play HI ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.play_hi_takeup_tension },
 
-{ 10, 5, "", "MIN TORQUE", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 10, 6, "", "MIN TORQUE", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 12, 1, "9", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 12, 2, "9", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.stop_min_torque },
 
-{ 13, 1, "10", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 13, 2, "10", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.shuttle_min_torque },
 
-{ 14, 1, "11", "Play    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 14, 2, "11", "Play    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
 		&g_sys.play_min_torque },
 
 { 10, 30, "", "MAX TORQUE", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
@@ -308,12 +307,12 @@ static MENUITEM tension_items[] = {
 { 14, 26, "14", "Play    ", MI_NRANGE, 1, DAC_MAX, NULL, set_mdata, DT_LONG,
 		&g_sys.play_max_torque },
 
-{ 16,  5, "", "SERVO SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 16,  6, "", "SERVO SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 18,  1, "15", "Radius Null Offset Gain ", MI_NRANGE, 0, 5, NULL, set_mdata,
+{ 18,  2, "15", "Radius Null Offset Gain ", MI_NRANGE, 0, 5, NULL, set_mdata,
 		DT_LONG, &g_sys.null_offset_gain },
 
-{ 19,  1, "16", "Tension Sensor Gain     ", MI_NRANGE, 0, 5, NULL, set_mdata,
+{ 19,  2, "16", "Tension Sensor Gain     ", MI_NRANGE, 0, 5, NULL, set_mdata,
 		DT_LONG, &g_sys.tension_sensor_gain },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -329,17 +328,17 @@ static MENU menu_tension = { MENU_TENSION, tension_items, sizeof(tension_items)
 
 static MENUITEM stop_items[] = {
 
-{ 3, 5, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{  5, 1, "1", "Stop Brake Torque ", MI_NRANGE, 300,900, NULL, set_mdata, DT_LONG,
+{  5, 2, "1", "Stop Brake Torque ", MI_NRANGE, 300,900, NULL, set_mdata, DT_LONG,
 		&g_sys.stop_brake_torque },
 
-{  7, 5, "", "STOP SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{  7, 6, "", "STOP SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{  9, 1,  "2", "Lifter Engaged at STOP ", MI_BITBOOL, SF_LIFTER_AT_STOP, SF_LIFTER_AT_STOP,
+{  9, 2,  "2", "Lifter Engaged at STOP ", MI_BITBOOL, SF_LIFTER_AT_STOP, SF_LIFTER_AT_STOP,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 10, 1, "3", "Brakes Engaged at STOP ", MI_BITBOOL, SF_BRAKES_AT_STOP, SF_BRAKES_AT_STOP,
+{ 10, 2, "3", "Brakes Engaged at STOP ", MI_BITBOOL, SF_BRAKES_AT_STOP, SF_BRAKES_AT_STOP,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -354,29 +353,29 @@ static MENU menu_stop = { MENU_STOP, stop_items, sizeof(stop_items)
 
 static MENUITEM shuttle_items[] = {
 
-{ 3, 5, "", "SHUTTLE SERVO PID", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, "", "SHUTTLE SERVO PID", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "P-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 5, 2, "1", "P-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
 		&g_sys.shuttle_servo_pgain },
 
-{ 6, 1, "2", "I-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 6, 2, "2", "I-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
 		&g_sys.shuttle_servo_igain },
 
-{ 7, 1, "3", "D-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 7, 2, "3", "D-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
 		&g_sys.shuttle_servo_dgain },
 
-{ 9, 5, NULL, "SHUTTLE SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 9, 6, NULL, "SHUTTLE SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 11, 1, "7", "Shuttle Mode Velocity         ", MI_NRANGE, 50, 500, NULL, set_mdata,
+{ 11, 2, "7", "Shuttle Mode Velocity         ", MI_NRANGE, 50, 500, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_velocity },
 
-{ 12, 1, "8", "Auto Decelerate Velocity      ", MI_NRANGE, 0, 200, NULL, set_mdata,
+{ 12, 2, "8", "Auto Decelerate Velocity      ", MI_NRANGE, 0, 200, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_slow_velocity },
 
-{ 13, 1, "9", "Auto Decelerate at offset     ", MI_NRANGE, 50, 100, NULL, set_mdata,
+{ 13, 2, "9", "Auto Decelerate at offset     ", MI_NRANGE, 50, 100, NULL, set_mdata,
 		DT_LONG, &g_sys.shuttle_slow_offset },
 
-{ 14, 1, "10","Lifter Settle Time            ", MI_NRANGE, 0,2000, NULL, set_mdata,
+{ 14, 2, "10","Lifter Settle Time            ", MI_NRANGE, 0,2000, NULL, set_mdata,
 		DT_LONG, &g_sys.lifter_settle_time },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -390,18 +389,18 @@ static MENU menu_shuttle = { MENU_SHUTTLE, shuttle_items, sizeof(shuttle_items)
 
 static MENUITEM play_items[] = {
 
-{ 3, 5, NULL, "PLAY BOOST LO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, NULL, "PLAY BOOST LO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1,  "1",  "Boost Time ", MI_NRANGE, 0, 2048, NULL, set_mdata, DT_LONG,
+{ 5, 2,  "1",  "Boost Time ", MI_NRANGE, 0, 2048, NULL, set_mdata, DT_LONG,
 		&g_sys.play_lo_boost_time },
 
-{ 6, 1,  "2",  "Boost Step ", MI_NRANGE, 0, 5, NULL, set_mdata, DT_LONG,
+{ 6, 2,  "2",  "Boost Step ", MI_NRANGE, 0, 5, NULL, set_mdata, DT_LONG,
 		&g_sys.play_lo_boost_step },
 
-{ 7, 1,  "3",  "Boost Start", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 7, 2,  "3",  "Boost Start", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
 			&g_sys.play_lo_boost_start },
 
-{ 8, 1,  "4",  "Boost End  ", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 8, 2,  "4",  "Boost End  ", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
 			&g_sys.play_lo_boost_end },
 
 { 3, 38, NULL, "PLAY BOOST HI", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
@@ -418,24 +417,24 @@ static MENUITEM play_items[] = {
 { 8, 34, "8",  "Boost End  ", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
 		&g_sys.play_hi_boost_end },
 
-{ 12, 5, NULL, "PLAY SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 12, 6, NULL, "PLAY SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 14, 1, "10", "Play Tension Velocity Gain    ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
+{ 14, 2, "10", "Play Tension Velocity Gain    ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
 		&g_sys.play_tension_gain },
 
-{ 15, 1, "11", "Pinch Roller Settling Time    ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+{ 15, 2, "11", "Pinch Roller Settling Time    ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
 		&g_sys.pinch_settle_time },
 
-{ 16, 1, "12", "Shuttle to Play Settling Time ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+{ 16, 2, "12", "Shuttle to Play Settling Time ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
 		&g_sys.play_settle_time },
 
-{ 17, 1, "13", "Brake Settle Time             ", MI_NRANGE, 0, 2000, NULL, set_mdata,
+{ 17, 2, "13", "Brake Settle Time             ", MI_NRANGE, 0, 2000, NULL, set_mdata,
 		DT_LONG, &g_sys.brake_settle_time },
 
-{ 18, 1, "14", "Use Brakes to Stop Play Mode  ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
+{ 18, 2, "14", "Use Brakes to Stop Play Mode  ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 19, 1, "15", "Engage Pinch Roller at Play   ", MI_BITBOOL, SF_ENGAGE_PINCH_ROLLER, SF_ENGAGE_PINCH_ROLLER,
+{ 19, 2, "15", "Engage Pinch Roller at Play   ", MI_BITBOOL, SF_ENGAGE_PINCH_ROLLER, SF_ENGAGE_PINCH_ROLLER,
 		NULL, NULL, DT_LONG, &g_sys.sysflags },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -449,17 +448,17 @@ static MENU menu_play = { MENU_PLAY, play_items, sizeof(play_items)
 
 static MENUITEM diag_items[] = {
 
-{ 4, 5, NULL, "DIAGNOSTICS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{ 3, 6, NULL, "DIAGNOSTICS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 1, "1", "Lamp Test", MI_EXEC, 0, 1, NULL, diag_lamp, 0, 0 },
+{ 5, 2, "1", "Lamp Test", MI_EXEC, 0, 1, NULL, diag_lamp, 0, 0 },
 
-{ 6, 1, "2", "Transport Test", MI_EXEC, 0, 1, NULL, diag_transport, 0, 0 },
+{ 6, 2, "2", "Transport Test", MI_EXEC, 0, 1, NULL, diag_transport, 0, 0 },
 
-{ 7, 1, "3", "MDA DAC Ramp Test", MI_EXEC, 0, 1, NULL, diag_dacramp, 0, 0 },
+{ 7, 2, "3", "MDA DAC Ramp Test", MI_EXEC, 0, 1, NULL, diag_dacramp, 0, 0 },
 
-{ 8, 1, "4", "MDA DAC Zero Trim", MI_EXEC, 0, 1, NULL, diag_dacadjust, 0, 0 },
+{ 8, 2, "4", "MDA DAC Zero Trim", MI_EXEC, 0, 1, NULL, diag_dacadjust, 0, 0 },
 #if (CAPDATA_SIZE > 0)
-{ 9, 1, "5", "Dump Capture Data", MI_EXEC, 0, 1, NULL, diag_dump_capture, 0, 0 },
+{ 9, 2, "5", "Dump Capture Data", MI_EXEC, 0, 1, NULL, diag_dump_capture, 0, 0 },
 #endif
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 1, NULL, NULL, 0, 0 } };
 
@@ -470,10 +469,17 @@ static MENU menu_diag = { MENU_DIAG, diag_items, sizeof(diag_items)
  * ARRAY OF ALL KNOWN MENUS
  *****************************************************************************/
 
-/* Must be in order of MENU_XX ID defines! */
+/* MUST BE IN ORDER OF MENU_XX ID DEFINES! */
 
-static MENU* menu_tab[] = { &menu_main, &menu_diag, &menu_general,
-		&menu_tension, &menu_stop, &menu_shuttle, &menu_play, };
+static MENU* menu_tab[] = {
+    &menu_main,
+    &menu_diag,
+    &menu_general,
+    &menu_tension,
+    &menu_stop,
+    &menu_shuttle,
+    &menu_play
+};
 
 #define NUM_MENUS   (sizeof(menu_tab) / sizeof(MENU*))
 
@@ -482,8 +488,6 @@ static MENU* menu_tab[] = { &menu_main, &menu_diag, &menu_general,
  *
  * This task drives the VT100 serial terminal port.
  *****************************************************************************/
-
-#define RETKEY	(LF)
 
 void Terminal_initialize(void)
 {
@@ -529,14 +533,6 @@ Void TerminalTask(UArg a0, UArg a1)
 
 	int ch;
 
-#if 0
-	/* DEBUG SERIAL TX */
-	for( ;; )
-    {
-		tty_putc('.');
-		Task_sleep(1000);
-    }
-#else
 	/* Show the home menu screen initially. */
     show_home_menu();
 
@@ -553,7 +549,8 @@ Void TerminalTask(UArg a0, UArg a1)
 		ch = toupper(ch);
 
 		/* if debug mode was enabled and ESC pressed, disable it */
-		if (s_end_debug) {
+		if (s_end_debug)
+		{
 			s_end_debug = 0;
 			s_edit_state = s_keycount = 0;
 			show_menu();
@@ -564,12 +561,15 @@ Void TerminalTask(UArg a0, UArg a1)
 		{
 			if (ch == ESC)
 			{
-				if (g_sys.debug == 1) {
+				if (g_sys.debug == 1)
+				{
 					g_sys.debug = 0;
 					s_edit_state = s_keycount = 0;
 					s_end_debug = 0;
 					show_menu();
-				} else {
+				}
+				else
+				{
 					tty_printf("\r\nAny key continues...");
 					g_sys.debug = 0;
 					s_edit_state = s_keycount = 0;
@@ -581,7 +581,6 @@ Void TerminalTask(UArg a0, UArg a1)
 
 		do_menu_keystate(ch);
     }
-#endif
 }
 
 /*****************************************************************************
@@ -614,27 +613,29 @@ void show_menu(void)
 
 	/* Clear the screen and show title */
 	tty_cls();
-
-	tty_printf("DTC-1200 Transport Controller - v%d.%02d", FIRMWARE_VER, FIRMWARE_REV);
+	tty_pos(1, 2);
+	tty_printf(s_title, FIRMWARE_VER, FIRMWARE_REV);
 
 	/* Show the tape speed if main menu */
 
-	if (menu->id == MENU_MAIN) {
+	if (menu->id == MENU_MAIN)
+	{
 		int speed = g_high_speed_flag ? 30 : 15;
 		tty_pos(2, 78 - 9);
 		tty_printf("%d IPS %d\"", speed, g_tape_width);
 	}
 
-	if (menu->id == MENU_GENERAL) {
+	if (menu->id == MENU_GENERAL)
+	{
 		char buf[64];
 		get_hex_str(buf, g_ui8SerialNumber, 16);
-		tty_pos(18, 3);
+		tty_pos(18, 2);
 		tty_printf("Serial# %s", buf);
 	}
 
 	/* Add the menu heading to top of screen */
 
-	tty_pos(1, 78 - strlen(menu->heading));
+	tty_pos(2, 78 - strlen(menu->heading));
 
 	tty_printf(VT100_INV_ON);
 	tty_printf(menu->heading);
@@ -646,7 +647,8 @@ void show_menu(void)
 
 	MENUITEM* item = menu->items;
 
-	for (i = 0; i < count; i++, item++) {
+	for (i = 0; i < count; i++, item++)
+	{
 		long data = 0;
 
 		/* preload any data member if it exists */
@@ -661,7 +663,8 @@ void show_menu(void)
 
 		tty_pos(row, col);
 
-		switch (type) {
+		switch (type)
+		{
 		case MI_TEXT:
 			if (parm1)
 				/* display with underline */
@@ -680,7 +683,8 @@ void show_menu(void)
 			break;
 
 		case MI_PROMPT:
-			if (!strlen(item->text)) {
+			if (!strlen(item->text))
+			{
 				tty_printf("Option");
 
 				/* append "esc exits" if not home menu */
@@ -688,7 +692,8 @@ void show_menu(void)
 					tty_printf(" (ESC Exits)");
 
 				tty_printf(": ");
-			} else
+			}
+			else
 				tty_printf("%s", item->text);
 			break;
 
@@ -715,16 +720,12 @@ void show_menu(void)
 			tty_printf("%-2s) %s : ", item->optstr, item->text);
 			if ((pal = find_bitlist_item(item, data)) != NULL)
 				tty_printf(pal->text);
-			else
-				tty_printf("???");
 			break;
 
 		case MI_VALLIST:
 			tty_printf("%-2s) %s : ", item->optstr, item->text);
 			if ((pal = find_vallist_item(item, data)) != NULL)
 				tty_printf(pal->text);
-			else
-				tty_printf("???");
 			break;
 
 		case MI_STRING:
@@ -733,8 +734,6 @@ void show_menu(void)
 			break;
 		}
 	}
-
-	//tty_rxflush();
 }
 
 /*
@@ -748,10 +747,12 @@ int do_menu_keystate(int key)
 
 	int ch = toupper(key);
 
-	switch (s_edit_state) {
+	switch (s_edit_state)
+	{
 	case ES_MENU_SELECT:
 
-		if (do_hot_key(get_menu(), ch)) {
+		if (do_hot_key(get_menu(), ch))
+		{
 			/* reset menu state and key count */
 			s_edit_state = ES_MENU_SELECT;
 			s_keycount = 0;
@@ -759,27 +760,38 @@ int do_menu_keystate(int key)
 			break;
 		}
 
-		if (ch == BKSPC) {
+		if (ch == BKSPC)
+		{
 			do_backspace();
-		} else if ((ch == ESC) && (s_menu_num != MENU_MAIN)) {
+		}
+		else if ((ch == ESC) && (s_menu_num != MENU_MAIN))
+		{
 			change_menu(MENU_MAIN);
 			show_menu();
-		} else if ((s_keycount >= 2) && (ch != RETKEY)) {
+		}
+		else if ((s_keycount >= 2) && (ch != RETKEY))
+		{
 			/* max input buffer limit */
 			tty_putc(BELL);
-		} else if (ch == RETKEY) {
-			if (!s_keycount) {
+		}
+		else if (ch == RETKEY)
+		{
+			if (!s_keycount)
+			{
 				show_menu();
 				break;
 			}
 			/* process enter key state */
-			if ((s_menuitem = search_menu_item(get_menu(), s_keybuf)) != NULL) {
+			if ((s_menuitem = search_menu_item(get_menu(), s_keybuf)) != NULL)
+			{
 				MENUITEM mitem;
 				memcpy(&mitem, s_menuitem, sizeof(MENUITEM));
 
 				/* If execute only, then go execute */
-				if (mitem.type == MI_EXEC) {
-					if (mitem.exec) {
+				if (mitem.type == MI_EXEC)
+				{
+					if (mitem.exec)
+					{
 						if (!mitem.exec(s_menuitem))
 							tty_putc(BELL);
 						/* redraw the menu */
@@ -788,49 +800,63 @@ int do_menu_keystate(int key)
 					}
 				}
 				/* If new menu item type, then change menu */
-				else if (mitem.type == MI_NMENU) {
+				else if (mitem.type == MI_NMENU)
+				{
 					change_menu(mitem.parm1);
 					/* redraw the menu */
 					show_menu();
-				} else {
+				}
+				else
+				{
 					/* If new menu item prompt, then show prompt
 					 * and advance state for another enter keystroke.
 					 */
 					prompt_menu_item(s_menuitem, 0);
 				}
 				s_keycount = 0;
-			} else {
+			}
+			else
+			{
 				/* bad menu input selection */
 				tty_putc(BELL);
 				/* redraw the menu */
 				show_menu();
 			}
 			s_keycount = 0;
-		} else if (isdigit(ch) || isalpha(ch)) {
+		}
+		else if (isdigit(ch) || isalpha(ch))
+		{
 			do_bufkey(ch);
 		}
 		break;
 
 	case ES_DATA_INPUT:
-		if (ch == BKSPC) {
+		if (ch == BKSPC)
+		{
 			do_backspace();
-		} else if (ch == ESC) {
+		}
+		else if (ch == ESC)
+		{
 			s_keycount = 0;
 			s_edit_state = ES_MENU_SELECT;
 			show_menu();
-		} else if (ch == RETKEY) {
+		}
+		else if (ch == RETKEY)
+		{
 			MENUITEM mitem;
 			memcpy(&mitem, s_menuitem, sizeof(MENUITEM));
 
 			/* check for empty key buffer */
-			if (!s_keycount) {
+			if (!s_keycount)
+			{
 				s_keycount = 0;
 				s_edit_state = ES_MENU_SELECT;
 				show_menu();
 				break;
 			}
 			/* execute the menu handler */
-			if (mitem.exec) {
+			if (mitem.exec)
+			{
 				if (!mitem.exec(s_menuitem))
 					tty_putc(BELL);
 			}
@@ -843,23 +869,32 @@ int do_menu_keystate(int key)
 				show_monitor_screen();
 			else
 				show_menu();
-		} else if (isdigit(ch) || isalpha(ch)) {
+		}
+		else if (isdigit(ch) || isalpha(ch))
+		{
 			do_bufkey(ch);
-		} else {
+		}
+		else
+		{
 			tty_putc(BELL);
 		}
 		break;
 
 	case ES_BITBOOL_SELECT:
-		if (ch == ' ') {
+		if (ch == ' ')
+		{
 			/* toggle and prompt next menu bitflag option */
 			prompt_menu_item(s_menuitem, NEXT);
-		} else if (ch == ESC) {
+		}
+		else if (ch == ESC)
+		{
 			/* exit bitflag toggle mode */
 			s_edit_state = ES_MENU_SELECT;
 			s_keycount = 0;
 			show_menu();
-		} else if (ch == RETKEY) {
+		}
+		else if (ch == RETKEY)
+		{
 			/* store the bitflag data */
 			long data;
 			/* read current 8 or 16 bit data */
@@ -881,18 +916,25 @@ int do_menu_keystate(int key)
 		break;
 
 	case ES_BITLIST_SELECT:
-		if ((ch == 'N') || (ch == ' ')) {
+		if ((ch == 'N') || (ch == ' '))
+		{
 			/* toggle and prompt next menu bitflag option */
 			prompt_menu_item(s_menuitem, NEXT);
-		} else if (ch == 'P') {
+		}
+		else if (ch == 'P')
+		{
 			/* toggle and prompt prev menu bitflag option */
 			prompt_menu_item(s_menuitem, PREV);
-		} else if (ch == ESC) {
+		}
+		else if (ch == ESC)
+		{
 			/* exit bitflag toggle mode */
 			s_edit_state = ES_MENU_SELECT;
 			s_keycount = 0;
 			show_menu();
-		} else if (ch == RETKEY) {
+		}
+		else if (ch == RETKEY)
+		{
 			/* store the bitflag data */
 			long data;
 			/* read current 8 or 16 bit data */
@@ -914,18 +956,25 @@ int do_menu_keystate(int key)
 		break;
 
 	case ES_VALLIST_SELECT:
-		if ((ch == 'N') || (ch == ' ')) {
+		if ((ch == 'N') || (ch == ' '))
+		{
 			/* toggle and prompt next menu bitflag option */
 			prompt_menu_item(s_menuitem, NEXT);
-		} else if (ch == 'P') {
+		}
+		else if (ch == 'P')
+		{
 			/* toggle and prompt prev menu vallist option */
 			prompt_menu_item(s_menuitem, PREV);
-		} else if (ch == ESC) {
+		}
+		else if (ch == ESC)
+		{
 			/* exit bitflag toggle mode */
 			s_edit_state = ES_MENU_SELECT;
 			s_keycount = 0;
 			show_menu();
-		} else if (ch == RETKEY) {
+		}
+		else if (ch == RETKEY)
+		{
 			/* store the bitflag data */
 			long data;
 			/* or in the new flag bit settings */
@@ -943,15 +992,21 @@ int do_menu_keystate(int key)
 		break;
 
 	case ES_STRING_INPUT:
-		if (ch == BKSPC) {
+		if (ch == BKSPC)
+		{
 			do_backspace();
-		} else if (ch == ESC) {
+		}
+		else if (ch == ESC)
+		{
 			s_keycount = 0;
 			s_edit_state = ES_MENU_SELECT;
 			show_menu();
-		} else if (ch == RETKEY) {
+		}
+		else if (ch == RETKEY)
+		{
 			/* check for empty key buffer */
-			if (!s_keycount) {
+			if (!s_keycount)
+			{
 				s_keycount = 0;
 				s_edit_state = ES_MENU_SELECT;
 				show_menu();
@@ -966,7 +1021,9 @@ int do_menu_keystate(int key)
 			s_keycount = 0;
 			s_edit_state = ES_MENU_SELECT;
 			show_menu();
-		} else if (s_keycount <= s_max_chars) {
+		}
+		else if (s_keycount <= s_max_chars)
+		{
 			/* Get the input format type */
 			int fmt = s_menuitem->parm2;
 
@@ -975,7 +1032,9 @@ int do_menu_keystate(int key)
 				do_bufkey(ch);
 			else
 				tty_putc(BELL);
-		} else {
+		}
+		else
+		{
 			tty_putc(BELL);
 		}
 		break;
@@ -996,15 +1055,21 @@ int do_menu_keystate(int key)
 
 int do_hot_key(MENU *menu, int ch)
 {
-	if (isalpha(ch)) {
+	if (isalpha(ch))
+	{
 		long i;
 		MENUITEM* item = menu->items;
 
-		for (i = 0; i < menu->count; i++) {
-			if (item->optstr) {
-				if (isalpha(*(item->optstr))) {
-					if (tolower(ch) == tolower(*(item->optstr))) {
-						if ((item->type == MI_HOTKEY) && item->exec) {
+		for (i = 0; i < menu->count; i++)
+		{
+			if (item->optstr)
+			{
+				if (isalpha(*(item->optstr)))
+				{
+					if (tolower(ch) == tolower(*(item->optstr)))
+					{
+						if ((item->type == MI_HOTKEY) && item->exec)
+						{
 							if (!item->exec(item))
 								tty_putc(BELL);
 
@@ -1013,7 +1078,6 @@ int do_hot_key(MENU *menu, int ch)
 					}
 				}
 			}
-
 			++item;
 		}
 	}
@@ -1024,13 +1088,16 @@ int do_hot_key(MENU *menu, int ch)
 void do_backspace(void)
 {
 	/* handle backspace key processing */
-	if (s_keycount) {
+	if (s_keycount)
+	{
 		tty_putc('\b');
 		tty_putc(' ');
 		tty_putc('\b');
 
 		s_keybuf[--s_keycount] = 0;
-	} else {
+	}
+	else
+	{
 		tty_putc(BELL);
 	}
 }
@@ -1038,7 +1105,8 @@ void do_backspace(void)
 void do_bufkey(int ch)
 {
 	/* make sure we have room in the buffer */
-	if (s_keycount < KEYBUF_SIZE - 1) {
+	if (s_keycount < KEYBUF_SIZE - 1)
+	{
 		/* echo the character */
 		tty_putc(ch);
 
@@ -1046,7 +1114,9 @@ void do_bufkey(int ch)
 		s_keybuf[s_keycount] = (char) ch;
 		s_keycount += 1;
 		s_keybuf[s_keycount] = (char) 0;
-	} else {
+	}
+	else
+	{
 		/* beep if buffer is full */
 		tty_putc(BELL);
 	}
@@ -1099,8 +1169,10 @@ MENUITEM* search_menu_item(MENU* menu, char *optstr)
 
 	int count = menu->count;
 
-	for (i = 0; i < count; i++, item++) {
-		if (strlen(item->optstr)) {
+	for (i = 0; i < count; i++, item++)
+	{
+		if (strlen(item->optstr))
+		{
 			if (strcmp(optstr, item->optstr) == 0)
 				return item;
 		}
@@ -1171,7 +1243,8 @@ MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value)
 	long mask = item->parm1;
 	long items = item->parm2;
 
-	for (i = 0; i < items; i++) {
+	for (i = 0; i < items; i++)
+	{
 		bitflag = pal->value;
 
 		if (bitflag == (mask & value))
@@ -1196,7 +1269,8 @@ MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value)
 
 	long items = item->parm2;
 
-	for (i = 0; i < items; i++) {
+	for (i = 0; i < items; i++)
+	{
 		val = pal->value;
 
 		if (value == val)
@@ -1218,7 +1292,8 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 	static char text[40];
 
 	/* clear the prompt help line */
-	if (!nextprev) {
+	if (!nextprev)
+	{
 		tty_pos(PROMPT_ROW - 2, PROMPT_COL);
 		tty_erase_line();
 	}
@@ -1236,8 +1311,10 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 
 	strncpy(text, item->text, sizeof(text)-2);
 
-	if ((n = strlen(text)) > 0) {
-		while (--n > 0) {
+	if ((n = strlen(text)) > 0)
+	{
+		while (--n > 0)
+		{
 			if (text[n] == ' ')
 				text[n] = '\0';
 			else
@@ -1249,8 +1326,10 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 	int parm1 = item->parm1;
 	int parm2 = item->parm2;
 
-	if ((type == MI_BITBOOL) || (type == MI_BITLIST) || (type == MI_VALLIST)) {
-		if (!nextprev) {
+	if ((type == MI_BITBOOL) || (type == MI_BITLIST) || (type == MI_VALLIST))
+	{
+		if (!nextprev)
+		{
 			tty_pos(PROMPT_ROW - 2, PROMPT_COL);
 			tty_printf("<ENTER> to accept, <N>ext, <P>rev or <ESC> to cancel");
 		}
@@ -1259,22 +1338,28 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 		tty_printf("Select %s : ", text);
 	}
 
-	if (type == MI_BITLIST) {
-		if (s_bitlist && (nextprev == NEXT)) {
+	if (type == MI_BITLIST)
+	{
+		if (s_bitlist && (nextprev == NEXT))
+		{
 			/* move to next item */
 			MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
 			MENU_ARGLIST* tail = head + parm2;
 			++s_bitlist;
 			if (s_bitlist >= tail)
 				s_bitlist = head; /* wrap to head */
-		} else if (s_bitlist && (nextprev == PREV)) {
+		}
+		else if (s_bitlist && (nextprev == PREV))
+		{
 			/* move to prev item */
 			MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
 			MENU_ARGLIST* tail = head + parm2 - 1;
 			--s_bitlist;
 			if (s_bitlist <= head)
 				s_bitlist = tail; /* wrap to tail */
-		} else {
+		}
+		else
+		{
 			/* find current bitflag option and display */
 			s_bitlist = find_bitlist_item(item, get_item_data(item));
 		}
@@ -1290,22 +1375,29 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 
 		/* enter toggle bitflag options state */
 		s_edit_state = ES_BITLIST_SELECT;
-	} else if (type == MI_VALLIST) {
-		if (s_vallist && (nextprev == NEXT)) {
+	}
+	else if (type == MI_VALLIST)
+	{
+		if (s_vallist && (nextprev == NEXT))
+		{
 			/* move to next item */
 			MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
 			MENU_ARGLIST* tail = head + parm2;
 			++s_vallist;
 			if (s_vallist >= tail)
 				s_vallist = head; /* wrap to head */
-		} else if (s_vallist && (nextprev == PREV)) {
+		}
+		else if (s_vallist && (nextprev == PREV))
+		{
 			/* move to prev item */
 			MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
 			MENU_ARGLIST* tail = head + parm2 - 1;
 			--s_vallist;
 			if (s_vallist <= head)
 				s_vallist = tail; /* wrap to tail */
-		} else {
+		}
+		else
+		{
 			/* find current bitflag option and display */
 			s_vallist = find_vallist_item(item, get_item_data(item));
 		}
@@ -1321,12 +1413,17 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 
 		/* enter toggle value list options state */
 		s_edit_state = ES_VALLIST_SELECT;
-	} else if (type == MI_BITBOOL) {
+	}
+	else if (type == MI_BITBOOL)
+	{
 		/* initial state */
-		if (!nextprev) {
+		if (!nextprev)
+		{
 			/* initial state */
 			s_bitbool = get_item_data(item);
-		} else {
+		}
+		else
+		{
 			/* toggle the bool bit state */
 			if (s_bitbool & parm1)
 				s_bitbool &= ~(parm1);
@@ -1345,7 +1442,9 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 
 		/* enter toggle bitflag options state */
 		s_edit_state = ES_BITBOOL_SELECT;
-	} else if (type == MI_STRING) {
+	}
+	else if (type == MI_STRING)
+	{
 		tty_pos(PROMPT_ROW, PROMPT_COL);
 
 		tty_printf("Enter %s : ", text);
@@ -1355,13 +1454,18 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 
 		/* enter data input mode */
 		s_edit_state = ES_STRING_INPUT;
-	} else {
+	}
+	else
+	{
 		tty_printf("Enter %s", text);
 
-		if (type == MI_NRANGE) {
+		if (type == MI_NRANGE)
+		{
 			/* prompt with range low-high values */
 			tty_printf(" (%u-%u): ", parm1, parm2);
-		} else if (type == MI_VALLIST) {
+		}
+		else if (type == MI_VALLIST)
+		{
 			/* prompt with list of discrete values*/
 			int i;
 
@@ -1376,7 +1480,9 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 				tty_putc('\b');
 
 			tty_printf("): ");
-		} else {
+		}
+		else
+		{
 			tty_printf(": ");
 		}
 
@@ -1406,18 +1512,21 @@ int set_mdata(MENUITEM* item)
 	int parm1 = item->parm1;
 	int parm2 = item->parm2;
 
-	if (type == MI_NRANGE) {
+	if (type == MI_NRANGE)
+	{
 		long n;
 
 		/* Check for return numeric data item value */
-		if (strlen(s_keybuf)) {
+		if (strlen(s_keybuf))
+		{
 			/* Get the numeric value in input buffer */
 			n = atol(s_keybuf);
 
 			/* Validate the value entered against the min/max
 			 * range values and set if within range.
 			 */
-			if ((n >= parm1) && (n <= parm2)) {
+			if ((n >= parm1) && (n <= parm2))
+			{
 				set_item_data(item, n);
 				rc = 1;
 			}
@@ -1477,10 +1586,13 @@ int mc_write_config(MENUITEM *item)
 
 	tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
 
-	if ((rc = SysParamsWrite(&g_sys)) != 0) {
+	if ((rc = SysParamsWrite(&g_sys)) != 0)
+	{
 		tty_pos(PROMPT_ROW, PROMPT_COL);
 		tty_printf("ERROR %d  Writing Config Parameters...", rc);
-	} else {
+	}
+	else
+	{
 		tty_pos(PROMPT_ROW, PROMPT_COL);
 		tty_puts("Config Parameters Saved...");
 	}
@@ -1499,10 +1611,13 @@ int mc_read_config(MENUITEM *item)
 	tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
 
 	/* Read the system config parameters from storage */
-	if ((rc = SysParamsRead(&g_sys)) != 0) {
+	if ((rc = SysParamsRead(&g_sys)) != 0)
+	{
 		tty_pos(PROMPT_ROW, PROMPT_COL);
 		tty_printf("ERROR %d  Reading Config Parameters...", rc);
-	} else {
+	}
+	else
+	{
 		tty_pos(PROMPT_ROW, PROMPT_COL);
 		tty_puts("Config Parameters Loaded...");
 	}
@@ -1577,25 +1692,27 @@ void show_monitor_screen()
 	tty_cls();
 
 	/* Show the menu title */
+	tty_pos(1, 2);
 	tty_printf(s_title, FIRMWARE_VER, FIRMWARE_REV);
 
-	if (g_sys.debug == 1) {
-		tty_pos(1, 64);
-		tty_printf("%sMONITOR%s %u", s_inv_on, s_inv_off, g_sys.debug);
+	if (g_sys.debug == 1)
+	{
+		tty_pos(2, 64);
+		tty_printf("%sMONITOR%s", s_inv_on, s_inv_off);
 
-		tty_pos(3, 1);
+		tty_pos(3, 2);
 		tty_printf("%sSUPPLY%s", s_ul_on, s_ul_off);
-		tty_pos(4, 1);
+		tty_pos(4, 2);
 		tty_puts("DAC Level");
-		tty_pos(5, 1);
+		tty_pos(5, 2);
 		tty_puts("Velocity");
-		tty_pos(6, 1);
+		tty_pos(6, 2);
 		tty_puts("Errors");
-		tty_pos(7, 1);
+		tty_pos(7, 2);
 		tty_puts("Stop Torque");
-		tty_pos(8, 1);
+		tty_pos(8, 2);
 		tty_puts("Offset");
-		tty_pos(9, 1);
+		tty_pos(9, 2);
 		tty_puts("Radius");
 
 		tty_pos(3, 35);
@@ -1613,32 +1730,34 @@ void show_monitor_screen()
 		tty_pos(9, 35);
 		tty_puts("Radius");
 
-		tty_pos(11, 1);
+		tty_pos(11, 2);
 		tty_printf("%sPID SERVO%s", s_ul_on, s_ul_off);
-		tty_pos(12, 1);
+		tty_pos(12, 2);
 		tty_puts("PID CV");
-		tty_pos(13, 1);
+		tty_pos(13, 2);
 		tty_puts("PID Error");
-		tty_pos(14, 1);
+		tty_pos(14, 2);
 		tty_puts("PID Debug");
-		tty_pos(15, 1);
+		tty_pos(15, 2);
 		tty_puts("Velocity");
 
-		tty_pos(17, 1);
+		tty_pos(17, 2);
 		tty_printf("%sTAPE%s", s_ul_on, s_ul_off);
-		tty_pos(18, 1);
+		tty_pos(18, 2);
 		tty_printf("Tape Tach");
-		tty_pos(19, 1);
+		tty_pos(19, 2);
 		tty_printf("Offset Null");
-		tty_pos(20, 1);
+		tty_pos(20, 2);
 		tty_printf("Tension Arm");
 
         tty_pos(12, 35);
         tty_puts("CPU Temp F");
 
-		tty_pos(23, 1);
+		tty_pos(23, 2);
 		tty_puts(s_escstr);
-	} else {
+	}
+	else
+	{
 		tty_printf("\r\n\n%s\r\n", s_escstr);
 	}
 }
@@ -1647,8 +1766,8 @@ void show_monitor_data()
 {
     float temp;
 
-	if (g_sys.debug == 1) {
-
+	if (g_sys.debug == 1)
+	{
 	    temp = ADC_TO_CELCIUS(g_servo.adc[4]);
 
 		tty_pos(4, 25);

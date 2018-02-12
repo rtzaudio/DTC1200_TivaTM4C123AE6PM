@@ -117,8 +117,8 @@ static const char s_ul_off[]  = VT100_UL_OFF;
 static const char s_inv_on[]  = VT100_INV_ON;
 static const char s_inv_off[] = VT100_INV_OFF;
 
-static const char* s_escstr = "<ESC> to exit...";
-static const char* s_title  = "DTC-1200 Transport/Servo Controller - v%u.%-2.2u";
+static const char* s_escstr = "<ESC> exits...";
+static const char* s_title  = "DTC-1200 Transport Controller v%u.%-2.2u";
 
 //static MENU_ARGLIST s_onoff[] = {
 //	{ "On", 	1,	},
@@ -149,7 +149,7 @@ static char *get_item_text(MENUITEM* item);
 static void set_item_text(MENUITEM* item, char *text);
 static MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value);
 static MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value);
-static int set_mdata(MENUITEM* item);
+static int set_idata(MENUITEM* item);
 static int get_hex_str(char* pTextBuf, uint8_t* pDataBuf, int len);
 
 /* Menu Command Handlers */
@@ -205,15 +205,15 @@ static MENUITEM main_items[] = {
 
 { 6, 30, "11", "Monitor Screen", MI_EXEC, 0, 0, NULL, mc_monitor_mode, 0, 0 },
 
-{ 20, 2, "", "TRANSPORT:", MI_TEXT, 0, 1, NULL, NULL, 0, 0 },
+{ 20, 2, "", "TRANSPORT:", MI_TEXT, 0, 0, NULL, NULL, 0, 0 },
 
-{ 20, 12, "S", "<S>top", MI_HOTKEY, 1, 0, NULL, mc_cmd_stop, 0, 0 },
+{ 20, 13, "S", "<S>top", MI_HOTKEY, 1, 0, NULL, mc_cmd_stop, 0, 0 },
 
-{ 20, 19, "P", "<P>lay", MI_HOTKEY, 1, 0, NULL, mc_cmd_play, 0, 0 },
+{ 20, 20, "P", "<P>lay", MI_HOTKEY, 1, 0, NULL, mc_cmd_play, 0, 0 },
 
-{ 20, 26, "R", "<R>ewind", MI_HOTKEY, 1, 0, NULL, mc_cmd_rew, 0, 0 },
+{ 20, 27, "R", "<R>ewind", MI_HOTKEY, 1, 0, NULL, mc_cmd_rew, 0, 0 },
 
-{ 20, 35, "F", "<F>orward", MI_HOTKEY, 1, 0, NULL, mc_cmd_fwd, 0, 0 },
+{ 20, 36, "F", "<F>orward", MI_HOTKEY, 1, 0, NULL, mc_cmd_fwd, 0, 0 },
 
 { PROMPT_ROW, PROMPT_COL, "", "Option: ", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
@@ -230,16 +230,16 @@ static MENUITEM general_items[] = {
 
 { 3, 6, "", "GENERAL SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "Velocity Detect Threshold ", MI_NRANGE, 1, 50, NULL, set_mdata,
+{ 5, 2, "1", "Velocity Detect Threshold ", MI_LONG, 1, 50, NULL, set_idata,
 		DT_LONG, &g_sys.vel_detect_threshold },
 
-{ 6, 2, "2", "Record Pulse Strobe Time  ", MI_NRANGE, 10, 100, NULL, set_mdata,
+{ 6, 2, "2", "Record Pulse Strobe Time  ", MI_LONG, 10, 100, NULL, set_idata,
 		DT_LONG, &g_sys.record_pulse_time },
 
-{ 7, 2, "3", "Record Hold Settle Time   ", MI_NRANGE, 5, 20, NULL, set_mdata,
+{ 7, 2, "3", "Record Hold Settle Time   ", MI_LONG, 5, 20, NULL, set_idata,
 		DT_LONG, &g_sys.rechold_settle_time },
 
-{ 8, 2, "4", "Transport Button Debounce ", MI_NRANGE, 5, 50, NULL, set_mdata,
+{ 8, 2, "4", "Transport Button Debounce ", MI_LONG, 5, 50, NULL, set_idata,
 		DT_LONG, &g_sys.debounce },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
@@ -259,68 +259,71 @@ static MENUITEM tension_items[] = {
 
 { 3, 6, "", "SUPPLY TENSION", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 5, 2, "1", "Stop    ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.stop_supply_tension },
 
-{ 6, 2, "2", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 6, 2, "2", "Shuttle ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_supply_tension },
 
-{ 7, 2, "3", "Play LO ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 7, 2, "3", "Play LO ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.play_lo_supply_tension },
 
-{ 8, 2, "4", "Play HI ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 8, 2, "4", "Play HI ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_supply_tension },
 
 { 3, 30, "", "TAKEUP TENSION", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 26, "5", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 5, 26, "5", "Stop    ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.stop_takeup_tension },
 
-{ 6, 26, "6", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 6, 26, "6", "Shuttle ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_takeup_tension },
 
-{ 7, 26, "7", "Play LO ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 7, 26, "7", "Play LO ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.play_lo_takeup_tension },
 
-{ 8, 26, "8", "Play HI ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 8, 26, "8", "Play HI ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_takeup_tension },
 
 { 10, 6, "", "MIN TORQUE", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 12, 2, "9", "Stop    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 12, 2, "9", "Stop    ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.stop_min_torque },
 
-{ 13, 2, "10", "Shuttle ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 13, 2, "10", "Shuttle ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_min_torque },
 
-{ 14, 2, "11", "Play    ", MI_NRANGE, 1, MAX_TENSION, NULL, set_mdata, DT_LONG,
+{ 14, 2, "11", "Play    ", MI_LONG, 1, MAX_TENSION, NULL, set_idata, DT_LONG,
 		&g_sys.play_min_torque },
 
 { 10, 30, "", "MAX TORQUE", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 12, 26, "12", "Stop    ", MI_NRANGE, 1, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 12, 26, "12", "Stop    ", MI_LONG, 1, DAC_MAX, NULL, set_idata, DT_LONG,
 		&g_sys.stop_max_torque },
 
-{ 13, 26, "13", "Shuttle ", MI_NRANGE, 1, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 13, 26, "13", "Shuttle ", MI_LONG, 1, DAC_MAX, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_max_torque },
 
-{ 14, 26, "14", "Play    ", MI_NRANGE, 1, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 14, 26, "14", "Play    ", MI_LONG, 1, DAC_MAX, NULL, set_idata, DT_LONG,
 		&g_sys.play_max_torque },
 
 { 16,  6, "", "SERVO SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 18,  2, "15", "Radius Null Offset Gain ", MI_NRANGE, 0, 5, NULL, set_mdata,
+{ 18,  2, "15", "Radius Null Offset Gain ", MI_LONG, 0, 5, NULL, set_idata,
 		DT_LONG, &g_sys.null_offset_gain },
 
-{ 19,  2, "16", "Tension Sensor Gain     ", MI_NRANGE, 0, 5, NULL, set_mdata,
-		DT_LONG, &g_sys.tension_sensor_gain },
+{ 19,  2, "16", "Tension Sensor Gain     ", MI_FLOAT, 0, 0, NULL, set_idata,
+		DT_FLOAT, &g_sys.tension_sensor_gain },
+
+{ 20,  2, "17", "Null Offset Gain        ", MI_FLOAT, 0, 0, NULL, set_idata,
+		DT_FLOAT, &g_sys.null_gain },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
 /* GENERAL MENU */
 
-static MENU menu_tension = { MENU_TENSION, tension_items, sizeof(tension_items)
-		/ sizeof(MENUITEM), "TENSION MENU" };
+static MENU menu_tension = { MENU_TENSION, tension_items,
+		sizeof(tension_items) / sizeof(MENUITEM), "TENSION MENU" };
 
 /*****************************************************************************
  * STOP MENU ITEMS
@@ -330,7 +333,7 @@ static MENUITEM stop_items[] = {
 
 { 3, 6, "", "STOP SERVO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{  5, 2, "1", "Stop Brake Torque ", MI_NRANGE, 300,900, NULL, set_mdata, DT_LONG,
+{  5, 2, "1", "Stop Brake Torque ", MI_LONG, 300,900, NULL, set_idata, DT_LONG,
 		&g_sys.stop_brake_torque },
 
 {  7, 6, "", "STOP SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
@@ -343,9 +346,8 @@ static MENUITEM stop_items[] = {
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
-static MENU menu_stop = { MENU_STOP, stop_items, sizeof(stop_items)
-		/ sizeof(MENUITEM), "STOP MENU" };
-
+static MENU menu_stop = { MENU_STOP, stop_items,
+		sizeof(stop_items) / sizeof(MENUITEM), "STOP MENU" };
 
 /*****************************************************************************
  * SHUTTLE MENU ITEMS
@@ -355,33 +357,33 @@ static MENUITEM shuttle_items[] = {
 
 { 3, 6, "", "SHUTTLE SERVO PID", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "P-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 5, 2, "1", "P-Gain ", MI_LONG, 0, 500, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_servo_pgain },
 
-{ 6, 2, "2", "I-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 6, 2, "2", "I-Gain ", MI_LONG, 0, 500, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_servo_igain },
 
-{ 7, 2, "3", "D-Gain ", MI_NRANGE, 0, 500, NULL, set_mdata, DT_LONG,
+{ 7, 2, "3", "D-Gain ", MI_LONG, 0, 500, NULL, set_idata, DT_LONG,
 		&g_sys.shuttle_servo_dgain },
 
 { 9, 6, NULL, "SHUTTLE SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 11, 2, "7", "Shuttle Mode Velocity         ", MI_NRANGE, 50, 500, NULL, set_mdata,
+{ 11, 2, "7", "Shuttle Mode Velocity         ", MI_LONG, 50, 500, NULL, set_idata,
 		DT_LONG, &g_sys.shuttle_velocity },
 
-{ 12, 2, "8", "Auto Decelerate Velocity      ", MI_NRANGE, 0, 200, NULL, set_mdata,
+{ 12, 2, "8", "Auto Decelerate Velocity      ", MI_LONG, 0, 200, NULL, set_idata,
 		DT_LONG, &g_sys.shuttle_slow_velocity },
 
-{ 13, 2, "9", "Auto Decelerate at offset     ", MI_NRANGE, 50, 100, NULL, set_mdata,
+{ 13, 2, "9", "Auto Decelerate at offset     ", MI_LONG, 50, 100, NULL, set_idata,
 		DT_LONG, &g_sys.shuttle_slow_offset },
 
-{ 14, 2, "10","Lifter Settle Time            ", MI_NRANGE, 0,2000, NULL, set_mdata,
+{ 14, 2, "10","Lifter Settle Time            ", MI_LONG, 0,2000, NULL, set_idata,
 		DT_LONG, &g_sys.lifter_settle_time },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
-static MENU menu_shuttle = { MENU_SHUTTLE, shuttle_items, sizeof(shuttle_items)
-		/ sizeof(MENUITEM), "SHUTTLE MENU" };
+static MENU menu_shuttle = { MENU_SHUTTLE, shuttle_items,
+		sizeof(shuttle_items) / sizeof(MENUITEM), "SHUTTLE MENU" };
 
 /*****************************************************************************
  * PLAY MENU ITEMS
@@ -391,44 +393,44 @@ static MENUITEM play_items[] = {
 
 { 3, 6, NULL, "PLAY BOOST LO", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 2,  "1",  "Boost Time ", MI_NRANGE, 0, 2048, NULL, set_mdata, DT_LONG,
+{ 5, 2,  "1",  "Boost Time ", MI_LONG, 0, 2048, NULL, set_idata, DT_LONG,
 		&g_sys.play_lo_boost_time },
 
-{ 6, 2,  "2",  "Boost Step ", MI_NRANGE, 0, 5, NULL, set_mdata, DT_LONG,
+{ 6, 2,  "2",  "Boost Step ", MI_LONG, 0, 5, NULL, set_idata, DT_LONG,
 		&g_sys.play_lo_boost_step },
 
-{ 7, 2,  "3",  "Boost Start", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 7, 2,  "3",  "Boost Start", MI_LONG, 0, DAC_MAX, NULL, set_idata, DT_LONG,
 			&g_sys.play_lo_boost_start },
 
-{ 8, 2,  "4",  "Boost End  ", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 8, 2,  "4",  "Boost End  ", MI_LONG, 0, DAC_MAX, NULL, set_idata, DT_LONG,
 			&g_sys.play_lo_boost_end },
 
 { 3, 38, NULL, "PLAY BOOST HI", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 34, "5",  "Boost Time ", MI_NRANGE, 0, 10000, NULL, set_mdata, DT_LONG,
+{ 5, 34, "5",  "Boost Time ", MI_LONG, 0, 10000, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_boost_time },
 
-{ 6, 34, "6",  "Boost Step ", MI_NRANGE, 1, 100, NULL, set_mdata, DT_LONG,
+{ 6, 34, "6",  "Boost Step ", MI_LONG, 1, 100, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_boost_step },
 
-{ 7, 34, "7",  "Boost Start", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 7, 34, "7",  "Boost Start", MI_LONG, 0, DAC_MAX, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_boost_start },
 
-{ 8, 34, "8",  "Boost End  ", MI_NRANGE, 0, DAC_MAX, NULL, set_mdata, DT_LONG,
+{ 8, 34, "8",  "Boost End  ", MI_LONG, 0, DAC_MAX, NULL, set_idata, DT_LONG,
 		&g_sys.play_hi_boost_end },
 
 { 12, 6, NULL, "PLAY SETTINGS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 14, 2, "10", "Play Tension Velocity Gain    ", MI_NRANGE, 1, 24, NULL, set_mdata, DT_LONG,
+{ 14, 2, "10", "Play Tension Velocity Gain    ", MI_LONG, 1, 24, NULL, set_idata, DT_LONG,
 		&g_sys.play_tension_gain },
 
-{ 15, 2, "11", "Pinch Roller Settling Time    ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+{ 15, 2, "11", "Pinch Roller Settling Time    ", MI_LONG, 0, 1000, NULL, set_idata, DT_LONG,
 		&g_sys.pinch_settle_time },
 
-{ 16, 2, "12", "Shuttle to Play Settling Time ", MI_NRANGE, 0, 1000, NULL, set_mdata, DT_LONG,
+{ 16, 2, "12", "Shuttle to Play Settling Time ", MI_LONG, 0, 1000, NULL, set_idata, DT_LONG,
 		&g_sys.play_settle_time },
 
-{ 17, 2, "13", "Brake Settle Time             ", MI_NRANGE, 0, 2000, NULL, set_mdata,
+{ 17, 2, "13", "Brake Settle Time             ", MI_LONG, 0, 2000, NULL, set_idata,
 		DT_LONG, &g_sys.brake_settle_time },
 
 { 18, 2, "14", "Use Brakes to Stop Play Mode  ", MI_BITBOOL, SF_BRAKES_STOP_PLAY, SF_BRAKES_STOP_PLAY,
@@ -439,8 +441,8 @@ static MENUITEM play_items[] = {
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 0, NULL, NULL, 0, 0 } };
 
-static MENU menu_play = { MENU_PLAY, play_items, sizeof(play_items)
-		/ sizeof(MENUITEM), "PLAY MENU" };
+static MENU menu_play = { MENU_PLAY, play_items,
+		sizeof(play_items) / sizeof(MENUITEM), "PLAY MENU" };
 
 /*****************************************************************************
  * DIAG MENU ITEMS
@@ -448,22 +450,24 @@ static MENU menu_play = { MENU_PLAY, play_items, sizeof(play_items)
 
 static MENUITEM diag_items[] = {
 
-{ 3, 6, NULL, "DIAGNOSTICS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
+{  3, 6, NULL, "DIAGNOSTICS", MI_TEXT, 1, 0, NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "Lamp Test", MI_EXEC, 0, 1, NULL, diag_lamp, 0, 0 },
+{  5, 2, "1", "Lamp Test", MI_EXEC, 0, 1, NULL, diag_lamp, 0, 0 },
 
-{ 6, 2, "2", "Transport Test", MI_EXEC, 0, 1, NULL, diag_transport, 0, 0 },
+{  6, 2, "2", "Transport Test", MI_EXEC, 0, 1, NULL, diag_transport, 0, 0 },
 
-{ 7, 2, "3", "MDA DAC Ramp Test", MI_EXEC, 0, 1, NULL, diag_dacramp, 0, 0 },
+{  7, 2, "3", "Pinch Roller Engage", MI_EXEC, 0, 1, NULL, diag_pinch_roller, 0, 0 },
 
-{ 8, 2, "4", "MDA DAC Zero Trim", MI_EXEC, 0, 1, NULL, diag_dacadjust, 0, 0 },
+{  8, 2, "4", "MDA DAC Ramp Test", MI_EXEC, 0, 1, NULL, diag_dacramp, 0, 0 },
+
+{  9, 2, "5", "MDA DAC Zero Trim", MI_EXEC, 0, 1, NULL, diag_dacadjust, 0, 0 },
 #if (CAPDATA_SIZE > 0)
-{ 9, 2, "5", "Dump Capture Data", MI_EXEC, 0, 1, NULL, diag_dump_capture, 0, 0 },
+{ 10, 2, "6", "Dump Capture Data", MI_EXEC, 0, 1, NULL, diag_dump_capture, 0, 0 },
 #endif
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT, 0, 1, NULL, NULL, 0, 0 } };
 
-static MENU menu_diag = { MENU_DIAG, diag_items, sizeof(diag_items)
-		/ sizeof(MENUITEM), "DIAGNOSTIC MENU" };
+static MENU menu_diag = { MENU_DIAG, diag_items,
+		sizeof(diag_items) / sizeof(MENUITEM), "DIAGNOSTIC MENU" };
 
 /*****************************************************************************
  * ARRAY OF ALL KNOWN MENUS
@@ -621,7 +625,7 @@ void show_menu(void)
 	if (menu->id == MENU_MAIN)
 	{
 		int speed = g_high_speed_flag ? 30 : 15;
-		tty_pos(2, 78 - 9);
+		tty_pos(3, 69);
 		tty_printf("%d IPS %d\"", speed, g_tape_width);
 	}
 
@@ -651,14 +655,17 @@ void show_menu(void)
 	{
 		long data = 0;
 
-		/* preload any data member if it exists */
+		/* Preload any data member if it exists */
 
 		if (item->datatype)
-			data = get_item_data(item);
+		{
+			if (item->datatype != DT_FLOAT)
+				data = get_item_data(item);
+		}
 
-		int row = item->row;
-		int col = item->col;
-		int type = item->type;
+		int row   = item->row;
+		int col   = item->col;
+		int type  = item->type;
 		int parm1 = item->parm1;
 
 		tty_pos(row, col);
@@ -712,8 +719,16 @@ void show_menu(void)
 				tty_printf("OFF");
 			break;
 
-		case MI_NRANGE:
+		case MI_LONG:
+
 			tty_printf("%-2s) %s : %u", item->optstr, item->text, data);
+			break;
+
+		case MI_FLOAT:
+		{
+			float fval = (float)(*((float*) item->data));
+			tty_printf("%-2s) %s : %.2f", item->optstr, item->text, fval);
+		}
 			break;
 
 		case MI_BITLIST:
@@ -869,6 +884,15 @@ int do_menu_keystate(int key)
 				show_monitor_screen();
 			else
 				show_menu();
+		}
+		else if (ch == '.')
+		{
+			if (s_menuitem->datatype == DT_FLOAT)
+			{
+				/* only one decimal point allowed */
+				if (strchr(s_keybuf, '.') == NULL)
+					do_bufkey(ch);
+			}
 		}
 		else if (isdigit(ch) || isalpha(ch))
 		{
@@ -1322,7 +1346,7 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 		}
 	}
 
-	int type = item->type;
+	int type  = item->type;
 	int parm1 = item->parm1;
 	int parm2 = item->parm2;
 
@@ -1459,7 +1483,7 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 	{
 		tty_printf("Enter %s", text);
 
-		if (type == MI_NRANGE)
+		if (type == MI_LONG)
 		{
 			/* prompt with range low-high values */
 			tty_printf(" (%u-%u): ", parm1, parm2);
@@ -1501,18 +1525,15 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
  * and sets the data item from the pointer in the menu table.
  */
 
-int set_mdata(MENUITEM* item)
+int set_idata(MENUITEM* item)
 {
 	int rc = 0;
 
-	//if (!pgm_read_word(&item->datasize))
-	//  return 0;
-
-	int type = item->type;
+	int type  = item->type;
 	int parm1 = item->parm1;
 	int parm2 = item->parm2;
 
-	if (type == MI_NRANGE)
+	if (type == MI_LONG)
 	{
 		long n;
 
@@ -1528,6 +1549,27 @@ int set_mdata(MENUITEM* item)
 			if ((n >= parm1) && (n <= parm2))
 			{
 				set_item_data(item, n);
+				rc = 1;
+			}
+		}
+	}
+	else if (type == MI_FLOAT)
+	{
+		float n;
+
+		/* Check for return numeric data item value */
+		if (strlen(s_keybuf))
+		{
+			/* Get the numeric value in input buffer */
+			n = (float)atof(s_keybuf);
+
+			/* Validate the value entered against the min/max
+			 * range values and set if within range.
+			 */
+			//if ((n >= parm1) && (n <= parm2))
+			{
+				if (item->datatype == DT_FLOAT)
+					*((float*)item->data) = n;
 				rc = 1;
 			}
 		}
@@ -1817,7 +1859,7 @@ void show_monitor_data()
 		tty_pos(19, 15);
 		tty_printf(": %-4d", g_servo.offset_null);
 		tty_pos(20, 15);
-		tty_printf(": %-4d", g_servo.tsense);
+		tty_printf(": %-8.1f", g_servo.tsense);
 
         tty_pos(12, 49);
         tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(temp));

@@ -127,6 +127,18 @@ static int wait4continue(void)
     return key;
 }
 
+static bool check_halt()
+{
+	if ((!IS_SERVO_MODE(MODE_HALT)) || (IS_SERVO_MOTION()))
+	{
+		tty_printf("%sWARNING%s - Transport must be in HALT mode with no tape/reels mounted!!\r\n",
+				   VT100_UL_ON, VT100_UL_OFF);
+		return false;
+	}
+
+	return true;
+}
+
 /*
  * This function is called at startup to flash all the lamps
  * sequentially to indicate everything is up and running. 
@@ -192,11 +204,8 @@ int diag_dacadjust(MENUITEM* mp)
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
-    if (!IS_SERVO_MODE(MODE_HALT))
+    if (!check_halt())
     {
-        tty_printf("%sWARNING:%s\r\n\nTransport must be in HALT mode with no tape reels mounted!!\r\n",
-                   VT100_UL_ON, VT100_UL_OFF);
-
         wait4continue();
     }
     else
@@ -241,14 +250,9 @@ int diag_dacramp(MENUITEM* mp)
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
-    if ((!IS_SERVO_MODE(MODE_HALT)) || (IS_SERVO_MOTION()))
+    if (check_halt())
     {
-        tty_printf("%sWARNING%s - Transport must be in HALT mode with no tape/reels mounted!!\r\n",
-                   VT100_UL_ON, VT100_UL_OFF);
-    }
-    else
-    {
-        tty_printf("%sWARNING%s - Stay clear of reels during test as reels will run up to full speed!!\r\n\n",
+        tty_printf("%sWARNING%s - Stay clear as reels can run up to full speed!!\r\n\n",
                    VT100_UL_ON, VT100_UL_OFF);
         
         /* Transport MUST be in halt mode */
@@ -260,8 +264,6 @@ int diag_dacramp(MENUITEM* mp)
         while(1)
         {
             tty_printf("DAC A/B level: %-4.4u (<ESC> or 'u'=up, 'd'=down)\r\n", dac);
-
-            //tty_printf("%d, %d\r\n", dac, g_servo.adc[0]); //g_servo.tsense);
 
             g_servo.dac_halt_takeup = (unsigned long)dac;
             g_servo.dac_halt_supply = (unsigned long)dac;
@@ -317,12 +319,7 @@ int diag_transport(MENUITEM* mp)
     tty_cls();
     tty_printf(s_startstr, mp->text);
 
-    if ((!IS_SERVO_MODE(MODE_HALT)) || (IS_SERVO_MOTION()))
-    {
-        tty_printf("%sWARNING:%s\r\n\nTransport must be in HALT mode with no tape reels mounted or motion!!\r\n",
-                   VT100_UL_ON, VT100_UL_OFF);
-    }
-    else
+    if (check_halt())
     {
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
@@ -357,6 +354,40 @@ int diag_transport(MENUITEM* mp)
     }
 
     wait4continue();
+
+    return 1;
+}
+
+/*
+ * This routine test the transport solenoids etc.
+ */
+
+int diag_pinch_roller(MENUITEM* mp)
+{
+	int ch;
+
+    tty_cls();
+    tty_printf(s_startstr, mp->text);
+
+    if (check_halt())
+    {
+        /* Transport back to halt mode */
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+
+        tty_printf("Any key to release...");
+
+        /* Engage pinch roller */
+        SetTransportMask(T_PROL, 0);
+
+        /* Wait for a keystroke */
+        while (tty_getc(&ch) == 0);
+
+        /* Release pinch roller */
+        SetTransportMask(0, T_PROL);
+
+        /* Transport back to halt mode */
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    }
 
     return 1;
 }

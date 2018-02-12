@@ -260,8 +260,6 @@ Void MainControlTask(UArg a0, UArg a1)
     g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;
     g_servo.offset_null_sum   = 0;
-    g_servo.tsense_sum        = 0;
-    g_servo.tsense_sample_cnt = 0;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
 	g_servo.play_tension_gain = g_sys.play_tension_gain;
@@ -538,17 +536,10 @@ Void MainControlTask(UArg a0, UArg a1)
     g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;
     g_servo.offset_null_sum   = 0;
-    g_servo.tsense_sum        = 0;
-    g_servo.tsense_sample_cnt = 0;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
 	g_servo.play_tension_gain = g_sys.play_tension_gain;
 	g_servo.play_boost_count  = 0;
-	g_servo.rpm_takeup        = 0;
-	g_servo.rpm_takeup_sum    = 0;
-	g_servo.rpm_supply        = 0;
-	g_servo.rpm_supply_sum    = 0;
-	g_servo.rpm_sum_cnt       = 0;
 
     /* Servo's start in halt mode! */
     SET_SERVO_MODE(MODE_HALT);
@@ -729,7 +720,8 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
     p->null_offset_gain         = 3;        /* null offset gain */
-    p->tension_sensor_gain      = 2;
+    p->null_gain                = 3.5f;     /* null offset gain */
+    p->tension_sensor_gain      = 0.25;
 
     p->lifter_settle_time       = 600;      /* tape lifter settling delay in ms */
     p->brake_settle_time        = 450;

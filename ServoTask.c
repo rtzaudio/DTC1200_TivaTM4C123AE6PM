@@ -87,7 +87,7 @@
 #include "MotorDAC.h"
 
 /* Calculate the tension value from the ADC reading */
-#define TENSION(adc, g)     ((0xFFF - (adc & 0xFFF)) >> g)
+#define TENSION(adc)		( (0xFFF - (adc & 0xFFF)) )
 
 #define OFFSET_SCALE        500
 #define OFFSET_CALC_PERIOD  500
@@ -406,28 +406,11 @@ Void ServoLoopTask(UArg a0, UArg a1)
         Board_readADC(g_servo.adc);
 
         /* calculate the tension sensor value */
-        g_servo.tsense = TENSION(g_servo.adc[0], g_sys.tension_sensor_gain);
+        g_servo.tsense = (float)TENSION(g_servo.adc[0]) * g_sys.tension_sensor_gain;
 
         /***********************************************************
          * BEGIN CALCULATIONS FROM DATA SAMPLE
          ***********************************************************/
-
-        /* We calculate the RPM summed over a 1 second period */
-
-        g_servo.rpm_takeup_sum += g_servo.velocity_takeup;
-        g_servo.rpm_supply_sum += g_servo.velocity_supply;
-
-    	++g_servo.rpm_sum_cnt;
-
-    	if (g_servo.rpm_sum_cnt >= 500)
-    	{
-    		g_servo.rpm_sum_cnt = 0;
-
-    		g_servo.rpm_takeup = g_servo.rpm_takeup_sum;	//(g_servo.rpm_takeup_sum / 500) * 60;
-    		g_servo.rpm_supply = g_servo.rpm_supply_sum;	//(g_servo.rpm_supply_sum / 500) * 60;
-
-    		g_servo.rpm_takeup_sum = g_servo.rpm_supply_sum = 0;
-    	}
 
         /* Calculate the servo null offset value. The servo null offset
          * is the difference in velocity of the takeup and supply reel.
@@ -437,7 +420,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        long veldetect = (g_high_speed_flag) ? 10 : 5;	//g_sys.vel_detect_threshold * 2;
+        long veldetect = (g_high_speed_flag) ? 10 : 5;	// must not be zero!
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
@@ -446,8 +429,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
             /* Calculate the current reeling radius as tape speed
              * divided by the reel speed.
              */
-            g_servo.radius_takeup = (float)g_servo.tape_tach / ((float)g_servo.velocity_takeup + 1.0f);
-            g_servo.radius_supply = (float)g_servo.tape_tach / ((float)g_servo.velocity_supply + 1.0f);
+            g_servo.radius_takeup = (float)g_servo.tape_tach / ((float)g_servo.velocity_takeup);
+            g_servo.radius_supply = (float)g_servo.tape_tach / ((float)g_servo.velocity_supply);
 
             /* Calculate the difference in velocity of the two reels */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
@@ -470,10 +453,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
                 /* Calculate the averaged null offset value */
                 g_servo.offset_null = (g_servo.offset_null_sum / OFFSET_CALC_PERIOD) >> g_sys.null_offset_gain;
 
-                //ConsolePrintf("off=%d\r\n", g_servo.offset_null);
-
                 /* Reset the accumulator and sample counter */
-                g_servo.offset_null_sum = 0;
+                g_servo.offset_null_sum   = 0;
                 g_servo.offset_sample_cnt = 0;
             }
         }
@@ -606,22 +587,22 @@ static void SvcServoStop(void)
     if (g_servo.direction == TAPE_DIR_FWD)
     {
         /* FORWARD DIR MOTION - increase supply torque */
-        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) + braketorque) + g_servo.offset_supply;
+        dac_s = ((g_sys.stop_supply_tension + (uint32_t)g_servo.tsense) + braketorque) + g_servo.offset_supply;
         /* decrease takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) - braketorque) + g_servo.offset_takeup;
+        dac_t = ((g_sys.stop_takeup_tension + (uint32_t)g_servo.tsense) - braketorque) + g_servo.offset_takeup;
     }
     else if (g_servo.direction == TAPE_DIR_REW)
     {
         /* REWIND DIR MOTION - decrease supply torque */
-        dac_s = ((g_sys.stop_supply_tension + g_servo.tsense) - braketorque) + g_servo.offset_supply;
+        dac_s = ((g_sys.stop_supply_tension + (uint32_t)g_servo.tsense) - braketorque) + g_servo.offset_supply;
         /* increase takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + g_servo.tsense) + braketorque) + g_servo.offset_takeup;
+        dac_t = ((g_sys.stop_takeup_tension + (uint32_t)g_servo.tsense) + braketorque) + g_servo.offset_takeup;
     }
     else
     {
     	/* error, no motion? */
-        dac_s = (g_sys.stop_supply_tension + g_servo.tsense) + g_servo.offset_supply;
-        dac_t = (g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
+        dac_s = (g_sys.stop_supply_tension + (uint32_t)g_servo.tsense) + g_servo.offset_supply;
+        dac_t = (g_sys.stop_takeup_tension + (uint32_t)g_servo.tsense) + g_servo.offset_takeup;
     }
 
     /* Safety Clamps */
@@ -663,7 +644,7 @@ static void SvcServoPlay(void)
 
         dac_t = (g_servo.play_boost_start << 1) / ((g_servo.velocity_takeup / 8) + 1);
 
-        dac_s = (g_servo.play_supply_tension + g_servo.offset_supply) + TENSION(g_servo.adc[0], 1);
+        dac_s = (g_servo.play_supply_tension + g_servo.offset_supply) + (TENSION(g_servo.adc[0]) >> 1);
 
         /* Boost status LED on */
         g_lamp_mask |= L_STAT3;
@@ -695,7 +676,7 @@ static void SvcServoPlay(void)
     else
     {
         /* Calculate the SUPPLY Torque & Safety clamp */
-        dac_s = ((g_servo.play_supply_tension * rad_s) / g_servo.play_tension_gain) + g_servo.tsense;
+        dac_s = ((g_servo.play_supply_tension * rad_s) / g_servo.play_tension_gain) + (uint32_t)g_servo.tsense;
 
         /* Calculate the TAKEUP Torque & Safety clamp */
         dac_t = ((g_servo.play_takeup_tension * rad_t) / g_servo.play_tension_gain) + g_servo.play_takeup_tension;
@@ -718,7 +699,7 @@ static void SvcServoPlay(void)
         g_capdata[g_capdata_count].rad_supply = rad_t;
         g_capdata[g_capdata_count].rad_takeup = rad_s;
         g_capdata[g_capdata_count].tape_tach  = g_servo.tape_tach;
-        g_capdata[g_capdata_count].tension    = g_servo.tsense;
+        g_capdata[g_capdata_count].tension    = (uint32_t)g_servo.tsense;
         ++g_capdata_count;
     }
 #endif
@@ -780,13 +761,13 @@ static void SvcServoFwd(void)
 
     /* DECREASE SUPPLY Torque & Safety clamp */
 
-    dac_s = ((g_sys.shuttle_supply_tension + g_servo.tsense) - cv) + g_servo.offset_supply;
+    dac_s = ((g_sys.shuttle_supply_tension + (uint32_t)g_servo.tsense) - cv) + g_servo.offset_supply;
 
     DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* INCREASE TAKEUP Torque & Safety clamp */
 
-    dac_t = ((g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
+    dac_t = ((g_sys.shuttle_takeup_tension + (uint32_t)g_servo.tsense) + cv) + g_servo.offset_takeup;
 
     DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
@@ -842,13 +823,13 @@ static void SvcServoRew(void)
 
     /* INCREASE SUPPLY Torque & Safety clamp */
 
-    dac_s = ((g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
+    dac_s = ((g_sys.shuttle_supply_tension + (uint32_t)g_servo.tsense) + cv) + g_servo.offset_supply;
 
     DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
     /* DECREASE TAKEUP Torque & Safety clamp */
 
-    dac_t = ((g_sys.shuttle_takeup_tension + g_servo.tsense) - cv) + g_servo.offset_takeup;
+    dac_t = ((g_sys.shuttle_takeup_tension + (uint32_t)g_servo.tsense) - cv) + g_servo.offset_takeup;
 
     DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 

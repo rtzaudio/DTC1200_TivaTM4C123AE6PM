@@ -139,6 +139,8 @@ typedef struct _SYSPARMS
     int32_t debug;                     	/* debug level */
     int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
     int32_t null_offset_gain;          	/* reel servo null offset gain 		 */
+    float   null_gain;
+    float   tension_sensor_gain;		/* tension sensor gain divisor       */
     int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
     int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
@@ -147,7 +149,6 @@ typedef struct _SYSPARMS
     int32_t play_settle_time;			/* play after shuttle settling time  */
     int32_t rechold_settle_time;		/* record pulse length time          */
     int32_t record_pulse_time;			/* record pulse length time          */
-    int32_t tension_sensor_gain;		/* tension sensor gain divisor       */
     uint32_t debounce;					/* debounce transport buttons time   */
     uint32_t sysflags;					/* global system bit flags           */
 
@@ -235,16 +236,9 @@ typedef struct _SERVODATA
     int32_t		play_tension_gain;
     int32_t 	play_supply_tension;
     int32_t 	play_takeup_tension;
-	int32_t		rpm_takeup;
-	int32_t		rpm_takeup_sum;
-	int32_t		rpm_supply;
-	int32_t		rpm_supply_sum;
-	int32_t		rpm_sum_cnt;
 	uint32_t	qei_takeup_error_cnt;
 	uint32_t	qei_supply_error_cnt;
-    int32_t		tsense;				/* tension sensor value 		 */
-    int32_t 	tsense_sum;
-	int32_t		tsense_sample_cnt;
+    float		tsense;				/* tension sensor value 		 */
     uint32_t	adc[8];				/* ADC values (tension, etc)     */
     uint32_t	dac_takeup;			/* current takeup DAC level      */
     uint32_t	dac_supply;			/* current supply DAC level      */

@@ -85,6 +85,7 @@
 #include "TransportTask.h"
 #include "TapeTach.h"
 #include "MotorDAC.h"
+#include "ReelQEI.h"
 
 /* Calculate the tension value from the ADC reading */
 #define TENSION(adc)		( (0xFFF - (adc & 0xFFF)) )
@@ -96,188 +97,12 @@
 extern Semaphore_Handle g_semaServo;
 extern Semaphore_Handle g_semaTransportMode;
 
-/* Hwi_Struct used in the init Hwi_construct call */
-static Hwi_Struct qei0HwiStruct;
-static Hwi_Struct qei1HwiStruct;
-
 /* Static Function Prototypes */
 static void SvcServoHalt(void);
 static void SvcServoStop(void);
 static void SvcServoPlay(void);
 static void SvcServoFwd(void);
 static void SvcServoRew(void);
-
-/* Interrupt Handlers */
-static Void QEISupplyHwi(UArg arg);
-static Void QEITakeupHwi(UArg arg);
-
-/*****************************************************************************
- * QEI Configuration and interrupt handling
- *****************************************************************************/
-
-void DTC1200_initQEI(void)
-{
-	Error_Block eb;
-	Hwi_Params  hwiParams;
-
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_QEI0);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_QEI1);
-
-    /*
-     * Initialize the QEI quadrature encoder interface for operation. We are
-     * using QEI0 for the SUPPLY reel and QEI1 for the TAKEUP reel. These are
-     * both used only for velocity and direction information (not position).
-     * The quadrature encoder module provides hardware encoding of the two
-     * channels and the index signal from a quadrature encoder device into an
-     * absolute or relative position. There is additional hardware for capturing
-     * a measure of the encoder velocity, which is simply a count of encoder pulses
-     * during a fixed time period; the number of pulses is directly proportional
-     * to the encoder speed. Note that the velocity capture can only operate when
-     * the position capture is enabled.
-     */
-
-    // Enable pin PF4 for QEI0 IDX0
-    GPIOPinConfigure(GPIO_PF4_IDX0);
-    GPIOPinTypeQEI(GPIO_PORTF_BASE, GPIO_PIN_4);
-    // Enable pin PD7 for QEI0 PHB0
-    // First open the lock and select the bits we want to modify in the GPIO commit register.
-    HWREG(GPIO_PORTD_BASE + GPIO_O_LOCK) = GPIO_LOCK_KEY;
-    HWREG(GPIO_PORTD_BASE + GPIO_O_CR) = 0x80;
-    // Now modify the configuration of the pins that we unlocked.
-    GPIOPinConfigure(GPIO_PD7_PHB0);
-    GPIOPinTypeQEI(GPIO_PORTD_BASE, GPIO_PIN_7);
-    // Enable pin PD6 for QEI0 PHA0
-    GPIOPinConfigure(GPIO_PD6_PHA0);
-    GPIOPinTypeQEI(GPIO_PORTD_BASE, GPIO_PIN_6);
-    // Enable pin PG1 for QEI1 PHB1
-    GPIOPinConfigure(GPIO_PG1_PHB1);
-    GPIOPinTypeQEI(GPIO_PORTG_BASE, GPIO_PIN_1);
-    // Enable pin PG0 for QEI1 PHA1
-    GPIOPinConfigure(GPIO_PG0_PHA1);
-    GPIOPinTypeQEI(GPIO_PORTG_BASE, GPIO_PIN_0);
-    // Enable pin PG5 for QEI1 IDX1
-    GPIOPinConfigure(GPIO_PG5_IDX1);
-    GPIOPinTypeQEI(GPIO_PORTG_BASE, GPIO_PIN_5);
-
-    // Configure the quadrature encoder to capture edges on both signals and
-    // maintain an absolute position by resetting on index pulses. Using a
-    // 360 CPR encoder at four edges per line, there are 1440 pulses per
-    // revolution; therefore set the maximum position to 1439 since the
-    // count is zero based.
-
-    QEIConfigure(QEI_BASE_SUPPLY, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_RESET_IDX |
-                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), QE_EDGES_PER_REV - 1);
-
-    QEIConfigure(QEI_BASE_TAKEUP, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_RESET_IDX |
-                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), QE_EDGES_PER_REV - 1);
-
-    // This function configures the operation of the velocity capture portion
-    // of the quadrature encoder. The position increment signal is pre-divided
-    // as specified by ulPreDiv before being accumulated by the velocity
-    // capture. The divided signal is accumulated over ulPeriod system clock
-    // before being saved and resetting the accumulator.
-
-    //Configure the Velocity capture period - 800000 is 10ms at 80MHz
-    QEIVelocityConfigure(QEI_BASE_SUPPLY, QEI_VELDIV_1, QE_TIMER_PERIOD);
-    QEIVelocityConfigure(QEI_BASE_TAKEUP, QEI_VELDIV_1, QE_TIMER_PERIOD);
-
-    // Enable both quadrature encoder interfaces
-    QEIEnable(QEI_BASE_SUPPLY);
-    QEIEnable(QEI_BASE_TAKEUP);
-
-    // Enable both quadrature velocity capture interfaces.
-    QEIVelocityEnable(QEI_BASE_SUPPLY);
-    QEIVelocityEnable(QEI_BASE_TAKEUP);
-
-    /* Now we construct the interrupt handler objects for TI-RTOS */
-
-    Error_init(&eb);
-    Hwi_Params_init(&hwiParams);
-    Hwi_construct(&(qei0HwiStruct), INT_QEI0, QEISupplyHwi, &hwiParams, &eb);
-    if (Error_check(&eb)) {
-        System_abort("Couldn't construct DMA error hwi");
-    }
-
-    Error_init(&eb);
-    Hwi_Params_init(&hwiParams);
-    Hwi_construct(&(qei1HwiStruct), INT_QEI1, QEITakeupHwi, &hwiParams, &eb);
-    if (Error_check(&eb)) {
-        System_abort("Couldn't construct DMA error hwi");
-    }
-
-    QEIIntEnable(QEI_BASE_SUPPLY, QEI_INTERROR|QEI_INTTIMER);
-    QEIIntEnable(QEI_BASE_TAKEUP, QEI_INTERROR);
-}
-
-/*****************************************************************************
- * QEI Interrupt Handlers
- *****************************************************************************/
-
-Void QEISupplyHwi(UArg arg)
-{
-	UInt key;
-    unsigned long ulIntStat;
-
-    /* Get and clear the current interrupt source(s) */
-    ulIntStat = QEIIntStatus(QEI_BASE_SUPPLY, true);
-    QEIIntClear(QEI_BASE_SUPPLY, ulIntStat);
-
-    /* Determine which interrupt occurred */
-
-    if (ulIntStat & QEI_INTERROR)       	/* phase error detected */
-    {
-    	key = Hwi_disable();
-    	g_servo.qei_supply_error_cnt++;
-    	Hwi_restore(key);
-    }
-    else if (ulIntStat & QEI_INTTIMER)  	/* velocity timer expired */
-    {
-        GPIO_toggle(DTC1200_EXPANSION_PF2);
-    }
-    else if (ulIntStat & QEI_INTDIR)    	/* direction change */
-    {
-
-    }
-    else if (ulIntStat & QEI_INTINDEX)  	/* Index pulse detected */
-    {
-
-    }
-
-    QEIIntEnable(QEI_BASE_SUPPLY, ulIntStat);
-}
-
-Void QEITakeupHwi(UArg arg)
-{
-	UInt key;
-    unsigned long ulIntStat;
-
-    /* Get and clear the current interrupt source(s) */
-    ulIntStat = QEIIntStatus(QEI_BASE_TAKEUP, true);
-    QEIIntClear(QEI_BASE_TAKEUP, ulIntStat);
-
-    /* Determine which interrupt occurred */
-
-    if (ulIntStat & QEI_INTERROR)       	/* phase error detected */
-    {
-    	key = Hwi_disable();
-    	g_servo.qei_takeup_error_cnt++;
-    	Hwi_restore(key);
-    }
-    else if (ulIntStat & QEI_INTTIMER)  	/* velocity timer expired */
-    {
-
-    }
-    else if (ulIntStat & QEI_INTDIR)    	/* direction change */
-    {
-
-    }
-    else if (ulIntStat & QEI_INTINDEX)  	/* Index pulse detected */
-    {
-
-    }
-
-    QEIIntEnable(QEI_BASE_TAKEUP, ulIntStat);
-}
 
 /*****************************************************************************
  * SERVO MODE CONTROL INTERFACE FUNCTIONS (thread safe)
@@ -294,15 +119,11 @@ void ServoSetMode(uint32_t mode)
 	g_servo.mode = mode;
 	
 	/* Set dynamic brake state if STOP mode requested and
-	 * the previous mode was FF or REW, otherwise clear it.
+	 * the previous mode was PLAY, FF or REW, otherwise clear it.
 	 */
-
 	if (mode == MODE_STOP)
 	{
-		if ((g_servo.mode_prev == MODE_FWD) || (g_servo.mode_prev == MODE_REW) || (g_servo.mode_prev == MODE_STOP) || (g_servo.mode_prev == MODE_PLAY))
-			g_servo.stop_brake_state = 1;
-		else
-			g_servo.stop_brake_state = 0;
+		g_servo.stop_brake_state = (g_servo.mode_prev != MODE_HALT) ? 1 : 0;
 	}
 	
 	/* Save the previous servo mode state */
@@ -360,7 +181,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
     };
 
     /* Initialize the QEI interface and interrupts */
-    DTC1200_initQEI();
+    ReelQEI_initialize();
 
     /* Run the servo loop forever! */
 
@@ -404,6 +225,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * Step[4] Internal CPU temperature sensor
          */
         Board_readADC(g_servo.adc);
+
+        /* Calculate the CPU temp since we read it here anyway */
+        g_servo.cpu_temp = ADC_TO_CELCIUS(g_servo.adc[4]);
 
         /* calculate the tension sensor value */
         g_servo.tsense = (float)TENSION(g_servo.adc[0]) * g_sys.tension_sensor_gain;

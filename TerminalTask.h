@@ -40,8 +40,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ============================================================================ */
 
-#ifndef DTC1200_TIVATM4C123AE6PMI_TERMINALTASK_H_
-#define DTC1200_TIVATM4C123AE6PMI_TERMINALTASK_H_
+#ifndef _TERMINALTASK_H_
+#define _TERMINALTASK_H_
 
 #define PROMPT_ROW      23
 #define PROMPT_COL      2
@@ -72,17 +72,17 @@
  */
 #define MI_NMENU    3
 
-/* Menu item is a value between a min/max value. The value
- * entered must be within this range specified by the
+/* Menu item is a long value between a min/max value. The value
+ * entered must be within the range specified by the
  * members 'parm1' and 'parm2'.
  */
 #define MI_LONG     4
 
-/* Menu item is a value between a min/max value. The value
- * entered must be within this range specified by the
+/* Menu item is a float value between a min/max value. The value
+ * entered must be within the range specified by the
  * members 'parm1' and 'parm2'.
  */
-#define MI_FLOAT	5
+#define MI_FLOAT    5
 
 /* The menu item contains a list of discrete values. The
  * value entered must match one of the values in the list
@@ -98,13 +98,13 @@
  */
 #define MI_BITLIST  7
 
-/* The menu item contains bitflag boolean value. The member 'arg1'
- * specifies the bitmask to enable a feature and 'arg2'
+/* The menu item contains bitflag boolean value. The member 'parm1'
+ * specifies the bitmask to enable a feature and 'parm2'
  * specifies the bitmask to clear a feature.
  */
-#define MI_BITBOOL  8
+#define MI_BITFLAG  8
 
-/* The menu item contains bitflag boolean value. The member 'arg1'
+/* The menu item contains bitflag boolean value. The member 'parm1'
  * specifies the maximum length up to KEYBUF_SIZE characters.
  */
 #define MI_STRING   9
@@ -131,7 +131,7 @@
 
 typedef struct _MENU_ARGLIST {
     char*       text;           /* arg description text     */
-    long        value;          /* arg discrete value       */
+    uint32_t    value;          /* arg discrete value       */
 } MENU_ARGLIST;
 
 /*
@@ -143,15 +143,16 @@ typedef struct _MENUITEM {
     int         col;            /* menu text col number               */
     char*       optstr;         /* menu entry option text             */
     char*       text;           /* menu item text string              */
-    int         type;           /* menu item type (MI_xxx)            */
-    long        parm1;          /* parm1 - item count for MI_VALLIST  */
-                                /*       - min value for MI_NRANGE    */
-                                /*       - menu number for MI_MENU    */
-                                /*       - on bitmask for MI_BITMASK  */
-                                /*       - underline for MI_DISPLAY   */
-    long        parm2;          /* parm2 - max value for MI_NRANGE    */
-                                /*       - off bitmask for MI_BITMASK */
-    void* 		arglist;
+    int         menutype;       /* menu item type (MI_xxx)            */
+    union {                     /* parm1 - item count for MI_VALLIST  */
+        uint32_t    U;          /*       - min value for MI_NRANGE    */
+        float       F;          /*       - menu number for MI_MENU    */
+    } parm1;                    /*       - on bitmask for MI_BITMASK  */
+    union {                     /*       - underline for MI_DISPLAY   */
+        uint32_t    U;          /* parm2 - max value for MI_NRANGE    */
+        float       F;          /*       - off bitmask for MI_BITMASK */
+    }  parm2;
+    void*       arglist;        /* pointer to variable argument list  */
     int         (*exec)(struct _MENUITEM* mp);
     int         datatype;       /* data type size specifier           */
     void*       data;           /* pointer to binary data item        */
@@ -161,15 +162,16 @@ typedef struct _MENUITEM {
 
 typedef struct _MENU {
     int         id;
-    MENUITEM*   items;      	/* pointer to menu items */
-    int         count;      	/* count of menu items   */
-    char*       heading;    	/* menu heading string   */
+    MENUITEM*   items;          /* pointer to menu items */
+    int         count;          /* count of menu items   */
+    char*       heading;        /* menu heading string   */
 } MENU;
 
-/* Function Prototypes */
+/*****************************************************************************
+ * Function Prototypes
+ *****************************************************************************/
 
 void Terminal_initialize(void);
-
 Void TerminalTask(UArg a0, UArg a1);
 
-#endif /* DTC1200_TIVATM4C123AE6PMI_TERMINALTASK_H_ */
+#endif /* _TERMINALTASK_H_ */

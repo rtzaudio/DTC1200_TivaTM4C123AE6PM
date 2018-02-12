@@ -139,7 +139,7 @@ typedef struct _SYSPARMS
     int32_t debug;                     	/* debug level */
     int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
     int32_t null_offset_gain;          	/* reel servo null offset gain 		 */
-    float   null_gain;
+    float   reel_offset_gain;
     float   tension_sensor_gain;		/* tension sensor gain divisor       */
     int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
@@ -239,6 +239,7 @@ typedef struct _SERVODATA
 	uint32_t	qei_takeup_error_cnt;
 	uint32_t	qei_supply_error_cnt;
     float		tsense;				/* tension sensor value 		 */
+    float		cpu_temp;			/* CPU temp included in ADC read */
     uint32_t	adc[8];				/* ADC values (tension, etc)     */
     uint32_t	dac_takeup;			/* current takeup DAC level      */
     uint32_t	dac_supply;			/* current supply DAC level      */

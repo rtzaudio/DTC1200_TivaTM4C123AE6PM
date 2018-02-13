@@ -118,7 +118,7 @@ static const char s_ul_off[]  = VT100_UL_OFF;
 static const char s_inv_on[]  = VT100_INV_ON;
 static const char s_inv_off[] = VT100_INV_OFF;
 
-static const char* s_escstr = "<ESC> to exit...";
+static const char* s_escstr = "<ESC> or 'X' to exit...";
 static const char* s_title  = "DTC-1200 Transport Controller v%u.%-2.2u";
 
 /*****************************************************************************
@@ -130,6 +130,7 @@ static void show_menu(void);
 static int do_menu_keystate(int key);
 static int do_hot_key(MENU *menu, int ch);
 static int is_valid_key(int ch, int fmt);
+static int is_escape(int ch);
 static void change_menu(long n);
 static void do_backspace(void);
 static void do_bufkey(int ch);
@@ -212,7 +213,7 @@ Void TerminalTask(UArg a0, UArg a1)
 
         if (g_sys.debug)
         {
-            if (ch == KEY_ESC)
+            if (is_escape(ch))
             {
                 if (g_sys.debug == 1)
                 {
@@ -326,9 +327,9 @@ void show_menu(void)
 
     tty_pos(2, 78 - strlen(menu->heading));
 
-    tty_printf(VT100_INV_ON);
+    tty_printf(s_inv_on);
     tty_printf(menu->heading);
-    tty_printf(VT100_INV_OFF);
+    tty_printf(s_inv_off);
 
     /* Add the menu items text */
 
@@ -341,7 +342,7 @@ void show_menu(void)
         long data = 0;
         float fval = 0.0f;
 
-        /* Preload any data member if it exists */
+        /* Preload any menu item data if it exists */
 
         if (item->datatype)
         {
@@ -349,9 +350,9 @@ void show_menu(void)
                 data = get_item_data(item);
         }
 
-        int row   = item->row;
-        int col   = item->col;
-        int type  = item->menutype;
+        int row    = item->row;
+        int col    = item->col;
+        int type   = item->menutype;
         int param1 = item->param1.U;
 
         tty_pos(row, col);
@@ -361,7 +362,7 @@ void show_menu(void)
         case MI_TEXT:
             if (param1)
                 /* display with underline */
-                tty_printf("%s%s%s", VT100_UL_ON, item->text, VT100_UL_OFF);
+                tty_printf("%s%s%s", s_ul_on, item->text, s_ul_off);
             else
                 /* display with normal */
                 tty_printf("%s", item->text);
@@ -382,7 +383,7 @@ void show_menu(void)
 
                 /* append "esc exits" if not home menu */
                 if (menu->id)
-                    tty_printf(" (ESC exits)");
+                    tty_printf(" (ESC or 'X' to exit)");
 
                 tty_printf(": ");
             }
@@ -405,13 +406,16 @@ void show_menu(void)
                 tty_printf("OFF");
             break;
 
-        case MI_LONG:
-            tty_printf("%-2s) %s : %u", item->optstr, item->text, data);
-            break;
-
-        case MI_FLOAT:
-            fval = (float)(*((float*) item->data));
-            tty_printf("%-2s) %s : %.2f", item->optstr, item->text, fval);
+        case MI_NUMERIC:
+        	if (item->datatype == DT_FLOAT)
+        	{
+        		fval = (float)(*((float*) item->data));
+        		tty_printf("%-2s) %s : %.2f", item->optstr, item->text, fval);
+        	}
+        	else
+        	{
+        		tty_printf("%-2s) %s : %u", item->optstr, item->text, data);
+        	}
             break;
 
         case MI_BITLIST:
@@ -462,7 +466,7 @@ int do_menu_keystate(int key)
         {
             do_backspace();
         }
-        else if ((ch == KEY_ESC) && (s_menu_num != MENU_MAIN))
+        else if (is_escape(ch) && (s_menu_num != MENU_MAIN))
         {
             change_menu(MENU_MAIN);
             show_menu();
@@ -533,7 +537,7 @@ int do_menu_keystate(int key)
         {
             do_backspace();
         }
-        else if (ch == KEY_ESC)
+        else if (is_escape(ch))
         {
             s_keycount = 0;
             s_edit_state = ES_MENU_SELECT;
@@ -593,7 +597,7 @@ int do_menu_keystate(int key)
             /* toggle and prompt next menu bitflag option */
             prompt_menu_item(s_menuitem, NEXT);
         }
-        else if (ch == KEY_ESC)
+        else if (is_escape(ch))
         {
             /* exit bitflag toggle mode */
             s_edit_state = ES_MENU_SELECT;
@@ -630,7 +634,7 @@ int do_menu_keystate(int key)
             /* toggle and prompt prev menu bitflag option */
             prompt_menu_item(s_menuitem, PREV);
         }
-        else if (ch == KEY_ESC)
+        else if (is_escape(ch))
         {
             /* exit bitflag toggle mode */
             s_edit_state = ES_MENU_SELECT;
@@ -667,7 +671,7 @@ int do_menu_keystate(int key)
             /* toggle and prompt prev menu vallist option */
             prompt_menu_item(s_menuitem, PREV);
         }
-        else if (ch == KEY_ESC)
+        else if (is_escape(ch))
         {
             /* exit bitflag toggle mode */
             s_edit_state = ES_MENU_SELECT;
@@ -694,7 +698,7 @@ int do_menu_keystate(int key)
         {
             do_backspace();
         }
-        else if (ch == KEY_ESC)
+        else if (is_escape(ch))
         {
             s_keycount = 0;
             s_edit_state = ES_MENU_SELECT;
@@ -828,6 +832,17 @@ int is_valid_key(int ch, int fmt)
 {
     int rc = 1;
     return rc;
+}
+
+/* Test key code for valid escape keys. Currently we
+ * accept <ESC> or 'X' to exit a menu or abort an operation.
+ */
+int is_escape(int ch)
+{
+	if ((ch == KEY_ESC) || (ch == toupper('x')))
+		return 1;
+
+	return 0;
 }
 
 /*
@@ -1038,7 +1053,7 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
         }
     }
 
-    int type  = item->menutype;
+    int type   = item->menutype;
     int param1 = item->param1.U;
     int param2 = item->param2.U;
 
@@ -1047,7 +1062,14 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
         if (!nextprev)
         {
             tty_pos(PROMPT_ROW - 2, PROMPT_COL);
-            tty_printf("<ENTER> to accept, <N>ext, <P>rev or <ESC> to cancel");
+            tty_puts("<ENTER> Accept, ");
+
+            if (type == MI_BITFLAG)
+            	tty_puts("<SPACE> Toggle");
+            else
+            	tty_puts("<N>ext, <P>rev");
+
+            tty_puts(" or <ESC> to cancel");
         }
 
         tty_pos(PROMPT_ROW, PROMPT_COL);
@@ -1080,12 +1102,12 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
             s_bitlist = find_bitlist_item(item, get_item_data(item));
         }
 
-        tty_printf(VT100_INV_ON);
+        tty_printf(s_inv_on);
 
         if (s_bitlist)
             tty_printf(s_bitlist->text);
 
-        tty_printf(VT100_INV_OFF);
+        tty_printf(s_inv_off);
 
         /* enter toggle bitflag options state */
         s_edit_state = ES_BITLIST_SELECT;
@@ -1116,12 +1138,12 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
             s_vallist = find_vallist_item(item, get_item_data(item));
         }
 
-        tty_printf(VT100_INV_ON);
+        tty_printf(s_inv_on);
 
         if (s_vallist)
             tty_printf(s_vallist->text);
 
-        tty_printf(VT100_INV_OFF);
+        tty_printf(s_inv_off);
 
         /* enter toggle value list options state */
         s_edit_state = ES_VALLIST_SELECT;
@@ -1143,9 +1165,9 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
                 s_bitbool |= param1;
         }
 
-        tty_printf(VT100_INV_ON);
+        tty_printf(s_inv_on);
         tty_printf((s_bitbool & param1) ? "ON" : "OFF");
-        tty_printf(VT100_INV_OFF);
+        tty_printf(s_inv_off);
 
         /* enter toggle bitflag options state */
         s_edit_state = ES_BITBOOL_SELECT;
@@ -1166,17 +1188,20 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
     {
         tty_printf("Enter %s", text);
 
-        if (type == MI_LONG)
+        if (type == MI_NUMERIC)
         {
-            /* prompt with range low-high values */
-            tty_printf(" (%u - %u): ", param1, param2);
-        }
-        else if (type == MI_FLOAT)
-        {
-        	float fparam1 = item->param1.F;
-        	float fparam2 = item->param2.F;
-            /* prompt with range low-high values */
-            tty_printf(" (%.2f - %.2f): ", fparam1, fparam2);
+			if (item->datatype == DT_FLOAT)
+			{
+				float fparam1 = item->param1.F;
+				float fparam2 = item->param2.F;
+				/* prompt with range low-high values */
+				tty_printf(" (%.2f - %.2f): ", fparam1, fparam2);
+			}
+			else
+			{
+				/* prompt with range low-high values */
+				tty_printf(" (%u - %u): ", param1, param2);
+			}
         }
         else if (type == MI_VALLIST)
         {
@@ -1223,21 +1248,10 @@ int set_idata(MENUITEM* item)
     if (!strlen(s_keybuf))
         return 0;
 
-    if (item->menutype == MI_LONG)
-    {
-        /* Get the numeric value in input buffer */
-        long n = atol(s_keybuf);
+    if (item->menutype != MI_NUMERIC)
+        return 0;
 
-        /* Validate the value entered against the min/max
-         * range values and set if within range.
-         */
-        if ((n >= item->param1.U) && (n <= item->param2.U))
-        {
-            set_item_data(item, n);
-            rc = 1;
-        }
-    }
-    else if (item->menutype == MI_FLOAT)
+    if (item->datatype == DT_FLOAT)
     {
         /* Get the numeric value in input buffer */
         float n = (float)atof(s_keybuf);
@@ -1249,6 +1263,20 @@ int set_idata(MENUITEM* item)
         {
             if (item->datatype == DT_FLOAT)
                 *((float*)item->data) = n;
+            rc = 1;
+        }
+    }
+    else
+    {
+        /* Get the numeric value in input buffer */
+        long n = atol(s_keybuf);
+
+        /* Validate the value entered against the min/max
+         * range values and set if within range.
+         */
+        if ((n >= item->param1.U) && (n <= item->param2.U))
+        {
+            set_item_data(item, n);
             rc = 1;
         }
     }
@@ -1301,23 +1329,30 @@ int mc_cmd_rew(MENUITEM *item)
 
 int mc_write_config(MENUITEM *item)
 {
-    int rc;
+	int ch;
+	int rc;
     (void) item;
 
     tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
 
-    if ((rc = SysParamsWrite(&g_sys)) != 0)
+    tty_pos(PROMPT_ROW, PROMPT_COL);
+    tty_puts("Save Config? (Y/N)");
+
+    /* Wait for a keystroke */
+    while (tty_getc(&ch) < 1);
+
+    if (toupper(ch) == 'Y')
     {
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-        tty_printf("ERROR %d  Writing Config Parameters...", rc);
-    }
-    else
-    {
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-        tty_puts("Config Parameters Saved...");
+		tty_pos(PROMPT_ROW, PROMPT_COL);
+
+		if ((rc = SysParamsWrite(&g_sys)) != 0)
+			tty_printf("ERROR %d : Writing Config Parameters...", rc);
+		else
+			tty_puts("Config parameters saved...");
+
+		Task_sleep(1000);
     }
 
-    Task_sleep(1000);
     show_menu();
 
     return 1;
@@ -1325,24 +1360,35 @@ int mc_write_config(MENUITEM *item)
 
 int mc_read_config(MENUITEM *item)
 {
-    int rc;
+    int ch;
+	int rc;
     (void) item;
 
     tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
 
-    /* Read the system config parameters from storage */
-    if ((rc = SysParamsRead(&g_sys)) != 0)
+    tty_pos(PROMPT_ROW, PROMPT_COL);
+    tty_puts("Recall Config? (Y/N)");
+
+    /* Wait for a keystroke */
+    while (tty_getc(&ch) < 1);
+
+    if (toupper(ch) == 'Y')
     {
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-        tty_printf("ERROR %d  Reading Config Parameters...", rc);
-    }
-    else
-    {
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-        tty_puts("Config Parameters Loaded...");
+		/* Read the system config parameters from storage */
+		if ((rc = SysParamsRead(&g_sys)) != 0)
+		{
+			tty_pos(PROMPT_ROW, PROMPT_COL);
+			tty_printf("ERROR %d : Reading Config Parameters...", rc);
+		}
+		else
+		{
+			tty_pos(PROMPT_ROW, PROMPT_COL);
+			tty_puts("Config parameters loaded...");
+		}
+
+		Task_sleep(1000);
     }
 
-    Task_sleep(1000);
     show_menu();
 
     return 1;
@@ -1350,17 +1396,30 @@ int mc_read_config(MENUITEM *item)
 
 int mc_default_config(MENUITEM *item)
 {
+	int ch;
+
     tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
 
-    // Initialize the default servo and program data values
-    memset(&g_sys, 0, sizeof(SYSPARMS));
-    InitSysDefaults(&g_sys);
-
     tty_pos(PROMPT_ROW, PROMPT_COL);
-    tty_puts("Default config set...");
-    Task_sleep(1000);
+    tty_puts("Reset to Defaults? (Y/N)");
+
+    /* Wait for a keystroke */
+    while (tty_getc(&ch) < 1);
+
+    if (toupper(ch) == 'Y')
+    {
+		// Initialize the default servo and program data values
+		memset(&g_sys, 0, sizeof(SYSPARMS));
+		InitSysDefaults(&g_sys);
+
+		tty_pos(PROMPT_ROW, PROMPT_COL);
+		tty_puts("All parameters reset to defaults...");
+
+		Task_sleep(1000);
+    }
 
     show_menu();
+
     return 1;
 }
 

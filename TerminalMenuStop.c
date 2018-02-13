@@ -52,7 +52,7 @@ static MENUITEM stop_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{  5, 2, "1", "Stop Brake Torque", MI_LONG,
+{  5, 2, "1", "Stop Brake Torque", MI_NUMERIC,
 		.param1.U = 300,
 		.param2.U = 900,
 		NULL, set_idata, DT_LONG, &g_sys.stop_brake_torque },

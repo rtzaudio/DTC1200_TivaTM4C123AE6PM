@@ -88,10 +88,10 @@
 #include "ReelQEI.h"
 
 /* Calculate the tension value from the ADC reading */
-#define TENSION(adc)		( (0xFFF - (adc & 0xFFF)) )
+#define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
 
-#define OFFSET_SCALE        500
-#define OFFSET_CALC_PERIOD  500
+#define OFFSET_SCALE        	500
+#define OFFSET_CALC_PERIOD  	500
 
 /* External Global Data */
 extern Semaphore_Handle g_semaServo;
@@ -274,8 +274,10 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
             if (g_servo.offset_sample_cnt >= OFFSET_CALC_PERIOD)
             {
+            	float offset = (float)(g_servo.offset_null_sum / OFFSET_CALC_PERIOD);
+
                 /* Calculate the averaged null offset value */
-                g_servo.offset_null = (g_servo.offset_null_sum / OFFSET_CALC_PERIOD) >> g_sys.null_offset_gain;
+                g_servo.offset_null = (int32_t)(offset * g_sys.reel_radius_gain);
 
                 /* Reset the accumulator and sample counter */
                 g_servo.offset_null_sum   = 0;
@@ -289,7 +291,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * changing reel hub radius.
          */
 
-        if (g_sys.null_offset_gain <= 0)
+        if (g_sys.reel_radius_gain <= 0.0f)
         {
             /* for debugging & aligning system */
             g_servo.offset_supply = 0;

@@ -138,8 +138,8 @@ typedef struct _SYSPARMS
 
     int32_t debug;                     	/* debug level */
     int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
-    int32_t null_offset_gain;          	/* reel servo null offset gain 		 */
-    float   reel_offset_gain;
+    int32_t reserved1;
+    float   reel_radius_gain;			/* reeling radius gain factor        */
     float   tension_sensor_gain;		/* tension sensor gain divisor       */
     int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */

@@ -205,7 +205,7 @@ float fpid_calc(IPID* p, float setpoint, float actual)
 	p->error = setpoint - actual;
 
 	/* Error is within tolerance. */
-	if (fabs(p->error) < p->tolerance)
+	if (fabsf(p->error) < p->tolerance)
 		p->error = 0.0f;
 
 	/* Compute proportional term

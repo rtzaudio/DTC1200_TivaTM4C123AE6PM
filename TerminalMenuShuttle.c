@@ -52,17 +52,17 @@ static MENUITEM shuttle_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "P-Gain", MI_LONG,
+{ 5, 2, "1", "P-Gain", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 500,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_servo_pgain },
 
-{ 6, 2, "2", "I-Gain", MI_LONG,
+{ 6, 2, "2", "I-Gain", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 500,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_servo_igain },
 
-{ 7, 2, "3", "D-Gain", MI_LONG,
+{ 7, 2, "3", "D-Gain", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 500,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_servo_dgain },
@@ -72,22 +72,22 @@ static MENUITEM shuttle_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 11, 2, "7", "Shuttle Mode Velocity    ", MI_LONG,
+{ 11, 2, "7", "Shuttle Mode Velocity    ", MI_NUMERIC,
 		.param1.U = 50,
 		.param2.U = 500,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_velocity },
 
-{ 12, 2, "8", "Auto Decelerate Velocity ", MI_LONG,
+{ 12, 2, "8", "Auto Decelerate Velocity ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 200,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_slow_velocity },
 
-{ 13, 2, "9", "Auto Decelerate at offset", MI_LONG,
+{ 13, 2, "9", "Auto Decelerate at offset", MI_NUMERIC,
 		.param1.U = 50,
 		.param2.U = 100,
 		NULL, set_idata, DT_LONG, &g_sys.shuttle_slow_offset },
 
-{ 14, 2, "10","Lifter Settle Time       ", MI_LONG,
+{ 14, 2, "10","Lifter Settle Time       ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 2000,
 		NULL, set_idata, DT_LONG, &g_sys.lifter_settle_time },

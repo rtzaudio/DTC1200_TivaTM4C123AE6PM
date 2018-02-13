@@ -52,22 +52,22 @@ static MENUITEM general_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 5, 2, "1", "Velocity Detect Threshold", MI_LONG,
+{ 5, 2, "1", "Velocity Detect Threshold", MI_NUMERIC,
 		.param1.U = 1,
 		.param2.U = 50,
 		NULL, set_idata, DT_LONG, &g_sys.vel_detect_threshold },
 
-{ 6, 2, "2", "Record Pulse Strobe Time ", MI_LONG,
+{ 6, 2, "2", "Record Pulse Strobe Time ", MI_NUMERIC,
 		.param1.U = 10,
 		.param2.U = 100,
 		NULL, set_idata, DT_LONG, &g_sys.record_pulse_time },
 
-{ 7, 2, "3", "Record Hold Settle Time  ", MI_LONG,
+{ 7, 2, "3", "Record Hold Settle Time  ", MI_NUMERIC,
 		.param1.U = 5,
 		.param2.U = 20,
 		NULL, set_idata, DT_LONG, &g_sys.rechold_settle_time },
 
-{ 8, 2, "4", "Transport Button Debounce", MI_LONG,
+{ 8, 2, "4", "Transport Button Debounce", MI_NUMERIC,
 		.param1.U = 5,
 		.param2.U = 50,
 		NULL, set_idata, DT_LONG, &g_sys.debounce },

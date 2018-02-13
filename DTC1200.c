@@ -719,9 +719,8 @@ void InitSysDefaults(SYSPARMS* p)
     p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
-    p->null_offset_gain         = 3;        /* null offset gain */
-    p->reel_offset_gain         = 3.5f;     /* null offset gain */
-    p->tension_sensor_gain      = 0.25;
+    p->reel_radius_gain         = 0.12f;    /* null offset gain */
+    p->tension_sensor_gain      = 0.25f;
 
     p->lifter_settle_time       = 600;      /* tape lifter settling delay in ms */
     p->brake_settle_time        = 450;

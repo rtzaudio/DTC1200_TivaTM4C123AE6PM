@@ -72,17 +72,12 @@
  */
 #define MI_NMENU    3
 
-/* Menu item is a long value between a min/max value. The value
+/* Menu item is a numeric value between a min/max value. The value
  * entered must be within the range specified by the
- * members 'parm1' and 'parm2'.
+ * members 'param1' and 'param2'. The datatype must be set
+ * to DT_BYTE, DT_INT, DT_ULONG or DT_FLOAT.
  */
-#define MI_LONG     4
-
-/* Menu item is a float value between a min/max value. The value
- * entered must be within the range specified by the
- * members 'parm1' and 'parm2'.
- */
-#define MI_FLOAT    5
+#define MI_NUMERIC	4
 
 /* The menu item contains a list of discrete values. The
  * value entered must match one of the values in the list
@@ -90,29 +85,29 @@
  * points to a MENU_ARGLIST structure which contains a list
  * of options and 'parm1' specifies the count of items in the list.
  */
-#define MI_VALLIST  6
+#define MI_VALLIST  5
 
 /* The menu item contains an array of bitflag values. The member
  * 'arglist' points to a MENU_ARGLIST structure which points
  * to an array of bitflag masks and text descriptions.
  */
-#define MI_BITLIST  7
+#define MI_BITLIST  6
 
 /* The menu item contains bitflag boolean value. The member 'parm1'
  * specifies the bitmask to enable a feature and 'parm2'
  * specifies the bitmask to clear a feature.
  */
-#define MI_BITFLAG  8
+#define MI_BITFLAG  7
 
-/* The menu item contains bitflag boolean value. The member 'parm1'
+/* The menu item contains string value. The member 'parm1'
  * specifies the maximum length up to KEYBUF_SIZE characters.
  */
-#define MI_STRING   9
+#define MI_STRING   8
 
 /* Hotkey menu item. The menu handler function is called directly
  * if the corresponding option string key is pressed.
  */
-#define MI_HOTKEY   10
+#define MI_HOTKEY   9
 
 /*****************************************************************************
  * MENU ITEM STRUCTURES

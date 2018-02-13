@@ -147,14 +147,14 @@ typedef struct _MENUITEM {
     union {                     /* parm1 - item count for MI_VALLIST  */
         uint32_t    U;          /*       - min value for MI_NRANGE    */
         float       F;          /*       - menu number for MI_MENU    */
-    } parm1;                    /*       - on bitmask for MI_BITMASK  */
+    } param1;                    /*       - on bitmask for MI_BITMASK  */
     union {                     /*       - underline for MI_DISPLAY   */
         uint32_t    U;          /* parm2 - max value for MI_NRANGE    */
         float       F;          /*       - off bitmask for MI_BITMASK */
-    }  parm2;
+    }  param2;
     void*       arglist;        /* pointer to variable argument list  */
     int         (*exec)(struct _MENUITEM* mp);
-    int         datatype;       /* data type size specifier           */
+    int         datatype;       /* data type ID for the menu item     */
     void*       data;           /* pointer to binary data item        */
 } MENUITEM;
 
@@ -171,7 +171,32 @@ typedef struct _MENU {
  * Function Prototypes
  *****************************************************************************/
 
+/* DTC-1200 Menu ID defines */
+
+#define MENU_MAIN           0
+#define MENU_DIAG           1
+#define MENU_GENERAL        2
+#define MENU_TENSION        3
+#define MENU_STOP           4
+#define MENU_SHUTTLE        5
+#define MENU_PLAY           6
+
+/* Function Prototypes */
+
 void Terminal_initialize(void);
 Void TerminalTask(UArg a0, UArg a1);
+
+/* Menu Handler Function Prototypes */
+
+int set_idata(MENUITEM* item);
+
+int mc_cmd_stop(MENUITEM *item);
+int mc_cmd_play(MENUITEM *item);
+int mc_cmd_fwd(MENUITEM *item);
+int mc_cmd_rew(MENUITEM *item);
+int mc_monitor_mode(MENUITEM *item);
+int mc_default_config(MENUITEM *item);
+int mc_read_config(MENUITEM *item);
+int mc_write_config(MENUITEM *item);
 
 #endif /* _TERMINALTASK_H_ */

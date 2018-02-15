@@ -747,7 +747,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
 
-    p->play_tension_gain        = 9;        /* play tension velocity gain factor*/
+    p->play_tension_gain        = 0.11f;    /* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 186;      /* supply tension level (0-DAC_MAX) */
     p->play_lo_takeup_tension   = 186;      /* takeup tension level (0-DAC_MAX) */
     p->play_hi_supply_tension   = 188;      /* supply tension level (0-DAC_MAX) */

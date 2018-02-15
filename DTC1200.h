@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        10        	/* firmware revision */
+#define FIRMWARE_REV        12        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -100,7 +100,6 @@
 #define VREF                3.3f
 
 #define ADC_TO_CELCIUS(c)           ( 147.5f - ((75.0f * VREF * (float)c) / 4096.0f) )
-
 #define CELCIUS_TO_FAHRENHEIT(c)    ( (float)c * 1.8f + 32.0f )
 
 /*** Build/Config Options **************************************************/
@@ -185,7 +184,7 @@ typedef struct _SYSPARMS
     int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_max_torque;           	/* must be <= DAC_MAX */
     int32_t play_min_torque;
-    int32_t play_tension_gain;			/* play tension velocity gain factor   ) */
+    float   play_tension_gain;			/* play tension velocity gain factor   ) */
     int32_t play_hi_boost_start;
     int32_t play_hi_boost_end;
     int32_t play_lo_boost_start;
@@ -217,7 +216,7 @@ typedef struct _SERVODATA
 	int32_t		velocity;		    /* sum of both reel velocities   */
 	int32_t		velocity_supply;	/* supply tach count per sample  */
 	int32_t 	velocity_takeup;    /* takeup tach count per sample  */
-	uint32_t	tape_tach;			/* tape roller tachometer        */
+	float		tape_tach;			/* tape roller tachometer        */
 	float		radius_takeup;		/* takeup reel reeling radius    */
 	float		radius_supply;		/* supply reel reeling radius    */
 	int32_t		stop_torque_supply;	/* stop mode supply null         */
@@ -233,7 +232,7 @@ typedef struct _SERVODATA
     int32_t		play_boost_step;	/* decrement boost time step     */
     int32_t		play_boost_start;
     int32_t		play_boost_end;
-    int32_t		play_tension_gain;
+    float		play_tension_gain;
     int32_t 	play_supply_tension;
     int32_t 	play_takeup_tension;
 	uint32_t	qei_takeup_error_cnt;

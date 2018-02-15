@@ -136,8 +136,8 @@ typedef struct _MENU_ARGLIST {
 typedef struct _MENUITEM {
     int         row;            /* menu text row number               */
     int         col;            /* menu text col number               */
-    char*       optstr;         /* menu entry option text             */
-    char*       text;           /* menu item text string              */
+    char*       menuopt;        /* menu item select option text       */
+    char*       menutext;       /* menu item text string              */
     int         menutype;       /* menu item type (MI_xxx)            */
     union {                     /* parm1 - item count for MI_VALLIST  */
         uint32_t    U;          /*       - min value for MI_NRANGE    */
@@ -181,9 +181,14 @@ typedef struct _MENU {
 void Terminal_initialize(void);
 Void TerminalTask(UArg a0, UArg a1);
 
+void show_menu(void);
+void show_monitor_screen();
+void show_monitor_data();
+void show_home_menu(void);
+
 /* Menu Handler Function Prototypes */
 
-int set_idata(MENUITEM* item);
+int put_idata(MENUITEM* item);
 
 int mc_cmd_stop(MENUITEM *item);
 int mc_cmd_play(MENUITEM *item);

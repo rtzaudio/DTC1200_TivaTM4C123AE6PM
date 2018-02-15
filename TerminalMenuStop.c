@@ -52,22 +52,22 @@ static MENUITEM stop_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{  5, 2, "1", "Stop Brake Torque", MI_NUMERIC,
+{  5, 2, "1", "Dynamic Stop Brake Torque", MI_NUMERIC,
 		.param1.U = 300,
 		.param2.U = 900,
-		NULL, set_idata, DT_LONG, &g_sys.stop_brake_torque },
+		NULL, put_idata, DT_LONG, &g_sys.stop_brake_torque },
 
 {  7, 6, "", "STOP SETTINGS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{  9, 2,  "2", "Lifter Engaged at STOP", MI_BITFLAG,
+{  9, 2, "2", "Lifter Engaged at STOP   ", MI_BITFLAG,
 		.param1.U = SF_LIFTER_AT_STOP,
 		.param2.U = SF_LIFTER_AT_STOP,
         NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 10, 2, "3", "Brakes Engaged at STOP", MI_BITFLAG,
+{ 10, 2, "3", "Brakes Engaged at STOP   ", MI_BITFLAG,
 		.param1.U = SF_BRAKES_AT_STOP,
 		.param2.U = SF_BRAKES_AT_STOP,
         NULL, NULL, DT_LONG, &g_sys.sysflags },

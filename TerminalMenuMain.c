@@ -87,7 +87,7 @@ static MENUITEM main_items[] = {
 		.param2.U = 0,
 		NULL, mc_write_config, 0, 0 },
 
-{ 14, 2, "7", "Recall Previous Config", MI_EXEC,
+{ 14, 2, "7", "Recall Saved Config", MI_EXEC,
 		.param1.U = 0,
 		.param2.U = 0,
 		NULL, mc_read_config, 0, 0 },

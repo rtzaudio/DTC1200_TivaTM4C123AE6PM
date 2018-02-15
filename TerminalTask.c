@@ -84,7 +84,7 @@
 #define ES_MENU_SELECT      0       /* menu choice input selection state    */
 #define ES_DATA_INPUT       1       /* numeric input state (range checked)  */
 #define ES_STRING_INPUT     2       /* string input state (length checked)  */
-#define ES_BITBOOL_SELECT   3       /* select on/off bitflag option state   */
+#define ES_BITFLAG_SELECT   3       /* select on/off bitflag option state   */
 #define ES_BITLIST_SELECT   4       /* select value from a list of bitflags */
 #define ES_VALLIST_SELECT   5       /* select value from a discrete list    */
 
@@ -113,20 +113,17 @@ static MENU_ARGLIST* s_vallist = NULL;
 
 /* VT100 Terminal Attributes */
 
-static const char s_ul_on[]   = VT100_UL_ON;
-static const char s_ul_off[]  = VT100_UL_OFF;
-static const char s_inv_on[]  = VT100_INV_ON;
-static const char s_inv_off[] = VT100_INV_OFF;
-
-static const char* s_escstr = "<ESC> or 'X' to exit...";
-static const char* s_title  = "DTC-1200 Transport Controller v%u.%-2.2u";
+const char g_ul_on[]   = VT100_UL_ON;
+const char g_ul_off[]  = VT100_UL_OFF;
+const char g_inv_on[]  = VT100_INV_ON;
+const char g_inv_off[] = VT100_INV_OFF;
+const char g_escstr[]  = "<ESC> or 'X' to exit...";
+const char g_title[]   = "DTC-1200 Transport Controller v%u.%-2.2u";
 
 /*****************************************************************************
  * STATIC FUNCTION PROTOTYPES
  *****************************************************************************/
 
-static void show_home_menu(void);
-static void show_menu(void);
 static int do_menu_keystate(int key);
 static int do_hot_key(MENU *menu, int ch);
 static int is_valid_key(int ch, int fmt);
@@ -134,12 +131,11 @@ static int is_escape(int ch);
 static void change_menu(long n);
 static void do_backspace(void);
 static void do_bufkey(int ch);
-static void show_monitor_screen();
-static void show_monitor_data();
 
 static MENU* get_menu(void);
 static MENUITEM* search_menu_item(MENU* menu, char *optstr);
 static int prompt_menu_item(MENUITEM* item, int nextprev);
+static void prompt_edit_prefix(char* prompt, bool suffix);
 static long get_item_data(MENUITEM* item);
 static void set_item_data(MENUITEM* item, long data);
 static void set_item_text(MENUITEM* item, char *text);
@@ -183,9 +179,10 @@ static MENU* menu_tab[] = {
 
 Void TerminalTask(UArg a0, UArg a1)
 {
-    Terminal_initialize();
-
     int ch;
+
+    /* Initialize the RS-232 port for VT100 terminal emulation */
+    Terminal_initialize();
 
     /* Show the home menu screen initially. */
     show_home_menu();
@@ -304,7 +301,7 @@ void show_menu(void)
     /* Clear the screen and show title */
     tty_cls();
     tty_pos(1, 2);
-    tty_printf(s_title, FIRMWARE_VER, FIRMWARE_REV);
+    tty_printf(g_title, FIRMWARE_VER, FIRMWARE_REV);
 
     /* Show the tape speed if main menu */
 
@@ -319,7 +316,7 @@ void show_menu(void)
     {
         char buf[64];
         get_hex_str(buf, g_ui8SerialNumber, 16);
-        tty_pos(18, 2);
+        tty_pos(20, 2);
         tty_printf("Serial# %s", buf);
     }
 
@@ -327,9 +324,9 @@ void show_menu(void)
 
     tty_pos(2, 78 - strlen(menu->heading));
 
-    tty_printf(s_inv_on);
+    tty_printf(g_inv_on);
     tty_printf(menu->heading);
-    tty_printf(s_inv_off);
+    tty_printf(g_inv_off);
 
     /* Add the menu items text */
 
@@ -350,34 +347,33 @@ void show_menu(void)
                 data = get_item_data(item);
         }
 
-        int row    = item->row;
-        int col    = item->col;
         int type   = item->menutype;
         int param1 = item->param1.U;
 
-        tty_pos(row, col);
+        /* Set the starting cursor position */
+        tty_pos(item->row, item->col);
 
         switch (type)
         {
         case MI_TEXT:
             if (param1)
                 /* display with underline */
-                tty_printf("%s%s%s", s_ul_on, item->text, s_ul_off);
+                tty_printf("%s%s%s", g_ul_on, item->menutext, g_ul_off);
             else
                 /* display with normal */
-                tty_printf("%s", item->text);
+                tty_printf("%s", item->menutext);
             break;
 
         case MI_EXEC:
         case MI_HOTKEY:
             if (param1)
-                tty_printf("%s", item->text);
+                tty_printf("%s", item->menutext);
             else
-                tty_printf("%-2s) %s", item->optstr, item->text);
+                tty_printf("%2s) %s", item->menuopt, item->menutext);
             break;
 
         case MI_PROMPT:
-            if (!strlen(item->text))
+            if (!strlen(item->menutext))
             {
                 tty_printf("Option");
 
@@ -388,18 +384,18 @@ void show_menu(void)
                 tty_printf(": ");
             }
             else
-                tty_printf("%s", item->text);
+                tty_printf("%s", item->menutext);
             break;
 
         case MI_NMENU:
-            if (strlen(item->optstr))
-                tty_printf("%-2s) %s", item->optstr, item->text);
+            if (strlen(item->menuopt))
+                tty_printf("%2s) %s", item->menuopt, item->menutext);
             else
-                tty_printf("%s", item->text);
+                tty_printf("%s", item->menutext);
             break;
 
         case MI_BITFLAG:
-            tty_printf("%-2s) %s : ", item->optstr, item->text);
+            tty_printf("%2s) %s : ", item->menuopt, item->menutext);
             if (data & item->param1.U)
                 tty_printf("ON");
             else
@@ -410,32 +406,269 @@ void show_menu(void)
         	if (item->datatype == DT_FLOAT)
         	{
         		fval = (float)(*((float*) item->data));
-        		tty_printf("%-2s) %s : %.2f", item->optstr, item->text, fval);
+        		tty_printf("%2s) %s : %.2f", item->menuopt, item->menutext, fval);
         	}
         	else
         	{
-        		tty_printf("%-2s) %s : %u", item->optstr, item->text, data);
+        		tty_printf("%2s) %s : %u", item->menuopt, item->menutext, data);
         	}
             break;
 
         case MI_BITLIST:
-            tty_printf("%-2s) %s : ", item->optstr, item->text);
+            tty_printf("%2s) %s : ", item->menuopt, item->menutext);
             if ((pal = find_bitlist_item(item, data)) != NULL)
                 tty_printf(pal->text);
             break;
 
         case MI_VALLIST:
-            tty_printf("%-2s) %s : ", item->optstr, item->text);
+            tty_printf("%2s) %s : ", item->menuopt, item->menutext);
             if ((pal = find_vallist_item(item, data)) != NULL)
                 tty_printf(pal->text);
             break;
 
         case MI_STRING:
-            tty_printf("%-2s) %s : %s", item->optstr, item->text,
+            tty_printf("%2s) %s : %s", item->menuopt, item->menutext,
                     (char*)(item->data));
             break;
         }
     }
+}
+
+/*
+ * Helper to display edit mode prefix and prompt string
+ */
+
+void prompt_edit_prefix(char* prompt, bool suffix)
+{
+    tty_pos(PROMPT_ROW, PROMPT_COL);
+
+	tty_puts(g_inv_on);
+	tty_puts("EDIT:");
+	tty_puts(g_inv_off);
+
+	tty_putc(' ');
+	tty_puts(prompt);
+
+	if (suffix)
+		tty_puts(" : ");
+}
+
+/*
+ * Show the input prompt for a menu item
+ */
+
+int prompt_menu_item(MENUITEM* item, int nextprev)
+{
+    int n;
+    static char text[80];
+
+    /* clear the prompt help line */
+    if (!nextprev)
+    {
+        tty_pos(PROMPT_ROW - 2, PROMPT_COL);
+        tty_erase_line();
+    }
+
+    /* clear the input line */
+    tty_pos(PROMPT_ROW, PROMPT_COL);
+    tty_erase_line();
+
+    if (!strlen(item->menuopt))
+        return 0;
+
+    /* remove any trailing spaces before prompting */
+
+    memset(text, 0, sizeof(text));
+
+    strncpy(text, item->menutext, sizeof(text)-2);
+
+    if ((n = strlen(text)) > 0)
+    {
+        while (--n > 0)
+        {
+            if (text[n] == ' ')
+                text[n] = '\0';
+            else
+                break;
+        }
+    }
+
+    int type   = item->menutype;
+    int param1 = item->param1.U;
+    int param2 = item->param2.U;
+
+    if ((type == MI_BITFLAG) || (type == MI_BITLIST) || (type == MI_VALLIST))
+    {
+        if (!nextprev)
+        {
+            tty_pos(PROMPT_ROW - 2, PROMPT_COL);
+            tty_puts("<ENTER>=Accept, ");
+           	tty_puts((type == MI_BITFLAG) ? "<SPACE>=Toggle" : "<N>ext, <P>rev");
+            tty_puts(" or <ESC> to cancel");
+        }
+
+        //tty_pos(PROMPT_ROW, PROMPT_COL);
+        //tty_printf("[EDIT] %s : ", text);
+        prompt_edit_prefix(text, 1);
+    }
+
+    if (type == MI_BITLIST)
+    {
+        if (s_bitlist && (nextprev == NEXT))
+        {
+            /* move to next item */
+            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
+            MENU_ARGLIST* tail = head + param2;
+            ++s_bitlist;
+            if (s_bitlist >= tail)
+                s_bitlist = head; /* wrap to head */
+        }
+        else if (s_bitlist && (nextprev == PREV))
+        {
+            /* move to prev item */
+            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
+            MENU_ARGLIST* tail = head + param2 - 1;
+            --s_bitlist;
+            if (s_bitlist <= head)
+                s_bitlist = tail; /* wrap to tail */
+        }
+        else
+        {
+            /* find current bitflag option and display */
+            s_bitlist = find_bitlist_item(item, get_item_data(item));
+        }
+
+        tty_printf(g_inv_on);
+
+        if (s_bitlist)
+            tty_printf(s_bitlist->text);
+
+        tty_printf(g_inv_off);
+
+        /* enter toggle bitflag options state */
+        s_edit_state = ES_BITLIST_SELECT;
+    }
+    else if (type == MI_VALLIST)
+    {
+        if (s_vallist && (nextprev == NEXT))
+        {
+            /* move to next item */
+            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
+            MENU_ARGLIST* tail = head + param2;
+            ++s_vallist;
+            if (s_vallist >= tail)
+                s_vallist = head; /* wrap to head */
+        }
+        else if (s_vallist && (nextprev == PREV))
+        {
+            /* move to prev item */
+            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
+            MENU_ARGLIST* tail = head + param2 - 1;
+            --s_vallist;
+            if (s_vallist <= head)
+                s_vallist = tail; /* wrap to tail */
+        }
+        else
+        {
+            /* find current bitflag option and display */
+            s_vallist = find_vallist_item(item, get_item_data(item));
+        }
+
+        tty_printf(g_inv_on);
+
+        if (s_vallist)
+            tty_printf(s_vallist->text);
+
+        tty_printf(g_inv_off);
+
+        /* enter toggle value list options state */
+        s_edit_state = ES_VALLIST_SELECT;
+    }
+    else if (type == MI_BITFLAG)
+    {
+        /* initial state */
+        if (!nextprev)
+        {
+            /* initial state */
+            s_bitbool = get_item_data(item);
+        }
+        else
+        {
+            /* toggle the bool bit state */
+            if (s_bitbool & param1)
+                s_bitbool &= ~(param1);
+            else
+                s_bitbool |= param1;
+        }
+
+        tty_printf(g_inv_on);
+        tty_printf((s_bitbool & param1) ? "ON" : "OFF");
+        tty_printf(g_inv_off);
+
+        /* enter toggle bitflag options state */
+        s_edit_state = ES_BITFLAG_SELECT;
+    }
+    else if (type == MI_STRING)
+    {
+        //tty_pos(PROMPT_ROW, PROMPT_COL);
+        //tty_printf("[EDIT] %s : ", text);
+
+        prompt_edit_prefix(text, 1);
+
+        /* Set max num of chars allowed for this item */
+        s_max_chars = (int) param1;
+
+        /* enter data input mode */
+        s_edit_state = ES_STRING_INPUT;
+    }
+    else
+    {
+        //tty_printf("[EDIT] %s", text);
+
+    	prompt_edit_prefix(text, 0);
+
+        if (type == MI_NUMERIC)
+        {
+			if (item->datatype == DT_FLOAT)
+			{
+				float fparam1 = item->param1.F;
+				float fparam2 = item->param2.F;
+				/* prompt with range low-high values */
+				tty_printf(" (%.2f - %.2f): ", fparam1, fparam2);
+			}
+			else
+			{
+				/* prompt with range low-high values */
+				tty_printf(" (%u - %u): ", param1, param2);
+			}
+        }
+        else if (type == MI_VALLIST)
+        {
+            /* prompt with list of discrete values*/
+            int i;
+
+            long *values = (long*)item->arglist;
+
+            tty_printf(" (");
+
+            for (i = 0; i < param1; i++)
+                tty_printf("%u,", values[i]);
+
+            if (param1 > 1)
+                tty_putc('\b');
+
+            tty_printf("): ");
+        }
+        else
+        {
+            tty_printf(": ");
+        }
+
+        /* enter data input mode */
+        s_edit_state = ES_DATA_INPUT;
+    }
+
+    return 1;
 }
 
 /*
@@ -591,7 +824,7 @@ int do_menu_keystate(int key)
         }
         break;
 
-    case ES_BITBOOL_SELECT:
+    case ES_BITFLAG_SELECT:
         if (ch == ' ')
         {
             /* toggle and prompt next menu bitflag option */
@@ -762,13 +995,13 @@ int do_hot_key(MENU *menu, int ch)
         long i;
         MENUITEM* item = menu->items;
 
-        for (i = 0; i < menu->count; i++)
+        for (i=0; i < menu->count; i++)
         {
-            if (item->optstr)
+            if (item->menuopt)
             {
-                if (isalpha(*(item->optstr)))
+                if (isalpha(*(item->menuopt)))
                 {
-                    if (tolower(ch) == tolower(*(item->optstr)))
+                    if (tolower(ch) == tolower(*(item->menuopt)))
                     {
                         if ((item->menutype == MI_HOTKEY) && item->exec)
                         {
@@ -837,6 +1070,7 @@ int is_valid_key(int ch, int fmt)
 /* Test key code for valid escape keys. Currently we
  * accept <ESC> or 'X' to exit a menu or abort an operation.
  */
+
 int is_escape(int ch)
 {
 	if ((ch == KEY_ESC) || (ch == toupper('x')))
@@ -884,9 +1118,9 @@ MENUITEM* search_menu_item(MENU* menu, char *optstr)
 
     for (i = 0; i < count; i++, item++)
     {
-        if (strlen(item->optstr))
+        if (strlen(item->menuopt))
         {
-            if (strcmp(optstr, item->optstr) == 0)
+            if (strcmp(optstr, item->menuopt) == 0)
                 return item;
         }
     }
@@ -894,6 +1128,62 @@ MENUITEM* search_menu_item(MENU* menu, char *optstr)
     return NULL;
 }
 
+/* This function scans an array of menu bitflags for a match against 'value'
+ * and returns a pointer to the menu bitflag entry if found. The bitmask
+ * member is used to specify which bits are compared.
+ */
+
+MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value)
+{
+    int i;
+    long bitflag;
+
+    MENU_ARGLIST* pal = (MENU_ARGLIST*) item->arglist;
+
+    long mask  = item->param1.U;
+    long items = item->param2.U;
+
+    for (i = 0; i < items; i++)
+    {
+        bitflag = pal->value;
+
+        if (bitflag == (mask & value))
+            return pal;
+
+        ++pal;
+    }
+
+    return NULL;
+}
+
+/* This function scans an array of discrete menu arg list entries for a match
+ * against 'value' and returns a pointer to the menu arglist entry if found.
+ */
+
+MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value)
+{
+    int i;
+    long val;
+
+    MENU_ARGLIST *pal = (MENU_ARGLIST*) item->arglist;
+
+    long items = item->param2.U;
+
+    for (i = 0; i < items; i++)
+    {
+        val = pal->value;
+
+        if (value == val)
+            return pal;
+
+        ++pal;
+    }
+
+    return NULL;
+}
+
+/* Format hex string for GUID serial number display.
+ */
 
 int get_hex_str(char* ptext, uint8_t* pdata, int len)
 {
@@ -959,288 +1249,11 @@ void set_item_text(MENUITEM* item, char *text)
     strcpy((char*)(item->data), text);
 }
 
-/* This function scans an array of menu bitflags for a match against 'value'
- * and returns a pointer to the menu bitflag entry if found. The bitmask
- * member is used to specify which bits are compared.
- */
-
-MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value)
-{
-    int i;
-    long bitflag;
-
-    MENU_ARGLIST* pal = (MENU_ARGLIST*) item->arglist;
-
-    long mask  = item->param1.U;
-    long items = item->param2.U;
-
-    for (i = 0; i < items; i++)
-    {
-        bitflag = pal->value;
-
-        if (bitflag == (mask & value))
-            return pal;
-
-        ++pal;
-    }
-
-    return NULL;
-}
-
-/* This function scans an array of discrete menu arg list entries for a match
- * against 'value' and returns a pointer to the menu arglist entry if found.
- */
-
-MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value)
-{
-    int i;
-    long val;
-
-    MENU_ARGLIST *pal = (MENU_ARGLIST*) item->arglist;
-
-    long items = item->param2.U;
-
-    for (i = 0; i < items; i++)
-    {
-        val = pal->value;
-
-        if (value == val)
-            return pal;
-
-        ++pal;
-    }
-
-    return NULL;
-}
-
-/*
- * Show the input prompt for a menu item
- */
-
-int prompt_menu_item(MENUITEM* item, int nextprev)
-{
-    int n;
-    static char text[40];
-
-    /* clear the prompt help line */
-    if (!nextprev)
-    {
-        tty_pos(PROMPT_ROW - 2, PROMPT_COL);
-        tty_erase_line();
-    }
-
-    /* clear the input line */
-    tty_pos(PROMPT_ROW, PROMPT_COL);
-    tty_erase_line();
-
-    if (!strlen(item->optstr))
-        return 0;
-
-    /* remove any trailing spaces before prompting */
-
-    memset(text, 0, sizeof(text));
-
-    strncpy(text, item->text, sizeof(text)-2);
-
-    if ((n = strlen(text)) > 0)
-    {
-        while (--n > 0)
-        {
-            if (text[n] == ' ')
-                text[n] = '\0';
-            else
-                break;
-        }
-    }
-
-    int type   = item->menutype;
-    int param1 = item->param1.U;
-    int param2 = item->param2.U;
-
-    if ((type == MI_BITFLAG) || (type == MI_BITLIST) || (type == MI_VALLIST))
-    {
-        if (!nextprev)
-        {
-            tty_pos(PROMPT_ROW - 2, PROMPT_COL);
-            tty_puts("<ENTER> Accept, ");
-
-            if (type == MI_BITFLAG)
-            	tty_puts("<SPACE> Toggle");
-            else
-            	tty_puts("<N>ext, <P>rev");
-
-            tty_puts(" or <ESC> to cancel");
-        }
-
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-        tty_printf("Select %s : ", text);
-    }
-
-    if (type == MI_BITLIST)
-    {
-        if (s_bitlist && (nextprev == NEXT))
-        {
-            /* move to next item */
-            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
-            MENU_ARGLIST* tail = head + param2;
-            ++s_bitlist;
-            if (s_bitlist >= tail)
-                s_bitlist = head; /* wrap to head */
-        }
-        else if (s_bitlist && (nextprev == PREV))
-        {
-            /* move to prev item */
-            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
-            MENU_ARGLIST* tail = head + param2 - 1;
-            --s_bitlist;
-            if (s_bitlist <= head)
-                s_bitlist = tail; /* wrap to tail */
-        }
-        else
-        {
-            /* find current bitflag option and display */
-            s_bitlist = find_bitlist_item(item, get_item_data(item));
-        }
-
-        tty_printf(s_inv_on);
-
-        if (s_bitlist)
-            tty_printf(s_bitlist->text);
-
-        tty_printf(s_inv_off);
-
-        /* enter toggle bitflag options state */
-        s_edit_state = ES_BITLIST_SELECT;
-    }
-    else if (type == MI_VALLIST)
-    {
-        if (s_vallist && (nextprev == NEXT))
-        {
-            /* move to next item */
-            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
-            MENU_ARGLIST* tail = head + param2;
-            ++s_vallist;
-            if (s_vallist >= tail)
-                s_vallist = head; /* wrap to head */
-        }
-        else if (s_vallist && (nextprev == PREV))
-        {
-            /* move to prev item */
-            MENU_ARGLIST* head = (MENU_ARGLIST*) item->arglist;
-            MENU_ARGLIST* tail = head + param2 - 1;
-            --s_vallist;
-            if (s_vallist <= head)
-                s_vallist = tail; /* wrap to tail */
-        }
-        else
-        {
-            /* find current bitflag option and display */
-            s_vallist = find_vallist_item(item, get_item_data(item));
-        }
-
-        tty_printf(s_inv_on);
-
-        if (s_vallist)
-            tty_printf(s_vallist->text);
-
-        tty_printf(s_inv_off);
-
-        /* enter toggle value list options state */
-        s_edit_state = ES_VALLIST_SELECT;
-    }
-    else if (type == MI_BITFLAG)
-    {
-        /* initial state */
-        if (!nextprev)
-        {
-            /* initial state */
-            s_bitbool = get_item_data(item);
-        }
-        else
-        {
-            /* toggle the bool bit state */
-            if (s_bitbool & param1)
-                s_bitbool &= ~(param1);
-            else
-                s_bitbool |= param1;
-        }
-
-        tty_printf(s_inv_on);
-        tty_printf((s_bitbool & param1) ? "ON" : "OFF");
-        tty_printf(s_inv_off);
-
-        /* enter toggle bitflag options state */
-        s_edit_state = ES_BITBOOL_SELECT;
-    }
-    else if (type == MI_STRING)
-    {
-        tty_pos(PROMPT_ROW, PROMPT_COL);
-
-        tty_printf("Enter %s : ", text);
-
-        /* Set max num of chars allowed for this item */
-        s_max_chars = (int) param1;
-
-        /* enter data input mode */
-        s_edit_state = ES_STRING_INPUT;
-    }
-    else
-    {
-        tty_printf("Enter %s", text);
-
-        if (type == MI_NUMERIC)
-        {
-			if (item->datatype == DT_FLOAT)
-			{
-				float fparam1 = item->param1.F;
-				float fparam2 = item->param2.F;
-				/* prompt with range low-high values */
-				tty_printf(" (%.2f - %.2f): ", fparam1, fparam2);
-			}
-			else
-			{
-				/* prompt with range low-high values */
-				tty_printf(" (%u - %u): ", param1, param2);
-			}
-        }
-        else if (type == MI_VALLIST)
-        {
-            /* prompt with list of discrete values*/
-            int i;
-
-            long *values = (long*)item->arglist;
-
-            tty_printf(" (");
-
-            for (i = 0; i < param1; i++)
-                tty_printf("%u,", values[i]);
-
-            if (param1 > 1)
-                tty_putc('\b');
-
-            tty_printf("): ");
-        }
-        else
-        {
-            tty_printf(": ");
-        }
-
-        /* enter data input mode */
-        s_edit_state = ES_DATA_INPUT;
-    }
-
-    return 1;
-}
-
-/*****************************************************************************
- * GLOBAL MENU EXECUTE HANDLER FUNCTIONS
- *****************************************************************************/
-
-/* Default handler that converts input buffer string into a int or float
+/* Default menu handler that converts input buffer string into a int or float
  * value and stores the data at the data pointer set in the menu table.
  */
 
-int set_idata(MENUITEM* item)
+int put_idata(MENUITEM* item)
 {
     int rc = 0;
         
@@ -1282,297 +1295,6 @@ int set_idata(MENUITEM* item)
     }
 
     return rc;
-}
-
-/*
- * DIRECT EXECUTE MENU HANDLERS
- */
-
-int mc_monitor_mode(MENUITEM *item)
-{
-    g_sys.debug = 1;
-    show_monitor_screen();
-    return 1;
-}
-
-int mc_cmd_stop(MENUITEM *item)
-{
-    (void)item;
-    unsigned char bits = S_STOP;
-    Mailbox_post(g_mailboxCommander, &bits, 10);
-    return 1;
-}
-
-int mc_cmd_play(MENUITEM *item)
-{
-    (void)item;
-    unsigned char bits = S_PLAY;
-    Mailbox_post(g_mailboxCommander, &bits, 10);
-    return 1;
-}
-
-int mc_cmd_fwd(MENUITEM *item)
-{
-    (void)item;
-    unsigned char bits = S_FWD;
-    Mailbox_post(g_mailboxCommander, &bits, 10);
-    return 1;
-}
-
-int mc_cmd_rew(MENUITEM *item)
-{
-    (void)item;
-    unsigned char bits = S_REW;
-    Mailbox_post(g_mailboxCommander, &bits, 10);
-    return 1;
-}
-
-int mc_write_config(MENUITEM *item)
-{
-	int ch;
-	int rc;
-    (void) item;
-
-    tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
-
-    tty_pos(PROMPT_ROW, PROMPT_COL);
-    tty_puts("Save Config? (Y/N)");
-
-    /* Wait for a keystroke */
-    while (tty_getc(&ch) < 1);
-
-    if (toupper(ch) == 'Y')
-    {
-		tty_pos(PROMPT_ROW, PROMPT_COL);
-
-		if ((rc = SysParamsWrite(&g_sys)) != 0)
-			tty_printf("ERROR %d : Writing Config Parameters...", rc);
-		else
-			tty_puts("Config parameters saved...");
-
-		Task_sleep(1000);
-    }
-
-    show_menu();
-
-    return 1;
-}
-
-int mc_read_config(MENUITEM *item)
-{
-    int ch;
-	int rc;
-    (void) item;
-
-    tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
-
-    tty_pos(PROMPT_ROW, PROMPT_COL);
-    tty_puts("Recall Config? (Y/N)");
-
-    /* Wait for a keystroke */
-    while (tty_getc(&ch) < 1);
-
-    if (toupper(ch) == 'Y')
-    {
-		/* Read the system config parameters from storage */
-		if ((rc = SysParamsRead(&g_sys)) != 0)
-		{
-			tty_pos(PROMPT_ROW, PROMPT_COL);
-			tty_printf("ERROR %d : Reading Config Parameters...", rc);
-		}
-		else
-		{
-			tty_pos(PROMPT_ROW, PROMPT_COL);
-			tty_puts("Config parameters loaded...");
-		}
-
-		Task_sleep(1000);
-    }
-
-    show_menu();
-
-    return 1;
-}
-
-int mc_default_config(MENUITEM *item)
-{
-	int ch;
-
-    tty_aputs(PROMPT_ROW, PROMPT_COL, "\t\t\t");
-
-    tty_pos(PROMPT_ROW, PROMPT_COL);
-    tty_puts("Reset to Defaults? (Y/N)");
-
-    /* Wait for a keystroke */
-    while (tty_getc(&ch) < 1);
-
-    if (toupper(ch) == 'Y')
-    {
-		// Initialize the default servo and program data values
-		memset(&g_sys, 0, sizeof(SYSPARMS));
-		InitSysDefaults(&g_sys);
-
-		tty_pos(PROMPT_ROW, PROMPT_COL);
-		tty_puts("All parameters reset to defaults...");
-
-		Task_sleep(1000);
-    }
-
-    show_menu();
-
-    return 1;
-}
-
-/*****************************************************************************
- * The following functions are for debug monitor support.
- *****************************************************************************/
-
-void show_monitor_screen()
-{
-    /* Clear the screen and draw title */
-    tty_cls();
-
-    /* Show the menu title */
-    tty_pos(1, 2);
-    tty_printf(s_title, FIRMWARE_VER, FIRMWARE_REV);
-
-    if (g_sys.debug == 1)
-    {
-        tty_pos(2, 64);
-        tty_printf("%sMONITOR%s", s_inv_on, s_inv_off);
-
-        tty_pos(3, 2);
-        tty_printf("%sSUPPLY%s", s_ul_on, s_ul_off);
-        tty_pos(4, 2);
-        tty_puts("DAC Level");
-        tty_pos(5, 2);
-        tty_puts("Velocity");
-        tty_pos(6, 2);
-        tty_puts("Errors");
-        tty_pos(7, 2);
-        tty_puts("Stop Torque");
-        tty_pos(8, 2);
-        tty_puts("Offset");
-        tty_pos(9, 2);
-        tty_puts("Radius");
-
-        tty_pos(3, 35);
-        tty_printf("%sTAKEUP%s", s_ul_on, s_ul_off);
-        tty_pos(4, 35);
-        tty_puts("DAC Level");
-        tty_pos(5, 35);
-        tty_puts("Velocity");
-        tty_pos(6, 35);
-        tty_puts("Errors");
-        tty_pos(7, 35);
-        tty_puts("Stop Torque");
-        tty_pos(8, 35);
-        tty_puts("Offset");
-        tty_pos(9, 35);
-        tty_puts("Radius");
-
-        tty_pos(11, 2);
-        tty_printf("%sPID SERVO%s", s_ul_on, s_ul_off);
-        tty_pos(12, 2);
-        tty_puts("PID CV");
-        tty_pos(13, 2);
-        tty_puts("PID Error");
-        tty_pos(14, 2);
-        tty_puts("PID Debug");
-        tty_pos(15, 2);
-        tty_puts("Velocity");
-
-        tty_pos(17, 2);
-        tty_printf("%sTAPE%s", s_ul_on, s_ul_off);
-        tty_pos(18, 2);
-        tty_printf("Tape Tach");
-        tty_pos(19, 2);
-        tty_printf("Offset Null");
-        tty_pos(20, 2);
-        tty_printf("Tension Arm");
-
-        tty_pos(12, 35);
-        tty_puts("CPU Temp F");
-
-        tty_pos(23, 2);
-        tty_puts(s_escstr);
-    }
-    else
-    {
-        tty_printf("\r\n\n%s\r\n", s_escstr);
-    }
-}
-
-static char get_dir_char(void)
-{
-    char ch;
-
-    if (g_servo.direction == TAPE_DIR_REW) /* rev */
-        ch = '<';
-    else if (g_servo.direction == TAPE_DIR_FWD) /* fwd */
-        ch = '>';
-    else
-        ch = '*';
-
-    return ch;
-}
-
-void show_monitor_data()
-{
-    if (g_sys.debug == 1)
-    {
-        tty_pos(4, 25);
-        tty_putc((int)get_dir_char());
-
-        /* SUPPLY */
-        tty_pos(4, 15);
-        tty_printf(": %-4d", g_servo.dac_supply);
-        tty_pos(5, 15);
-        tty_printf(": %-8d", g_servo.velocity_supply);
-        tty_pos(6, 15);
-        tty_printf(": %-8u", g_servo.qei_supply_error_cnt);
-        tty_pos(7, 15);
-        tty_printf(": %-8d", g_servo.stop_torque_supply);
-        tty_pos(8, 15);
-        tty_printf(": %-8d", g_servo.offset_supply);
-        tty_pos(9, 15);
-        tty_printf(": %-8.2f", g_servo.radius_supply);
-
-        /* TAKEUP */
-        tty_pos(4, 49);
-        tty_printf(": %-4d", g_servo.dac_takeup);
-        tty_pos(5, 49);
-        tty_printf(": %-8d", g_servo.velocity_takeup);
-        tty_pos(6, 49);
-        tty_printf(": %-8u", g_servo.qei_takeup_error_cnt);
-        tty_pos(7, 49);
-        tty_printf(": %-8d", g_servo.stop_torque_takeup);
-        tty_pos(8, 49);
-        tty_printf(": %-8d", g_servo.offset_takeup);
-        tty_pos(9, 49);
-        tty_printf(": %-8.2f", g_servo.radius_takeup);
-
-        /* PID SERVO */
-        tty_pos(12, 15);
-        tty_printf(": %-12d", g_servo.db_cv);
-        tty_pos(13, 15);
-        tty_printf(": %-12d", g_servo.db_error);
-        tty_pos(14, 15);
-        tty_printf(": %-12d", g_servo.db_debug);
-        tty_pos(15, 15);
-        tty_printf(": %-12d", g_servo.velocity);
-
-        /* TAPE */
-        tty_pos(18, 15);
-        tty_printf(": %-12d", g_servo.tape_tach);
-        tty_pos(19, 15);
-        tty_printf(": %-4d", g_servo.offset_null);
-        tty_pos(20, 15);
-        tty_printf(": %-8.1f", g_servo.tsense);
-
-        tty_pos(12, 49);
-        tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(g_servo.cpu_temp));
-    }
 }
 
 /* End-Of-File */

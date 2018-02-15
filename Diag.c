@@ -202,7 +202,7 @@ int diag_dacadjust(MENUITEM* mp)
 	int ch;
 
     tty_cls();
-    tty_printf(s_startstr, mp->text);
+    tty_printf(s_startstr, mp->menutext);
 
     if (!check_halt())
     {
@@ -248,7 +248,7 @@ int diag_dacramp(MENUITEM* mp)
 	long dac = DAC_MIN;
 
     tty_cls();
-    tty_printf(s_startstr, mp->text);
+    tty_printf(s_startstr, mp->menutext);
 
     if (check_halt())
     {
@@ -317,7 +317,7 @@ int diag_transport(MENUITEM* mp)
     int loop = 1;
 
     tty_cls();
-    tty_printf(s_startstr, mp->text);
+    tty_printf(s_startstr, mp->menutext);
 
     if (check_halt())
     {
@@ -367,7 +367,7 @@ int diag_pinch_roller(MENUITEM* mp)
 	int ch;
 
     tty_cls();
-    tty_printf(s_startstr, mp->text);
+    tty_printf(s_startstr, mp->menutext);
 
     if (check_halt())
     {
@@ -403,7 +403,7 @@ int diag_lamp(MENUITEM* mp)
     unsigned char save_mask;
     
     tty_cls();
-    tty_printf(s_startstr, mp->text);
+    tty_printf(s_startstr, mp->menutext);
 
     save_mask = g_lamp_mask;
     

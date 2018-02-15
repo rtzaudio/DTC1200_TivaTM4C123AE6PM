@@ -259,7 +259,7 @@ Void MainControlTask(UArg a0, UArg a1)
     /* Initialize servo loop controller data */
     g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;
-    g_servo.offset_null_sum   = 0;
+    g_servo.offset_null_sum   = 0.0f;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
 	g_servo.play_tension_gain = g_sys.play_tension_gain;
@@ -535,7 +535,7 @@ Void MainControlTask(UArg a0, UArg a1)
     /* Initialize servo loop controller data */
     g_servo.mode              = MODE_HALT;
     g_servo.offset_sample_cnt = 0;
-    g_servo.offset_null_sum   = 0;
+    g_servo.offset_null_sum   = 0.0f;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
 	g_servo.play_tension_gain = g_sys.play_tension_gain;

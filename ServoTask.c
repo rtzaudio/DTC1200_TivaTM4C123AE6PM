@@ -90,7 +90,7 @@
 /* Calculate the tension value from the ADC reading */
 #define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
 
-#define OFFSET_SCALE        	500
+#define OFFSET_SCALE_F        	500.0f
 #define OFFSET_CALC_PERIOD  	500
 
 /* External Global Data */
@@ -198,8 +198,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.tape_tach = TapeTach_read();
 
         /* Read the takeup and supply reel motor velocity values */
-        g_servo.velocity_supply = (int32_t)QEIVelocityGet(QEI_BASE_SUPPLY);
-        g_servo.velocity_takeup = (int32_t)QEIVelocityGet(QEI_BASE_TAKEUP);
+        g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
+        g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
 
         /* Calculate the current total reel velocity. */
         g_servo.velocity = g_servo.velocity_supply + g_servo.velocity_takeup;
@@ -216,6 +216,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
         if ((sdir == tdir) && (g_servo.velocity > g_sys.vel_detect_threshold))
             g_servo.direction = sdir;
+        else
+        	g_servo.direction = 0;
 
         /* Read all ADC values which includes the tape tension sensor
          * Step[0] ADC2 - Tension Sensor Arm
@@ -230,7 +232,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.cpu_temp = ADC_TO_CELCIUS(g_servo.adc[4]);
 
         /* calculate the tension sensor value */
-        g_servo.tsense = (float)TENSION(g_servo.adc[0]) * g_sys.tension_sensor_gain;
+        g_servo.tsense = (float)(TENSION(g_servo.adc[0])) * g_sys.tension_sensor_gain;
 
         /***********************************************************
          * BEGIN CALCULATIONS FROM DATA SAMPLE
@@ -244,28 +246,28 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        long veldetect = (g_high_speed_flag) ? 10 : 5;	// must not be zero!
+        float veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;	// must not be zero!
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
-            long delta;
+            float delta;
 
             /* Calculate the current reeling radius as tape speed
              * divided by the reel speed.
              */
-            g_servo.radius_takeup = g_servo.tape_tach / ((float)g_servo.velocity_takeup);
-            g_servo.radius_supply = g_servo.tape_tach / ((float)g_servo.velocity_supply);
+            g_servo.radius_takeup = g_servo.tape_tach / g_servo.velocity_takeup;
+            g_servo.radius_supply = g_servo.tape_tach / g_servo.velocity_supply;
 
             /* Calculate the difference in velocity of the two reels */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
-                delta = ((g_servo.velocity_takeup * OFFSET_SCALE) / g_servo.velocity_supply) - OFFSET_SCALE;
+                delta = ((g_servo.velocity_takeup * OFFSET_SCALE_F) / g_servo.velocity_supply) - OFFSET_SCALE_F;
             else if (g_servo.velocity_supply > g_servo.velocity_takeup)
-                delta = ((g_servo.velocity_supply * OFFSET_SCALE) / g_servo.velocity_takeup) - OFFSET_SCALE;
+                delta = ((g_servo.velocity_supply * OFFSET_SCALE_F) / g_servo.velocity_takeup) - OFFSET_SCALE_F;
             else
-                delta = 0;
+                delta = 0.0f;
 
-            if (delta < 0)
-                delta = 0;
+            if (delta < 0.0f)
+                delta = 0.0f;
 
             /* Accumulate the null offset value for averaging */
             g_servo.offset_null_sum += delta;
@@ -274,13 +276,13 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
             if (g_servo.offset_sample_cnt >= OFFSET_CALC_PERIOD)
             {
-            	float offset = (float)g_servo.offset_null_sum / (float)OFFSET_CALC_PERIOD;
+            	float offset = g_servo.offset_null_sum / (float)OFFSET_CALC_PERIOD;
 
                 /* Calculate the averaged null offset value */
-                g_servo.offset_null = (int32_t)(offset * g_sys.reel_radius_gain);
+                g_servo.offset_null = offset * g_sys.reel_radius_gain;
 
                 /* Reset the accumulator and sample counter */
-                g_servo.offset_null_sum   = 0;
+                g_servo.offset_null_sum   = 0.0f;
                 g_servo.offset_sample_cnt = 0;
             }
         }
@@ -294,12 +296,12 @@ Void ServoLoopTask(UArg a0, UArg a1)
         if (g_sys.reel_radius_gain <= 0.0f)
         {
             /* for debugging & aligning system */
-            g_servo.offset_supply = 0;
-            g_servo.offset_takeup = 0;
+            g_servo.offset_supply = 0.0f;
+            g_servo.offset_takeup = 0.0f;
         }
         else if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
-            long offset;
+            float offset;
 
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
             {
@@ -324,8 +326,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
             else
             {
                 /* reels at same velocity! */
-                g_servo.offset_supply = 0;
-                g_servo.offset_takeup = 0;
+                g_servo.offset_supply = 0.0f;
+                g_servo.offset_takeup = 0.0f;
                 g_servo.offset_null   = offset;
             }
         }
@@ -367,9 +369,9 @@ static void SvcServoHalt(void)
 
 static void SvcServoStop(void)
 {
-    int32_t dac_t;
-    int32_t dac_s;
-    int32_t braketorque = 0;
+    float dac_s;
+    float dac_t;
+    float braketorque = 0.0f;
 
     /*** Calculate the dynamic braking torque from velocity ***/
 
@@ -379,7 +381,7 @@ static void SvcServoStop(void)
 	if (g_servo.stop_brake_state)
 	{
 		/* Has velocity reached zero yet? */
-	    if (g_servo.velocity <= g_sys.vel_detect_threshold)
+	    if (g_servo.velocity <= (float)g_sys.vel_detect_threshold)
 	    {
 	    	/* Disable dynamic brake state */
 	        g_servo.stop_brake_state = 0;
@@ -389,16 +391,16 @@ static void SvcServoStop(void)
     		/* Calculate dynamic braking torque from current velocity */
 
 	    	if (g_servo.stop_brake_state > 1)
-	    		braketorque = (g_servo.velocity * 10);
+	    		braketorque = (g_servo.velocity * 10.0f);
 	    	else
-	    		braketorque = (g_sys.stop_brake_torque - g_servo.velocity);
+	    		braketorque = ((float)g_sys.stop_brake_torque - g_servo.velocity);
 
 	        /* Check for brake torque limit overflow */
-	        if (braketorque < 0)
-	        	braketorque = g_sys.stop_brake_torque;
+	        if (braketorque < 0.0f)
+	        	braketorque = (float)g_sys.stop_brake_torque;
 
-	        if (braketorque > g_sys.stop_brake_torque)
-	        	braketorque = g_sys.stop_brake_torque;
+	        if (braketorque > (float)g_sys.stop_brake_torque)
+	        	braketorque = (float)g_sys.stop_brake_torque;
 	    }
 	}
 
@@ -415,28 +417,28 @@ static void SvcServoStop(void)
     if (g_servo.direction == TAPE_DIR_FWD)
     {
         /* FORWARD DIR MOTION - increase supply torque */
-        dac_s = ((g_sys.stop_supply_tension + (int32_t)g_servo.tsense) + braketorque) + g_servo.offset_supply;
+        dac_s = ((((float)g_sys.stop_supply_tension + g_servo.tsense) + braketorque) + g_servo.offset_supply);
         /* decrease takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + (int32_t)g_servo.tsense) - braketorque) + g_servo.offset_takeup;
+        dac_t = ((((float)g_sys.stop_takeup_tension + g_servo.tsense) - braketorque) + g_servo.offset_takeup);
     }
     else if (g_servo.direction == TAPE_DIR_REW)
     {
         /* REWIND DIR MOTION - decrease supply torque */
-        dac_s = ((g_sys.stop_supply_tension + (int32_t)g_servo.tsense) - braketorque) + g_servo.offset_supply;
+        dac_s = ((((float)g_sys.stop_supply_tension + g_servo.tsense) - braketorque) + g_servo.offset_supply);
         /* increase takeup torque */
-        dac_t = ((g_sys.stop_takeup_tension + (int32_t)g_servo.tsense) + braketorque) + g_servo.offset_takeup;
+        dac_t = ((((float)g_sys.stop_takeup_tension + g_servo.tsense) + braketorque) + g_servo.offset_takeup);
     }
     else
     {
     	/* error, no motion? */
-        dac_s = (g_sys.stop_supply_tension + (int32_t)g_servo.tsense) + g_servo.offset_supply;
-        dac_t = (g_sys.stop_takeup_tension + (int32_t)g_servo.tsense) + g_servo.offset_takeup;
+        dac_s = (((float)g_sys.stop_supply_tension + g_servo.tsense) + g_servo.offset_supply);
+        dac_t = (((float)g_sys.stop_takeup_tension + g_servo.tsense) + g_servo.offset_takeup);
     }
 
     /* Safety Clamps */
 
-    DAC_CLAMP(dac_s, g_sys.stop_min_torque, g_sys.stop_max_torque);
-    DAC_CLAMP(dac_t, g_sys.stop_min_torque, g_sys.stop_max_torque);
+    DAC_CLAMP(dac_s, (float)g_sys.stop_min_torque, (float)g_sys.stop_max_torque);
+    DAC_CLAMP(dac_t, (float)g_sys.stop_min_torque, (float)g_sys.stop_max_torque);
 
     /* Set the DAC levels to the servos */
 
@@ -453,12 +455,12 @@ static void SvcServoStop(void)
 
 static void SvcServoPlay(void)
 {
-    uint32_t dac_s;
-    uint32_t dac_t;
+    int32_t dac_s;
+    int32_t dac_t;
 
     /* Calculate the "reeling radius" for each reel */
-    float rad_t = RADIUS(g_servo.tape_tach, (float)g_servo.velocity_takeup);
-    float rad_s = RADIUS(g_servo.tape_tach, (float)g_servo.velocity_supply);
+    float rad_t = RADIUS(g_servo.tape_tach, g_servo.velocity_takeup);
+    float rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
 
     /* Play acceleration boost state? */
     
@@ -468,9 +470,9 @@ static void SvcServoPlay(void)
     {
         g_servo.play_boost_count += 1;
 
-        dac_t = (uint32_t)((g_servo.play_boost_start << 1) / ((g_servo.velocity_takeup / 8) + 1));
+        dac_t = (int32_t)((g_servo.play_boost_start << 1) / (((int32_t)g_servo.velocity_takeup / 8) + 1));
 
-        dac_s = (uint32_t)((g_servo.play_supply_tension + g_servo.offset_supply) + (TENSION(g_servo.adc[0]) >> 1));
+        dac_s = (int32_t)((g_servo.play_supply_tension + (int32_t)g_servo.offset_supply) + (TENSION(g_servo.adc[0]) >> 1));
 
         /* Boost status LED on */
         g_lamp_mask |= L_STAT3;
@@ -502,10 +504,10 @@ static void SvcServoPlay(void)
     else
     {
         /* Calculate the SUPPLY Torque & Safety clamp */
-        dac_s = (uint32_t)((((float)g_servo.play_supply_tension * rad_s) * g_servo.play_tension_gain) + g_servo.tsense);
+        dac_s = (int32_t)((((float)g_servo.play_supply_tension * rad_s) * g_servo.play_tension_gain) + g_servo.tsense);
 
         /* Calculate the TAKEUP Torque & Safety clamp */
-        dac_t = (uint32_t)((((float)g_servo.play_takeup_tension * rad_t) * g_servo.play_tension_gain) + (float)g_servo.play_takeup_tension);
+        dac_t = (int32_t)((((float)g_servo.play_takeup_tension * rad_t) * g_servo.play_tension_gain) + (float)g_servo.play_takeup_tension);
     }
 
     Semaphore_post(g_semaServo);
@@ -537,7 +539,7 @@ static void SvcServoPlay(void)
 
     /* Set the servo DAC levels */
 
-    MotorDAC_write(dac_s, dac_t);
+    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
 }
 
 //*****************************************************************************
@@ -587,7 +589,7 @@ static void SvcServoFwd(void)
 
     /* DECREASE SUPPLY Torque & Safety clamp */
 
-    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) - cv) + g_servo.offset_supply;
+    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) - cv) + (int32_t)g_servo.offset_supply;
 
     DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 
@@ -623,7 +625,7 @@ static void SvcServoRew(void)
 
     if (g_sys.shuttle_slow_velocity > 0)
     {
-        if (g_servo.offset_supply >= g_sys.shuttle_slow_offset)
+        if (g_servo.offset_supply >= (float)g_sys.shuttle_slow_offset)
         {
             if (g_servo.velocity >= g_sys.shuttle_slow_velocity)
                 target_velocity = g_sys.shuttle_slow_velocity;
@@ -649,7 +651,7 @@ static void SvcServoRew(void)
 
     /* INCREASE SUPPLY Torque & Safety clamp */
 
-    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) + cv) + g_servo.offset_supply;
+    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) + cv) + (int32_t)g_servo.offset_supply;
 
     DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
 

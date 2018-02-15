@@ -270,16 +270,16 @@ void show_monitor_screen()
     }
 }
 
-static char get_dir_char(void)
+static int get_dir_char(void)
 {
-    char ch;
+    int ch;
 
     if (g_servo.direction == TAPE_DIR_REW) /* rev */
         ch = '<';
     else if (g_servo.direction == TAPE_DIR_FWD) /* fwd */
         ch = '>';
     else
-        ch = '*';
+        ch = ' ';
 
     return ch;
 }
@@ -288,56 +288,58 @@ void show_monitor_data()
 {
     if (g_sys.debug == 1)
     {
-        tty_pos(4, 25);
-        tty_putc((int)get_dir_char());
+    	int ch = get_dir_char();
+        tty_pos(4, 27);
+        tty_putc(ch);
+        tty_putc(ch);
 
         /* SUPPLY */
-        tty_pos(4, 15);
+        tty_pos(4, 14);
         tty_printf(": %-4d", g_servo.dac_supply);
-        tty_pos(5, 15);
-        tty_printf(": %-8d", g_servo.velocity_supply);
-        tty_pos(6, 15);
+        tty_pos(5, 14);
+        tty_printf(": %-8.2f", g_servo.velocity_supply);
+        tty_pos(6, 14);
         tty_printf(": %-8u", g_servo.qei_supply_error_cnt);
-        tty_pos(7, 15);
-        tty_printf(": %-8d", g_servo.stop_torque_supply);
-        tty_pos(8, 15);
-        tty_printf(": %-8d", g_servo.offset_supply);
-        tty_pos(9, 15);
+        tty_pos(7, 14);
+        tty_printf(": %-8.2f", g_servo.stop_torque_supply);
+        tty_pos(8, 14);
+        tty_printf(": %-8.2f", g_servo.offset_supply);
+        tty_pos(9, 14);
         tty_printf(": %-8.2f", g_servo.radius_supply);
 
         /* TAKEUP */
-        tty_pos(4, 49);
+        tty_pos(4, 47);
         tty_printf(": %-4d", g_servo.dac_takeup);
-        tty_pos(5, 49);
-        tty_printf(": %-8d", g_servo.velocity_takeup);
-        tty_pos(6, 49);
+        tty_pos(5, 47);
+        tty_printf(": %-8.2f", g_servo.velocity_takeup);
+        tty_pos(6, 47);
         tty_printf(": %-8u", g_servo.qei_takeup_error_cnt);
-        tty_pos(7, 49);
-        tty_printf(": %-8d", g_servo.stop_torque_takeup);
-        tty_pos(8, 49);
-        tty_printf(": %-8d", g_servo.offset_takeup);
-        tty_pos(9, 49);
+        tty_pos(7, 47);
+        tty_printf(": %-8.2f", g_servo.stop_torque_takeup);
+        tty_pos(8, 47);
+        tty_printf(": %-8.2f", g_servo.offset_takeup);
+        tty_pos(9, 47);
         tty_printf(": %-8.2f", g_servo.radius_takeup);
 
         /* PID SERVO */
-        tty_pos(12, 15);
+        tty_pos(12, 14);
         tty_printf(": %-12d", g_servo.db_cv);
-        tty_pos(13, 15);
+        tty_pos(13, 14);
         tty_printf(": %-12d", g_servo.db_error);
-        tty_pos(14, 15);
+        tty_pos(14, 14);
         tty_printf(": %-12d", g_servo.db_debug);
-        tty_pos(15, 15);
-        tty_printf(": %-12d", g_servo.velocity);
+        tty_pos(15, 14);
+        tty_printf(": %-12.2f", g_servo.velocity);
 
         /* TAPE */
-        tty_pos(18, 15);
-        tty_printf(": %-8.2f", g_servo.tape_tach);
-        tty_pos(19, 15);
-        tty_printf(": %-4d", g_servo.offset_null);
-        tty_pos(20, 15);
-        tty_printf(": %-8.1f", g_servo.tsense);
+        tty_pos(18, 14);
+        tty_printf(": %-12.2f", g_servo.tape_tach);
+        tty_pos(19, 14);
+        tty_printf(": %-8.2f", g_servo.offset_null);
+        tty_pos(20, 14);
+        tty_printf(": %-8.2f", g_servo.tsense);
 
-        tty_pos(12, 49);
+        tty_pos(12, 47);
         tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(g_servo.cpu_temp));
     }
 }

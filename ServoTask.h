@@ -59,6 +59,7 @@
 
 #define TAPE_DIR_FWD		(-1)			/* play, fwd direction */
 #define TAPE_DIR_REW		(1)				/* rewind direction    */
+#define TAPE_DIR_STOP		(0)
 
 /*** Function Prototypes ***************************************************/
 

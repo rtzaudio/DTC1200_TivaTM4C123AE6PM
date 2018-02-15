@@ -213,20 +213,20 @@ typedef struct _SERVODATA
 	uint32_t	mode_prev;			/* previous servo mode           */
 	int32_t		motion;				/* servo motion flag             */
 	int32_t 	direction;			/* 1 = fwd or -1 = reverse       */
-	int32_t		velocity;		    /* sum of both reel velocities   */
-	int32_t		velocity_supply;	/* supply tach count per sample  */
-	int32_t 	velocity_takeup;    /* takeup tach count per sample  */
+	float		velocity;		    /* sum of both reel velocities   */
+	float		velocity_supply;	/* supply tach count per sample  */
+	float 		velocity_takeup;    /* takeup tach count per sample  */
 	float		tape_tach;			/* tape roller tachometer        */
 	float		radius_takeup;		/* takeup reel reeling radius    */
 	float		radius_supply;		/* supply reel reeling radius    */
-	int32_t		stop_torque_supply;	/* stop mode supply null         */
-	int32_t		stop_torque_takeup;	/* stop mode takeup null         */
+	float		stop_torque_supply;	/* stop mode supply null         */
+	float		stop_torque_takeup;	/* stop mode takeup null         */
 	int32_t		stop_brake_state;	/* stop servo dynamic brake state*/
-	int32_t		offset_null;       	/* takeup/supply tach difference */
-	int32_t		offset_null_sum;
 	int32_t		offset_sample_cnt;
-	int32_t 	offset_takeup;		/* takeup null offset value      */
-	int32_t		offset_supply;		/* supply null offset value      */
+	float		offset_null;       	/* takeup/supply tach difference */
+	float		offset_null_sum;
+	float 		offset_takeup;		/* takeup null offset value      */
+	float		offset_supply;		/* supply null offset value      */
 	int32_t		play_boost_count;
     int32_t 	play_boost_time;	/* play boost timer counter      */
     int32_t		play_boost_step;	/* decrement boost time step     */

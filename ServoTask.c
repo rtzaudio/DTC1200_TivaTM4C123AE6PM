@@ -235,7 +235,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.tsense = (float)(TENSION(g_servo.adc[0])) * g_sys.tension_sensor_gain;
 
         /***********************************************************
-         * BEGIN CALCULATIONS FROM DATA SAMPLE
+         * BEGIN REELING RADIUS CALCULATIONS
          ***********************************************************/
 
         /* Calculate the servo null offset value. The servo null offset
@@ -301,17 +301,14 @@ Void ServoLoopTask(UArg a0, UArg a1)
         }
         else if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
-            float offset;
-
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
             {
                 /* TAKEUP reel is turning faster than the SUPPLY reel!
                  * ADD to the TAKEUP reel torque.
                  * SUBTRACT from the SUPPLLY reel torque.
                  */
-                offset = g_servo.offset_null;
-                g_servo.offset_supply = (offset);
-                g_servo.offset_takeup = -(offset);
+                g_servo.offset_supply =  (g_servo.offset_null);
+                g_servo.offset_takeup = -(g_servo.offset_null);
             }
             else if (g_servo.velocity_supply > g_servo.velocity_takeup)
             {
@@ -319,16 +316,13 @@ Void ServoLoopTask(UArg a0, UArg a1)
                  * ADD to the SUPPLY reel torque.
                  * SUBTRACT from the TAKEUP reel torque.
                  */
-                offset = g_servo.offset_null;
-                g_servo.offset_supply = -(offset);
-                g_servo.offset_takeup = (offset);
+                g_servo.offset_supply = -(g_servo.offset_null);
+                g_servo.offset_takeup =  (g_servo.offset_null);
             }
             else
             {
-                /* reels at same velocity! */
                 g_servo.offset_supply = 0.0f;
                 g_servo.offset_takeup = 0.0f;
-                g_servo.offset_null   = offset;
             }
         }
 
@@ -389,7 +383,6 @@ static void SvcServoStop(void)
 	    else
 	    {
     		/* Calculate dynamic braking torque from current velocity */
-
 	    	if (g_servo.stop_brake_state > 1)
 	    		braketorque = (g_servo.velocity * 10.0f);
 	    	else
@@ -451,7 +444,7 @@ static void SvcServoStop(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-#define RADIUS(ts, rs)  ( (ts)/((rs)+1.0f) )
+#define RADIUS(ts, rs)  ((ts)/((rs)+1.0f))
 
 static void SvcServoPlay(void)
 {
@@ -550,23 +543,24 @@ static void SvcServoPlay(void)
 
 static void SvcServoFwd(void)
 {
-    int32_t cv;
-    int32_t target_velocity;
-    int32_t dac_s;
-    int32_t dac_t;
+    float cv;
+    float dac_s;
+    float dac_t;
 
     /* Auto reduce velocity when nearing end of the
      * reel based on the null offset value.
      */
 
-    target_velocity = g_sys.shuttle_velocity;
+    float target_velocity = (float)g_sys.shuttle_velocity;
 
     if (g_sys.shuttle_slow_velocity > 0)
     {
-        if (g_servo.offset_takeup >= g_sys.shuttle_slow_offset)
+        if (g_servo.offset_takeup >= (float)g_sys.shuttle_slow_offset)
         {
-            if (g_servo.velocity >= g_sys.shuttle_slow_velocity)
-                target_velocity = g_sys.shuttle_slow_velocity;
+        	float slow_velocity = (float)g_sys.shuttle_slow_velocity;
+
+            if (g_servo.velocity >= slow_velocity)
+                target_velocity = slow_velocity;
         }
     }
 
@@ -574,33 +568,30 @@ static void SvcServoFwd(void)
 
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-    cv = ipid_calc(
-            &g_servo.pid,           /* PID accumulator  */
-            target_velocity,        /* desired velocity */
-            g_servo.velocity        /* current velocity */
+    cv = fpid_calc(
+            &g_servo.fpid,			/* PID accumulator  */
+			target_velocity,		/* desired velocity */
+            g_servo.velocity   		/* current velocity */
             );
 
     Semaphore_post(g_semaServo);
 
     // DEBUG
     g_servo.db_cv    = cv;
-    g_servo.db_error = g_servo.pid.error;
-    g_servo.db_debug = target_velocity;
+    g_servo.db_error = g_servo.fpid.error;
+    g_servo.db_debug = (float)g_sys.shuttle_velocity;
 
-    /* DECREASE SUPPLY Torque & Safety clamp */
+    /* DECREASE SUPPLY Torque */
+    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) - cv) + g_servo.offset_supply;
 
-    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) - cv) + (int32_t)g_servo.offset_supply;
+    /* INCREASE TAKEUP Torque */
+    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
 
-    DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
-
-    /* INCREASE TAKEUP Torque & Safety clamp */
-
-    dac_t = ((g_sys.shuttle_takeup_tension + (int32_t)g_servo.tsense) + cv) + g_servo.offset_takeup;
-
-    DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
+    /* Safety Clamp */
+    DAC_CLAMP(dac_s, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
-
     MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
 }
 
@@ -612,23 +603,24 @@ static void SvcServoFwd(void)
 
 static void SvcServoRew(void)
 {
-    int32_t cv;
-    int32_t target_velocity;
-    int32_t dac_s;
-    int32_t dac_t;
+    float cv;
+    float dac_s;
+    float dac_t;
 
     /* Auto reduce velocity when nearing end of the
      * reel based on the null offset value.
      */
 
-    target_velocity = g_sys.shuttle_velocity;
+    float target_velocity = g_sys.shuttle_velocity;
 
     if (g_sys.shuttle_slow_velocity > 0)
     {
         if (g_servo.offset_supply >= (float)g_sys.shuttle_slow_offset)
         {
-            if (g_servo.velocity >= g_sys.shuttle_slow_velocity)
-                target_velocity = g_sys.shuttle_slow_velocity;
+        	float slow_velocity = (float)g_sys.shuttle_slow_velocity;
+
+            if (g_servo.velocity >= slow_velocity)
+                target_velocity = slow_velocity;
         }
     }
 
@@ -636,32 +628,31 @@ static void SvcServoRew(void)
 
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-    cv = ipid_calc(
-            &g_servo.pid,               /* PID accumulator  */
-            target_velocity,            /* desired velocity */
-            g_servo.velocity            /* current velocity */
+    cv = fpid_calc(
+            &g_servo.fpid,          /* PID accumulator  */
+			target_velocity,		/* desired velocity */
+            g_servo.velocity   		/* current velocity */
             );
 
     Semaphore_post(g_semaServo);
 
     // DEBUG
     g_servo.db_cv    = cv;
-    g_servo.db_error = g_servo.pid.error;
-    g_servo.db_debug = target_velocity;
+    g_servo.db_error = g_servo.fpid.error;
+    g_servo.db_debug = (float)g_sys.shuttle_velocity;
 
-    /* INCREASE SUPPLY Torque & Safety clamp */
+    /* INCREASE SUPPLY Torque */
+    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
-    dac_s = ((g_sys.shuttle_supply_tension + (int32_t)g_servo.tsense) + cv) + (int32_t)g_servo.offset_supply;
+    /* DECREASE TAKEUP Torque */
+    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) - cv) + g_servo.offset_takeup;
 
-    DAC_CLAMP(dac_s, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
-
-    /* DECREASE TAKEUP Torque & Safety clamp */
-
-    dac_t = ((g_sys.shuttle_takeup_tension + (int32_t)g_servo.tsense) - cv) + g_servo.offset_takeup;
-
-    DAC_CLAMP(dac_t, g_sys.shuttle_min_torque, g_sys.shuttle_max_torque);
+    /* Safety clamp */
+    DAC_CLAMP(dac_s, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
-
-    MotorDAC_write(dac_s, dac_t);
+    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
 }
+
+/* End-Of-File */

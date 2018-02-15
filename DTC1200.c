@@ -740,12 +740,12 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_takeup_tension   = 250;      /* shuttle takeup reel tension      */
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
-    p->shuttle_velocity         = 450;      /* max shuttle velocity             */
+    p->shuttle_velocity         = 475;      /* max shuttle velocity             */
     p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
     p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
-    p->shuttle_servo_pgain      = 75;       /* shuttle mode servo P-gain        */
-    p->shuttle_servo_igain      = 16;       /* shuttle mode servo I-gain        */
-    p->shuttle_servo_dgain      = 3;        /* shuttle mode servo D-gain        */
+    p->shuttle_servo_pgain      = PID_Kp;   /* shuttle mode servo P-gain        */
+    p->shuttle_servo_igain      = PID_Ki;   /* shuttle mode servo I-gain        */
+    p->shuttle_servo_dgain      = PID_Kd;   /* shuttle mode servo D-gain        */
 
     p->play_tension_gain        = 0.11f;    /* play tension velocity gain factor*/
     p->play_lo_supply_tension   = 186;      /* supply tension level (0-DAC_MAX) */

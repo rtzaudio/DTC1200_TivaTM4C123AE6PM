@@ -510,11 +510,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 				    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-					ipid_init(&g_servo.pid,
+					fpid_init(&g_servo.fpid,
 							 g_sys.shuttle_servo_pgain,     // P-gain
 							 g_sys.shuttle_servo_igain,     // I-gain
 							 g_sys.shuttle_servo_dgain,     // D-gain
-							 PID_TOLERANCE);                // PID deadband
+							 (float)DAC_MAX,
+							 PID_TOLERANCE_F);              // PID deadband
 
 				    Semaphore_post(g_semaServo);
 
@@ -551,11 +552,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 					Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-					ipid_init(&g_servo.pid,
+					fpid_init(&g_servo.fpid,
 							 g_sys.shuttle_servo_pgain,     // P-gain
 							 g_sys.shuttle_servo_igain,     // I-gain
 							 g_sys.shuttle_servo_dgain,     // D-gain
-							 PID_TOLERANCE);                // PID deadband
+							 (float)DAC_MAX,
+							 PID_TOLERANCE_F);              // PID deadband
 
 					Semaphore_post(g_semaServo);
 

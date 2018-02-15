@@ -209,7 +209,7 @@ void show_monitor_screen()
         tty_printf("%sMONITOR%s", g_inv_on, g_inv_off);
 
         tty_pos(3, 2);
-        tty_printf("%sSUPPLY%s", g_ul_on, g_ul_off);
+        tty_printf("%sSUPPLY REEL%s", g_ul_on, g_ul_off);
         tty_pos(4, 2);
         tty_puts("DAC Level");
         tty_pos(5, 2);
@@ -224,7 +224,7 @@ void show_monitor_screen()
         tty_puts("Radius");
 
         tty_pos(3, 35);
-        tty_printf("%sTAKEUP%s", g_ul_on, g_ul_off);
+        tty_printf("%sTAKEUP REEL%s", g_ul_on, g_ul_off);
         tty_pos(4, 35);
         tty_puts("DAC Level");
         tty_pos(5, 35);
@@ -239,13 +239,13 @@ void show_monitor_screen()
         tty_puts("Radius");
 
         tty_pos(11, 2);
-        tty_printf("%sPID SERVO%s", g_ul_on, g_ul_off);
+        tty_printf("%sSHUTTLE PID%s", g_ul_on, g_ul_off);
         tty_pos(12, 2);
         tty_puts("PID CV");
         tty_pos(13, 2);
         tty_puts("PID Error");
         tty_pos(14, 2);
-        tty_puts("PID Debug");
+        tty_puts("Target");
         tty_pos(15, 2);
         tty_puts("Velocity");
 
@@ -254,8 +254,6 @@ void show_monitor_screen()
         tty_pos(18, 2);
         tty_printf("Tape Tach");
         tty_pos(19, 2);
-        tty_printf("Offset Null");
-        tty_pos(20, 2);
         tty_printf("Tension Arm");
 
         tty_pos(12, 35);
@@ -323,11 +321,11 @@ void show_monitor_data()
 
         /* PID SERVO */
         tty_pos(12, 14);
-        tty_printf(": %-12d", g_servo.db_cv);
+        tty_printf(": %-12.2f", g_servo.db_cv);
         tty_pos(13, 14);
-        tty_printf(": %-12d", g_servo.db_error);
+        tty_printf(": %-12.2f", g_servo.db_error);
         tty_pos(14, 14);
-        tty_printf(": %-12d", g_servo.db_debug);
+        tty_printf(": %-12.2f", g_servo.db_debug);
         tty_pos(15, 14);
         tty_printf(": %-12.2f", g_servo.velocity);
 
@@ -335,8 +333,6 @@ void show_monitor_data()
         tty_pos(18, 14);
         tty_printf(": %-12.2f", g_servo.tape_tach);
         tty_pos(19, 14);
-        tty_printf(": %-8.2f", g_servo.offset_null);
-        tty_pos(20, 14);
         tty_printf(": %-8.2f", g_servo.tsense);
 
         tty_pos(12, 47);

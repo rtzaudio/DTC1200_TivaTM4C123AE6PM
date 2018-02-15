@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        12        	/* firmware revision */
+#define FIRMWARE_REV        13        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -167,12 +167,12 @@ typedef struct _SYSPARMS
     int32_t shuttle_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t shuttle_max_torque;        	/* must be <= DAC_MAX */
     int32_t shuttle_min_torque;
-    int32_t shuttle_velocity;          	/* max shuttle speed (2000 - 10000)      */
+    int32_t shuttle_velocity;          	/* target speed for shuttle mode         */
     /* reel servo PID values */
     int32_t reserved5;
-    int32_t shuttle_servo_pgain;       	/* P-gain */
-    int32_t shuttle_servo_igain;       	/* I-gain */
-    int32_t shuttle_servo_dgain;       	/* D-gain */
+    float   shuttle_servo_pgain;       	/* P-gain */
+    float   shuttle_servo_igain;       	/* I-gain */
+    float   shuttle_servo_dgain;       	/* D-gain */
     /* tension sensor PID values */
     int32_t reserved6;
 
@@ -244,11 +244,11 @@ typedef struct _SERVODATA
     uint32_t	dac_supply;			/* current supply DAC level      */
     uint32_t 	dac_halt_supply;	/* halt mode DAC level           */
     uint32_t	dac_halt_takeup;	/* halt mode DAC level           */
-	IPID 		pid;				/* servo loop PID data           */
+	FPID		fpid;
 	/*** Debug Variables ***/
-	int32_t 	db_cv;
-	int32_t 	db_error;
-	int32_t		db_debug;
+	float 		db_cv;
+	float 		db_error;
+	float		db_debug;
 } SERVODATA;
 
 /*** Macros & Function Prototypes ******************************************/

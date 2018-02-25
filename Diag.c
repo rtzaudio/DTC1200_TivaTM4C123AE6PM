@@ -194,7 +194,8 @@ void LampBlinkError(void)
 }
 
 /*
- * This ramps the DAC's on the takeup and supply reel motors.
+ * This set the DAC's to various zero torque reference points
+ * on the takeup and supply reel motors.
  */
  
 int diag_dacadjust(MENUITEM* mp)
@@ -210,8 +211,8 @@ int diag_dacadjust(MENUITEM* mp)
     }
     else
     {
-    	size_t i;
-    	static uint32_t dac[] = { 0, 50, 75, 100, 125, 150, 175, 200 };
+    	int i=0;
+    	static uint32_t dac[] = { 0, 50, 75, 100, 125, 150, 175, 200, 225, 250 };
 
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
@@ -219,13 +220,29 @@ int diag_dacadjust(MENUITEM* mp)
         /* Release the brakes */
         SetTransportMask(0, T_BRAKE);
 
-        for (i=0; i < sizeof(dac)/sizeof(uint32_t); i++)
+        while (1)
         {
-            tty_printf("DAC level %u\r\n", dac[i]);
+            tty_printf("DAC level: %-4u (<ESC> or 'N'=next, 'P'=prev)\r\n", dac[i]);
+
             g_servo.dac_halt_takeup = g_servo.dac_halt_supply = dac[i];
+
             while (tty_getc(&ch) == 0);
-            if (ch == ESC)
+
+            ch = toupper(ch);
+
+            if ((ch == ESC) || (ch == 'X'))
             	break;
+
+            if ((ch == 'N') || (ch == ' '))
+            {
+            	if (i < (sizeof(dac)/sizeof(uint32_t)) - 1)
+            		++i;
+            }
+            else if (ch == 'P')
+            {
+            	if (i > 0)
+            		--i;
+            }
         }
 
         g_servo.dac_halt_takeup = g_servo.dac_halt_supply = DAC_MIN;
@@ -273,7 +290,7 @@ int diag_dacramp(MENUITEM* mp)
 
             while (tty_getc(&ch) == 0);
 
-            if (ch == ESC)
+            if ((ch == ESC) || (ch == toupper('X')))
             	break;
 
             if (ch == 'u')
@@ -338,7 +355,7 @@ int diag_transport(MENUITEM* mp)
 
                 if (tty_getc(&ch))
                 {
-                	if (ch == ESC)
+                	if ((ch == ESC) || (ch == toupper('X')))
                 	{
                         loop = 0;
                 		break;
@@ -419,7 +436,7 @@ int diag_lamp(MENUITEM* mp)
 
             if (tty_getc(&ch))
             {
-            	if (ch == ESC)
+            	if ((ch == ESC) || (ch == toupper('X')))
             	{
                     loop = 0;
             		break;

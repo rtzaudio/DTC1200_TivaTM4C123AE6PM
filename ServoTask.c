@@ -246,14 +246,14 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        float veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;	// must not be zero!
+        float veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
             float delta;
 
-            /* Calculate the current reeling radius as tape speed
-             * divided by the reel speed.
+            /* Calculate the current reeling radius as tape speed divided by
+             * the reel speed. Takeup and supply velocity must not be zero!
              */
             g_servo.radius_takeup = g_servo.tape_tach / g_servo.velocity_takeup;
             g_servo.radius_supply = g_servo.tape_tach / g_servo.velocity_supply;
@@ -350,7 +350,106 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
 static void SvcServoHalt(void)
 {
-    MotorDAC_write(g_servo.dac_halt_supply, g_servo.dac_halt_takeup);
+    MotorDAC_write((float)g_servo.dac_halt_supply, (float)g_servo.dac_halt_takeup);
+}
+
+//*****************************************************************************
+// PLAY SERVO - This function handles play mode servo logic and is
+// called at periodic intervals at the sample frequency specified
+// by the timer interrupt.
+//*****************************************************************************
+
+#define RADIUS(ts, rs)  ((ts)/((rs)+1.0f))
+
+static void SvcServoPlay(void)
+{
+    float dac_s;
+    float dac_t;
+
+    /* Calculate the "reeling radius" for each reel */
+    float rad_t = RADIUS(g_servo.tape_tach, g_servo.velocity_takeup);
+    float rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
+
+    /* Play acceleration boost state? */
+    
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+    
+    if (g_servo.play_boost_time)
+    {
+        g_servo.play_boost_count += 1;
+
+        dac_t = ((g_servo.play_boost_start * 2.0f) / ((g_servo.velocity_takeup * 0.10f) + 1.0f));
+
+        dac_s = ((g_servo.play_supply_tension + g_servo.offset_supply) + ((float)TENSION(g_servo.adc[0]) * 0.5f));
+
+        //dac_s = (float)(TENSION(g_servo.adc[0]) * g_servo.play_tension_gain);
+
+        /* Boost status LED on */
+        g_lamp_mask |= L_STAT3;
+
+        if (g_servo.play_boost_time >= g_servo.play_boost_step)
+        {
+            g_servo.play_boost_time -= g_servo.play_boost_step;
+
+            /* End boost if we're at the desired speed */
+            if (g_servo.play_boost_end)
+            {
+                if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
+                {
+                    g_servo.play_boost_time = 0;
+
+                    /* Turn off boost status LED */
+                    g_lamp_mask &= ~(L_STAT3);
+                }
+            }
+        }
+        else
+        {
+            g_servo.play_boost_time = 0;
+
+            /* Turn off boost status LED */
+            g_lamp_mask &= ~(L_STAT3);
+        }
+    }
+    else
+    {
+        /* Calculate the SUPPLY Torque & Safety clamp */
+        dac_s = (((float)g_servo.play_supply_tension * rad_s) * g_servo.play_tension_gain) + g_servo.tsense;
+
+        /* Calculate the TAKEUP Torque & Safety clamp */
+        dac_t = (((float)g_servo.play_takeup_tension * rad_t) * g_servo.play_tension_gain) + g_servo.play_takeup_tension;
+    }
+
+    Semaphore_post(g_semaServo);
+    
+    // DEBUG
+    g_servo.db_debug = rad_t;
+
+    /* Play Mode Diagnostic Data Capture */
+
+#if (CAPDATA_SIZE > 0)
+    if (g_capdata_count < CAPDATA_SIZE)
+    {
+        g_capdata[g_capdata_count].dac_supply = dac_s;
+        g_capdata[g_capdata_count].dac_takeup = dac_t;
+        g_capdata[g_capdata_count].vel_supply = g_servo.velocity_supply;
+        g_capdata[g_capdata_count].vel_takeup = g_servo.velocity_takeup;
+        g_capdata[g_capdata_count].rad_supply = rad_t;
+        g_capdata[g_capdata_count].rad_takeup = rad_s;
+        g_capdata[g_capdata_count].tape_tach  = g_servo.tape_tach;
+        g_capdata[g_capdata_count].tension    = g_servo.tsense;
+        ++g_capdata_count;
+    }
+#endif
+
+    /* Clamp the DAC values within range if needed */
+
+    DAC_CLAMP(dac_s, (float)g_sys.play_min_torque, (float)g_sys.play_max_torque);
+    DAC_CLAMP(dac_t, (float)g_sys.play_min_torque, (float)g_sys.play_max_torque);
+
+    /* Set the servo DAC levels */
+
+    MotorDAC_write(dac_s, dac_t);
 }
 
 //*****************************************************************************
@@ -435,104 +534,7 @@ static void SvcServoStop(void)
 
     /* Set the DAC levels to the servos */
 
-    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
-}
-
-//*****************************************************************************
-// PLAY SERVO - This function handles play mode servo logic and is
-// called at periodic intervals at the sample frequency specified
-// by the timer interrupt.
-//*****************************************************************************
-
-#define RADIUS(ts, rs)  ((ts)/((rs)+1.0f))
-
-static void SvcServoPlay(void)
-{
-    int32_t dac_s;
-    int32_t dac_t;
-
-    /* Calculate the "reeling radius" for each reel */
-    float rad_t = RADIUS(g_servo.tape_tach, g_servo.velocity_takeup);
-    float rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
-
-    /* Play acceleration boost state? */
-    
-    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
-    
-    if (g_servo.play_boost_time)
-    {
-        g_servo.play_boost_count += 1;
-
-        dac_t = (int32_t)((g_servo.play_boost_start << 1) / (((int32_t)g_servo.velocity_takeup / 8) + 1));
-
-        dac_s = (int32_t)((g_servo.play_supply_tension + (int32_t)g_servo.offset_supply) + (TENSION(g_servo.adc[0]) >> 1));
-
-        /* Boost status LED on */
-        g_lamp_mask |= L_STAT3;
-
-        if (g_servo.play_boost_time >= g_servo.play_boost_step)
-        {
-            g_servo.play_boost_time -= g_servo.play_boost_step;
-
-            /* End boost if we're at the desired speed */
-            if (g_servo.play_boost_end)
-            {
-                if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
-                {
-                    g_servo.play_boost_time = 0;
-
-                    /* Turn off boost status LED */
-                    g_lamp_mask &= ~(L_STAT3);
-                }
-            }
-        }
-        else
-        {
-            g_servo.play_boost_time = 0;
-
-            /* Turn off boost status LED */
-            g_lamp_mask &= ~(L_STAT3);
-        }
-    }
-    else
-    {
-        /* Calculate the SUPPLY Torque & Safety clamp */
-        dac_s = (int32_t)((((float)g_servo.play_supply_tension * rad_s) * g_servo.play_tension_gain) + g_servo.tsense);
-
-        /* Calculate the TAKEUP Torque & Safety clamp */
-        dac_t = (int32_t)((((float)g_servo.play_takeup_tension * rad_t) * g_servo.play_tension_gain) + (float)g_servo.play_takeup_tension);
-    }
-
-    Semaphore_post(g_semaServo);
-    
-    // DEBUG
-    g_servo.db_debug = rad_t;
-
-    /* Play Mode Diagnostic Data Capture */
-
-#if (CAPDATA_SIZE > 0)
-    if (g_capdata_count < CAPDATA_SIZE)
-    {
-        g_capdata[g_capdata_count].dac_supply = dac_s;
-        g_capdata[g_capdata_count].dac_takeup = dac_t;
-        g_capdata[g_capdata_count].vel_supply = g_servo.velocity_supply;
-        g_capdata[g_capdata_count].vel_takeup = g_servo.velocity_takeup;
-        g_capdata[g_capdata_count].rad_supply = rad_t;
-        g_capdata[g_capdata_count].rad_takeup = rad_s;
-        g_capdata[g_capdata_count].tape_tach  = g_servo.tape_tach;
-        g_capdata[g_capdata_count].tension    = (uint32_t)g_servo.tsense;
-        ++g_capdata_count;
-    }
-#endif
-
-    /* Clamp the DAC values within range if needed */
-
-    DAC_CLAMP(dac_s, g_sys.play_min_torque, g_sys.play_max_torque);
-    DAC_CLAMP(dac_t, g_sys.play_min_torque, g_sys.play_max_torque);
-
-    /* Set the servo DAC levels */
-
-    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
+    MotorDAC_write(dac_s, dac_t);
 }
 
 //*****************************************************************************
@@ -592,7 +594,7 @@ static void SvcServoFwd(void)
     DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
-    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
+    MotorDAC_write(dac_s, dac_t);
 }
 
 //*****************************************************************************
@@ -652,7 +654,7 @@ static void SvcServoRew(void)
     DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
 
     /* Set the servo DAC levels */
-    MotorDAC_write((uint32_t)dac_s, (uint32_t)dac_t);
+    MotorDAC_write(dac_s, dac_t);
 }
 
 /* End-Of-File */

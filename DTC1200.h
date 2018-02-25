@@ -113,14 +113,14 @@
 #if (CAPDATA_SIZE > 0)
 typedef struct _CAPDATA
 {
-	uint32_t dac_takeup;
-	uint32_t dac_supply;
-	int32_t vel_takeup;
-	int32_t vel_supply;
-	int32_t rad_supply;
-	int32_t rad_takeup;
-	int32_t tape_tach;
-	int32_t tension;
+	float dac_takeup;
+	float dac_supply;
+	float vel_takeup;
+	float vel_supply;
+	float rad_supply;
+	float rad_takeup;
+	float tape_tach;
+	float tension;
 } CAPDATA;
 #endif
 

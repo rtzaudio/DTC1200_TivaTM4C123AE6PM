@@ -52,6 +52,6 @@
 }                                   \
 
 void MotorDAC_initialize(void);
-void MotorDAC_write(uint32_t supply, uint32_t takeup);
+void MotorDAC_write(float supply_dac, float takeup_dac);
 
 #endif

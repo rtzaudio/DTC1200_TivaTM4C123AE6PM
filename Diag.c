@@ -450,7 +450,7 @@ int diag_dump_capture(MENUITEM* mp)
 
     for (i=0; i < CAPDATA_SIZE; i++)
     {
-    	tty_printf("%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
+    	tty_printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",
    			i,
     		g_capdata[i].dac_supply,
     		g_capdata[i].dac_takeup,

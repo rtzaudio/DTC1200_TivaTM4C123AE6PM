@@ -110,7 +110,7 @@ void MotorDAC_initialize(void)
 	    System_abort("Error initializing SPI0\n");
 
 	/* Set the torque to zero on reel motors! */
-	MotorDAC_write(0, 0);
+	MotorDAC_write(0.0f, 0.0f);
 }
 
 //*****************************************************************************
@@ -135,7 +135,7 @@ void MotorDAC_initialize(void)
 //
 //*****************************************************************************
 
-void MotorDAC_write(uint32_t supply, uint32_t takeup)
+void MotorDAC_write(float supply_dac, float takeup_dac)
 {
 	uint16_t ulWord;
 	uint16_t ulReply;
@@ -145,6 +145,9 @@ void MotorDAC_write(uint32_t supply, uint32_t takeup)
 
     //if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
     {
+		uint32_t supply = (uint32_t)supply_dac;
+	    uint32_t takeup = (uint32_t)takeup_dac;
+
 		/* DEBUG - save current values */
 		g_servo.dac_supply = supply;
 		g_servo.dac_takeup = takeup;
@@ -156,7 +159,7 @@ void MotorDAC_write(uint32_t supply, uint32_t takeup)
 
 		ulWord = (1 << 15) | (1 << 12) | 0x01;
 
-		transaction.count = 1;	//sizeof(ulWord);
+		transaction.count = 1;
 		transaction.txBuf = (Ptr)&ulWord;
 		transaction.rxBuf = (Ptr)&ulReply;
 
@@ -169,7 +172,7 @@ void MotorDAC_write(uint32_t supply, uint32_t takeup)
 		ulDac  = (takeup & 0x3FF) << 2;
 		ulWord = (1 << 12) | (uint16_t)ulDac;
 
-		transaction.count = 1;	//sizeof(ulWord);
+		transaction.count = 1;
 		transaction.txBuf = (Ptr)&ulWord;
 		transaction.rxBuf = (Ptr)&ulReply;
 
@@ -182,7 +185,7 @@ void MotorDAC_write(uint32_t supply, uint32_t takeup)
 		ulDac  = (supply & 0x3FF) << 2;
 		ulWord = (1 << 15) | (uint16_t)ulDac;
 
-		transaction.count = 1;	//sizeof(ulWord);
+		transaction.count = 1;
 		transaction.txBuf = (Ptr)&ulWord;
 		transaction.rxBuf = (Ptr)&ulReply;
 

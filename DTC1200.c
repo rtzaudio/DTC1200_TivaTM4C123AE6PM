@@ -722,13 +722,13 @@ void InitSysDefaults(SYSPARMS* p)
     p->reel_radius_gain         = 0.12f;    /* null offset gain */
     p->tension_sensor_gain      = 0.25f;
 
+    p->debounce                 = 30;		/* button debounce time             */
     p->lifter_settle_time       = 600;      /* tape lifter settling delay in ms */
     p->brake_settle_time        = 450;
     p->play_settle_time			= 800;		/* play after shuttle settle time   */
     p->pinch_settle_time        = 250;      /* start 250ms after pinch roller   */
     p->record_pulse_time     	= REC_PULSE_TIME;
     p->rechold_settle_time    	= REC_SETTLE_TIME;
-    p->debounce                 = 30;
 
     p->stop_supply_tension      = 250;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension      = 250;      /* takeup tension level (0-DAC_MAX) */

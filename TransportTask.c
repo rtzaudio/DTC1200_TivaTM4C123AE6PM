@@ -94,7 +94,18 @@ void ResetPlayServo(void)
 
 	/* Reset play mode capture data buffer to zeros */
 #if (CAPDATA_SIZE > 0)
-	memset(g_capdata, 0, sizeof(g_capdata));
+    size_t i;
+    for (i=0; i < CAPDATA_SIZE; i++)
+    {
+    	g_capdata[i].dac_takeup = 0.0f;
+    	g_capdata[i].dac_supply = 0.0f;
+    	g_capdata[i].vel_takeup = 0.0f;
+    	g_capdata[i].vel_supply = 0.0f;
+    	g_capdata[i].rad_supply = 0.0f;
+    	g_capdata[i].rad_takeup = 0.0f;
+    	g_capdata[i].tape_tach  = 0.0f;
+    	g_capdata[i].tension    = 0.0f;
+    }
 	g_capdata_count = 0;
 #endif
 

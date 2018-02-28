@@ -101,7 +101,7 @@ static const BITTAB s_trans[] = {
 };
 
 static const char s_crlf[]     = { "\r\n" };
-static const char s_startstr[] = { "%s - <ESC> aborts test\r\n\n" };
+static const char s_startstr[] = { "%s - <ESC> aborts\r\n\n" };
 static const char s_waitstr[]  = { "\r\nAny key continues..." };
 
 /* Static Function Prototypes */
@@ -290,7 +290,7 @@ int diag_dacramp(MENUITEM* mp)
 
             while (tty_getc(&ch) == 0);
 
-            if ((ch == ESC) || (ch == toupper('X')))
+            if ((ch == ESC) || (toupper(ch) == 'X'))
             	break;
 
             if (ch == 'u')
@@ -355,7 +355,7 @@ int diag_transport(MENUITEM* mp)
 
                 if (tty_getc(&ch))
                 {
-                	if ((ch == ESC) || (ch == toupper('X')))
+                	if ((ch == ESC) || (toupper(ch) == 'X'))
                 	{
                         loop = 0;
                 		break;
@@ -382,6 +382,7 @@ int diag_transport(MENUITEM* mp)
 int diag_pinch_roller(MENUITEM* mp)
 {
 	int ch;
+	int state;
 
     tty_cls();
     tty_printf(s_startstr, mp->menutext);
@@ -391,16 +392,33 @@ int diag_pinch_roller(MENUITEM* mp)
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
 
-        tty_printf("Any key to release...");
-
         /* Engage pinch roller */
-        SetTransportMask(T_PROL, 0);
 
-        /* Wait for a keystroke */
-        while (tty_getc(&ch) == 0);
-
-        /* Release pinch roller */
+        state = 0;
         SetTransportMask(0, T_PROL);
+
+        while (1)
+        {
+            tty_printf("Toggle Pinch Roller: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
+
+        	/* Wait for a keystroke */
+            while (tty_getc(&ch) == 0);
+
+           	if ((ch == ESC) || (toupper(ch) == 'X'))
+           		break;
+
+        	/* Release pinch roller */
+        	SetTransportMask(0, T_PROL);
+
+        	state ^= 1;
+
+			/* Release pinch roller */
+			if (state)
+				SetTransportMask(T_PROL, 0);
+			else
+				SetTransportMask(0, T_PROL);
+
+        }
 
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
@@ -430,20 +448,20 @@ int diag_lamp(MENUITEM* mp)
         {
             tty_printf("\rlamp: %s", s_lamp[i].name);
         
-            g_lamp_mask = s_lamp[i].bit;
+            g_lamp_mask |= s_lamp[i].bit;
 
             SetLamp(g_lamp_mask);
 
             if (tty_getc(&ch))
             {
-            	if ((ch == ESC) || (ch == toupper('X')))
+            	if ((ch == ESC) || (toupper(ch) == 'X'))
             	{
                     loop = 0;
             		break;
             	}
             }
 
-            g_lamp_mask = 0;
+            g_lamp_mask &= ~(s_lamp[i].bit);
         }
 
         tty_puts(s_crlf);

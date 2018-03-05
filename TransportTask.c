@@ -76,7 +76,8 @@
 #include "TapeTach.h"
 
 /* Static Function Prototypes */
-static void ResetPlayServo(void);
+static void ResetServoPlay(void);
+static void ResetServoPID(void);
 static void HandleImmediateCommand(CMDMSG *p);
 
 extern Semaphore_Handle g_semaServo;
@@ -88,75 +89,93 @@ extern Semaphore_Handle g_semaServo;
 // begins in the servo task.
 //*****************************************************************************
 
-void ResetPlayServo(void)
+void ResetServoPlay(void)
 {
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-	/* Reset play mode capture data buffer to zeros */
+    /* Reset play mode capture data buffer to zeros */
 #if (CAPDATA_SIZE > 0)
     size_t i;
     for (i=0; i < CAPDATA_SIZE; i++)
     {
-    	g_capdata[i].dac_takeup = 0.0f;
-    	g_capdata[i].dac_supply = 0.0f;
-    	g_capdata[i].vel_takeup = 0.0f;
-    	g_capdata[i].vel_supply = 0.0f;
-    	g_capdata[i].rad_supply = 0.0f;
-    	g_capdata[i].rad_takeup = 0.0f;
-    	g_capdata[i].tape_tach  = 0.0f;
-    	g_capdata[i].tension    = 0.0f;
+        g_capdata[i].dac_takeup = 0.0f;
+        g_capdata[i].dac_supply = 0.0f;
+        g_capdata[i].vel_takeup = 0.0f;
+        g_capdata[i].vel_supply = 0.0f;
+        g_capdata[i].rad_supply = 0.0f;
+        g_capdata[i].rad_takeup = 0.0f;
+        g_capdata[i].tape_tach  = 0.0f;
+        g_capdata[i].tension    = 0.0f;
     }
-	g_capdata_count = 0;
+    g_capdata_count = 0;
 #endif
 
-	g_servo.play_tension_gain = g_sys.play_tension_gain;
-	g_servo.play_boost_count  = 0;
+    g_servo.play_tension_gain = g_sys.play_tension_gain;
+    g_servo.play_boost_count  = 0;
 
-	/* Initialize the play servo data items */
-	if (g_high_speed_flag)
-	{
-		/* Reset the tension values */
-		g_servo.play_supply_tension = g_sys.play_hi_supply_tension;
-		g_servo.play_takeup_tension = g_sys.play_hi_takeup_tension;
+    /* Initialize the play servo data items */
+    if (g_high_speed_flag)
+    {
+        /* Reset the tension values */
+        g_servo.play_supply_tension = g_sys.play_hi_supply_tension;
+        g_servo.play_takeup_tension = g_sys.play_hi_takeup_tension;
 
-		/* Reset the play boost counters */
-		g_servo.play_boost_time     = g_sys.play_hi_boost_time;
-		g_servo.play_boost_step     = g_sys.play_hi_boost_step;
-		g_servo.play_boost_start    = g_sys.play_hi_boost_start;
-		g_servo.play_boost_end      = g_sys.play_hi_boost_end;
+        /* Reset the play boost counters */
+        g_servo.play_boost_time     = g_sys.play_hi_boost_time;
+        g_servo.play_boost_step     = g_sys.play_hi_boost_step;
+        g_servo.play_boost_start    = g_sys.play_hi_boost_start;
+        g_servo.play_boost_end      = g_sys.play_hi_boost_end;
 
-		/* If play boost end config parameter is 0, then use
-		 * the takeup tension parameter value instead.
-		 */
-		if (g_sys.play_hi_boost_end == 0)
-			g_servo.play_boost_end = g_sys.play_hi_takeup_tension;
-	}
-	else
-	{
-		/* Reset the tension values */
-		g_servo.play_supply_tension = g_sys.play_lo_supply_tension;
-		g_servo.play_takeup_tension = g_sys.play_lo_takeup_tension;
+        /* If play boost end config parameter is 0, then use
+         * the takeup tension parameter value instead.
+         */
+        if (g_sys.play_hi_boost_end == 0)
+            g_servo.play_boost_end = g_sys.play_hi_takeup_tension;
+    }
+    else
+    {
+        /* Reset the tension values */
+        g_servo.play_supply_tension = g_sys.play_lo_supply_tension;
+        g_servo.play_takeup_tension = g_sys.play_lo_takeup_tension;
 
-		/* Reset the play boost counters */
-		g_servo.play_boost_time     = g_sys.play_lo_boost_time;
-		g_servo.play_boost_step     = g_sys.play_lo_boost_step;
-		g_servo.play_boost_start    = g_sys.play_lo_boost_start;
-		g_servo.play_boost_end      = g_sys.play_lo_boost_end;
+        /* Reset the play boost counters */
+        g_servo.play_boost_time     = g_sys.play_lo_boost_time;
+        g_servo.play_boost_step     = g_sys.play_lo_boost_step;
+        g_servo.play_boost_start    = g_sys.play_lo_boost_start;
+        g_servo.play_boost_end      = g_sys.play_lo_boost_end;
 
-		/* If play boost end config parameter is 0, then use
-		 * the takeup tension parameter value instead.
-		 */
-		if (g_sys.play_lo_boost_end == 0)
-			g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
-	}
+        /* If play boost end config parameter is 0, then use
+         * the takeup tension parameter value instead.
+         */
+        if (g_sys.play_lo_boost_end == 0)
+            g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
+    }
 
-	//System_printf("Boost %u\n", g_servo.play_boost_time);
-	//System_flush();
+    //System_printf("Boost %u\n", g_servo.play_boost_time);
+    //System_flush();
 
-	//ResetTapeTach();
-	TapeTach_reset();
+    TapeTach_reset();
 
-	Semaphore_post(g_semaServo);
+    Semaphore_post(g_semaServo);
+}
+
+//*****************************************************************************
+// Reset shuttle PID servo parameters. This gets called every time prior
+// to the transport controller entering shuttle mode.
+//*****************************************************************************
+
+void ResetServoPID(void)
+{
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+    fpid_init(&g_servo.fpid,
+             g_sys.shuttle_servo_pgain,     // P-gain
+             g_sys.shuttle_servo_igain,     // I-gain
+             g_sys.shuttle_servo_dgain,     // D-gain
+             (float)DAC_MAX,
+             PID_TOLERANCE_F);              // PID deadband
+
+    Semaphore_post(g_semaServo);
 }
 
 //*****************************************************************************
@@ -167,8 +186,8 @@ void QueueTransportCommand(uint8_t command, uint8_t opcode)
 {
     CMDMSG msg;
 
-    msg.command = command;		/* Set the command message type */
-    msg.opcode  = opcode;		/* Set any cmd specfic op-code  */
+    msg.command = command;      /* Set the command message type */
+    msg.opcode  = opcode;       /* Set any cmd specfic op-code  */
 
     Mailbox_post(g_mailboxController, &msg, 10);
 }
@@ -184,26 +203,26 @@ void QueueTransportCommand(uint8_t command, uint8_t opcode)
 
 void RecordEnable(void)
 {
-	if (!(GetTransportMask() & T_RECH))
-	{
-		/* 1) Enable the record hold line */
-		SetTransportMask(T_RECH, 0);
+    if (!(GetTransportMask() & T_RECH))
+    {
+        /* 1) Enable the record hold line */
+        SetTransportMask(T_RECH, 0);
 
-		/* 2) Settling time for record hold */
-		Task_sleep(g_sys.rechold_settle_time);
+        /* 2) Settling time for record hold */
+        Task_sleep(g_sys.rechold_settle_time);
 
-		/* 3) Generate a record latch pulse */
-		SetTransportMask(T_RECP, 0);
+        /* 3) Generate a record latch pulse */
+        SetTransportMask(T_RECP, 0);
 
-		/* 4) Sleep for pulse length duration */
-		Task_sleep(g_sys.record_pulse_time);
+        /* 4) Sleep for pulse length duration */
+        Task_sleep(g_sys.record_pulse_time);
 
-		/* 5) Drop the record pulse line low */
-		SetTransportMask(0, T_RECP);
+        /* 5) Drop the record pulse line low */
+        SetTransportMask(0, T_RECP);
 
-		/* 6) Turn on the record button lamp */
-		g_lamp_mask |= L_REC;
-	}
+        /* 6) Turn on the record button lamp */
+        g_lamp_mask |= L_REC;
+    }
 }
 
 //*****************************************************************************
@@ -215,15 +234,15 @@ void RecordEnable(void)
 
 void RecordDisable(void)
 {
-	/* Is record mode currently active? */
-	if (GetTransportMask() & T_RECH)
-	{
-		/* Yes, disable the record hold latch */
-		SetTransportMask(0, T_RECH);
+    /* Is record mode currently active? */
+    if (GetTransportMask() & T_RECH)
+    {
+        /* Yes, disable the record hold latch */
+        SetTransportMask(0, T_RECH);
 
-		/* Turn of the rec indicator LED and lamps */
-		g_lamp_mask &= ~(L_REC);
-	}
+        /* Turn of the rec indicator LED and lamps */
+        g_lamp_mask &= ~(L_REC);
+    }
 }
 
 /*****************************************************************************
@@ -269,6 +288,12 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		            continue;
 		        }
 		    }
+		    else if (mbutton == S_LDEF)
+            {
+		        /* lift defeat button */
+                QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
+                continue;
+            }
 
 		    /* Ignore transport control buttons in halt mode */
 
@@ -286,19 +311,26 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    {
 		        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP);
 		    }
-		    /* stop & record button pressed? */
-		    else if (mbutton == (S_STOP | S_REC))
+            else if (mbutton == S_FWD)              /* fast fwd button */
+            {
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD);
+            }
+            else if (mbutton == S_REW)              /* rewind button */
+            {
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW);
+            }
+            else if (mbutton == S_PLAY)             /* play only button pressed? */
+            {
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY);
+            }
+		    else if (mbutton == (S_STOP | S_REC))   /* stop & record button? */
 		    {
-		    	if (IS_SERVO_MODE(MODE_PLAY))
-		    		QueueTransportCommand(CMD_STROBE_RECORD, 0);	/* punch out */
+		    	if (IS_SERVO_MODE(MODE_PLAY))       /* punch out */
+		    		QueueTransportCommand(CMD_STROBE_RECORD, 0);
 		    }
-		    else if (mbutton == S_PLAY)			    /* play only button pressed? */
-		    {
-	        	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY);
-		    }
-		    /* play+rec buttons pressed? */
 		    else if ((mbutton & (S_PLAY | S_REC)) == (S_PLAY | S_REC))
 		    {
+	            /* play+rec buttons pressed? */
 		        /* Already in play mode? */
 		        if (IS_SERVO_MODE(MODE_PLAY))
 		        {
@@ -313,18 +345,6 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        	/* Startup PLAY in REC mode */
 		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY|M_RECORD);
 		        }
-		    }
-		    else if (mbutton == S_FWD)      	/* fast fwd button */
-		    {
-		        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD);
-		    }
-		    else if (mbutton == S_REW)      	/* rewind button */
-		    {
-		        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW);
-		    }
-		    else if (mbutton == S_LDEF)			/* lift defeat button */
-		    {
-			    QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
 		    }
 	    }
     }
@@ -345,14 +365,14 @@ Void TransportCommandTask(UArg a0, UArg a1)
 
 Void TransportControllerTask(UArg a0, UArg a1)
 {
-	uint8_t mask;
-	uint8_t mode;
-	uint8_t record;
-	uint8_t lamp_mask;
-	uint8_t last_mode_completed = 0xFF;
-	uint8_t last_mode_requested = 0xFF;
-	uint8_t prev_mode_requested = 0xFF;
-	uint8_t mode_pending = 0;
+    uint8_t mask;
+    uint8_t mode;
+    uint8_t record;
+    uint8_t lamp_mask;
+    uint8_t last_mode_completed = 0xFF;
+    uint8_t last_mode_requested = 0xFF;
+    uint8_t prev_mode_requested = 0xFF;
+    uint8_t mode_pending = 0;
     uint32_t stoptimer = 0;
     CMDMSG msg;
 
@@ -360,235 +380,212 @@ Void TransportControllerTask(UArg a0, UArg a1)
     {
         /* Wait for a mode change command from the transport controller queue */
 
-    	if (Mailbox_pend(g_mailboxController, &msg, 25) == TRUE)
-	    {
+        if (Mailbox_pend(g_mailboxController, &msg, 25) == TRUE)
+        {
 
-			/* Process immediate command messages first */
+            /* Process immediate command messages first */
 
-			if (msg.command != CMD_TRANSPORT_MODE)
-			{
-	    		/* Dispatch any immediate commands */
-				HandleImmediateCommand(&msg);
-				/* Loop back waiting for the next message */
-				continue;
-			}
+            if (msg.command != CMD_TRANSPORT_MODE)
+            {
+                /* Dispatch any immediate commands */
+                HandleImmediateCommand(&msg);
+                /* Loop back waiting for the next message */
+                continue;
+            }
 
-			/* Otherwise, we received a command to change the transport mode */
+            /* Otherwise, we received a command to change the transport mode */
 
-			/* mask out only the mode bits */
-			mode = msg.opcode & MODE_MASK;
+            /* mask out only the mode bits */
+            mode = msg.opcode & MODE_MASK;
 
-			/* Skip if same command requested */
-    		if ((last_mode_completed == mode) && (mode_pending == 0))
-    			continue;
+            /* Skip if same command requested */
+            if ((last_mode_completed == mode) && (mode_pending == 0))
+                continue;
 
-    		prev_mode_requested = last_mode_requested;
+            prev_mode_requested = last_mode_requested;
 
-    		last_mode_requested = mode;
+            last_mode_requested = mode;
 
-    		//System_printf("%u\n", mode);
-    		//System_flush();
+            //System_printf("%u\n", mode);
+            //System_flush();
 
-		    /* Save the new transport mode that was requested */
-            //new_mode = mode;
-
-		    /* Reset pending record enable and pending stop timer counter */
+            /* Reset pending record enable and pending stop timer counter */
             record = stoptimer = 0;
 
-		    /* Set or Reset error LED indicators. The STAT2 LED
-		     * indicates tape out. STAT3 LED indicates timeout
-		     * error while waiting for pending motion stop.
-		     */
-		    if (mode == MODE_HALT)
-		        g_lamp_mask |= L_STAT2;
-		    else
-		    	g_lamp_mask &= ~(L_STAT2 | L_STAT3);
+            /* Set or Reset error LED indicators. The STAT2 LED
+             * indicates tape out. STAT3 LED indicates timeout
+             * error while waiting for pending motion stop.
+             */
+            if (mode == MODE_HALT)
+                g_lamp_mask |= L_STAT2;
+            else
+                g_lamp_mask &= ~(L_STAT2 | L_STAT3);
 
-		    /* Process the requested mode change command */
+            /* Process the requested mode change command */
 
-		    switch(mode)
-		    {
-				case MODE_HALT:
+            switch(mode)
+            {
+                case MODE_HALT:
 
-					/* Disable record if active! */
-	        		RecordDisable();
+                    /* Disable record if active! */
+                    RecordDisable();
 
-					/* All lamps off, diag leds preserved */
-					g_lamp_mask &= L_LED_MASK;
+                    /* All lamps off, diag leds preserved */
+                    g_lamp_mask &= L_LED_MASK;
 
-					/* TAPE OUT - Stop capstan servo, engage brakes,
-					 * disengage lifters, disengage pinch roller,
-					 * disable record.
-					 */
-					SetTransportMask(T_BRAKE, 0xFF);
+                    /* TAPE OUT - Stop capstan servo, engage brakes,
+                     * disengage lifters, disengage pinch roller,
+                     * disable record.
+                     */
+                    SetTransportMask(T_BRAKE, 0xFF);
 
-					/* Set servo mode to HALT */
-					SET_SERVO_MODE(MODE_HALT);
+                    /* Set servo mode to HALT */
+                    SET_SERVO_MODE(MODE_HALT);
 
-			    	last_mode_completed = MODE_HALT;
-					mode_pending = 0;
-					break;
+                    last_mode_completed = MODE_HALT;
+                    mode_pending = 0;
+                    break;
 
-				case MODE_STOP:
+                case MODE_STOP:
 
-					/* Disable record if active! */
-	        		RecordDisable();
+                    /* Disable record if active! */
+                    RecordDisable();
 
-					//if (mode_pending)
-					//	break;
+                    //if (mode_pending)
+                    //  break;
 
-					/* Ignore if already in stop mode */
-					//if (IS_SERVO_MODE(MODE_STOP))
-					//	break;
+                    /* Ignore if already in stop mode */
+                    //if (IS_SERVO_MODE(MODE_STOP))
+                    //  break;
 
-					/* Set the lamps to indicate the stop mode */
-					if (last_mode_completed == MODE_FWD)
-						lamp_mask = L_FWD;
-					else if (last_mode_completed == MODE_REW)
-						lamp_mask = L_REW;
-					//else if (last_mode_completed == MODE_PLAY)
-					//	lamp_mask = L_PLAY;
-					else
-						lamp_mask = 0;
+                    /* Set the lamps to indicate the stop mode */
+                    if (last_mode_completed == MODE_FWD)
+                        lamp_mask = L_FWD;
+                    else if (last_mode_completed == MODE_REW)
+                        lamp_mask = L_REW;
+                    //else if (last_mode_completed == MODE_PLAY)
+                    //  lamp_mask = L_PLAY;
+                    else
+                        lamp_mask = 0;
 
-					/* If we're blinking the stop lamp during pending stop
-					 * requests, then turn on the STOP lamp initially also.
-					 */
-					if (g_dip_switch & M_DIPSW2)
-						lamp_mask |= L_STOP;
+                    /* If we're blinking the stop lamp during pending stop
+                     * requests, then turn on the STOP lamp initially also.
+                     */
+                    if (g_dip_switch & M_DIPSW2)
+                        lamp_mask |= L_STOP;
 
-					/* Stop and new lamp mask, diag leds preserved */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | lamp_mask;
+                    /* Stop and new lamp mask, diag leds preserved */
+                    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | lamp_mask;
 
-					/* Disable record if active */
-					SetTransportMask(0, T_PROL | T_SERVO | T_RECH);
+                    /* Disable record if active */
+                    SetTransportMask(0, T_PROL | T_SERVO | T_RECH);
 
-					/* Set the reel servos for stop mode */
-					SET_SERVO_MODE(MODE_STOP);
+                    /* Set the reel servos for stop mode */
+                    SET_SERVO_MODE(MODE_STOP);
 #if 0
-					if (last_mode_completed == MODE_PLAY)
-					{
-            	        if (g_sys.sysflags & SF_BRAKES_STOP_PLAY)
-            	        {
-            	        	SetTransportMask(T_BRAKE, 0);
-            	        }
-					}
+                    if (last_mode_completed == MODE_PLAY)
+                    {
+                        if (g_sys.sysflags & SF_BRAKES_STOP_PLAY)
+                        {
+                            SetTransportMask(T_BRAKE, 0);
+                        }
+                    }
 #endif
-					mode_pending = MODE_STOP;
-					break;
+                    mode_pending = MODE_STOP;
+                    break;
 
-				case MODE_PLAY:
+                case MODE_PLAY:
 
-					/* Don't engage play if another mode is pending! */
-					if (mode_pending)
-						break;
+                    /* Ignore if already in play mode */
+                    if (IS_SERVO_MODE(MODE_PLAY))
+                        break;
 
-					/* Ignore if already in play mode */
-					if (IS_SERVO_MODE(MODE_PLAY))
-						break;
+                    /* Don't engage play if another mode is pending! */
+                    if (mode_pending)
+                        break;
 
-					/* Turn on the play lamp */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
+                    /* Turn on the play lamp */
+                    //g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
-					/* upper bit indicates record when starting play mode */
-				    record = (msg.opcode & M_RECORD) ? 1 : 0;
+                    /* upper bit indicates record when starting play mode */
+                    record = (msg.opcode & M_RECORD) ? 1 : 0;
 
-					/* Set the reel servos to stop mode initially */
-					SET_SERVO_MODE(MODE_STOP);
+                    /* Set the reel servos to stop mode initially */
+                    SET_SERVO_MODE(MODE_STOP);
 
-					mode_pending = MODE_PLAY;
-					break;
+                    mode_pending = MODE_PLAY;
+                    break;
 
-				case MODE_REW:
+                case MODE_REW:
 
-					/* Disable record if active! */
-	        		RecordDisable();
+                    /* Disable record if active! */
+                    RecordDisable();
 
-					/* Ignore if already in rew mode */
-					if (IS_SERVO_MODE(MODE_REW))
-						break;
+                    /* Ignore if already in rew mode */
+                    if (IS_SERVO_MODE(MODE_REW))
+                        break;
 
-	        		/* Light the rewind lamp only */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_REW;
+                    /* Light the rewind lamp only */
+                    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_REW;
 
-					/* REW - stop the capstan servo, disengage brakes,
-					 * engage lifters, disengage pinch roller,
-					 * disable record.
-					 */
-					SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
+                    /* REW - stop the capstan servo, disengage brakes,
+                     * engage lifters, disengage pinch roller,
+                     * disable record.
+                     */
+                    SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
 
-					/* Initialize shuttle mode PID values */
+                    /* Initialize shuttle mode PID values */
+                    ResetServoPID();
 
-				    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+                    // 500 ms delay for tape lifter settling time
+                    if (!IS_SERVO_MOTION())
+                        Task_sleep(g_sys.lifter_settle_time);
 
-					fpid_init(&g_servo.fpid,
-							 g_sys.shuttle_servo_pgain,     // P-gain
-							 g_sys.shuttle_servo_igain,     // I-gain
-							 g_sys.shuttle_servo_dgain,     // D-gain
-							 (float)DAC_MAX,
-							 PID_TOLERANCE_F);              // PID deadband
+                    /* Set servos to REW mode */
+                    SET_SERVO_MODE(MODE_REW);
 
-				    Semaphore_post(g_semaServo);
+                    last_mode_completed = MODE_REW;
+                    mode_pending = 0;
+                    break;
 
-       		        // 500 ms delay for tape lifter settling time
-        			if (!IS_SERVO_MOTION())
-        				Task_sleep(g_sys.lifter_settle_time);
+                case MODE_FWD:
 
-					/* Set servos to REW mode */
-					SET_SERVO_MODE(MODE_REW);
+                    /* Disable record if active! */
+                    RecordDisable();
 
-			    	last_mode_completed = MODE_REW;
-					mode_pending = 0;
-					break;
+                    /* Ignore if already in ffwd mode */
+                    if (IS_SERVO_MODE(MODE_FWD))
+                        break;
 
-				case MODE_FWD:
+                    /* Reset all lamps & light fast fwd lamp */
+                    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_FWD;
 
-					/* Disable record if active! */
-	        		RecordDisable();
+                    /* FWD - stop the capstan servo, disengage brakes,
+                     * engage lifters, disengage pinch roller,
+                     * disable record.
+                     */
+                    SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
 
-					/* Ignore if already in ffwd mode */
-					if (IS_SERVO_MODE(MODE_FWD))
-						break;
+                     /* Initialize the shuttle tension sensor and velocity PID data */
+                    ResetServoPID();
 
-					/* Reset all lamps & light fast fwd lamp */
-					g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_FWD;
+                    // 500 ms delay for tape lifter settling time
+                    if (!IS_SERVO_MOTION())
+                        Task_sleep(g_sys.lifter_settle_time);
 
-					/* FWD - stop the capstan servo, disengage brakes,
-					 * engage lifters, disengage pinch roller,
-					 * disable record.
-					 */
-					SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
+                    /* Set servos to FWD mode */
+                    SET_SERVO_MODE(MODE_FWD);
 
-					 /* Initialize the shuttle tension sensor and velocity PID data */
+                    last_mode_completed = MODE_FWD;
+                    mode_pending = 0;
+                    break;
 
-					Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
-
-					fpid_init(&g_servo.fpid,
-							 g_sys.shuttle_servo_pgain,     // P-gain
-							 g_sys.shuttle_servo_igain,     // I-gain
-							 g_sys.shuttle_servo_dgain,     // D-gain
-							 (float)DAC_MAX,
-							 PID_TOLERANCE_F);              // PID deadband
-
-					Semaphore_post(g_semaServo);
-
-       		        // 500 ms delay for tape lifter settling time
-        			if (!IS_SERVO_MOTION())
-        				Task_sleep(g_sys.lifter_settle_time);
-
-					/* Set servos to FWD mode */
-					SET_SERVO_MODE(MODE_FWD);
-
-			    	last_mode_completed = MODE_FWD;
-					mode_pending = 0;
-					break;
-
-				default:
-					/* Invalid Command??? */
-			        g_lamp_mask |= L_STAT3;
-					break;
-		    }
-		}
+                default:
+                    /* Invalid Command??? */
+                    g_lamp_mask |= L_STAT3;
+                    break;
+            }
+        }
         else
         {
             /* The message queue has timed out while waiting for a command. We use this
@@ -600,25 +597,25 @@ Void TransportControllerTask(UArg a0, UArg a1)
              */
 
             if (!mode_pending)
-            	continue;
+                continue;
 
             /* 60 seconds motion stop detect timeout */
 
             if (++stoptimer >= 2400)
             {
-            	System_printf("Wait for STOP timeout!\n");
-            	System_flush();
-
-                /* error, the motion didn't stop within timeout period */
-                record = mode_pending = stoptimer = 0;
+                System_printf("Wait for STOP timeout!\n");
+                System_flush();
 
                 /* Stop lamp only, diag leds preserved */
-        	    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | L_STAT3;
+                g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | L_STAT3;
 
-				/* Set reel servos to stop */
-    		    SET_SERVO_MODE(MODE_STOP);
+                /* Set reel servos to stop */
+                SET_SERVO_MODE(MODE_STOP);
 
-    		    last_mode_completed = MODE_STOP;
+                /* error, the motion didn't stop within timeout period */
+                mode_pending = record = stoptimer = 0;
+
+                last_mode_completed = MODE_STOP;
                 continue;
             }
 
@@ -626,168 +623,181 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             if (g_dip_switch & M_DIPSW2)
             {
-            	if ((stoptimer % 12) == 0)
-            		g_lamp_mask ^= L_STOP;
+                if ((stoptimer % 12) == 0)
+                {
+                    //if (mode_pending == MODE_PLAY)
+                    //    g_lamp_mask ^= L_PLAY;
+                    //else
+                    //    g_lamp_mask ^= L_STOP;
+
+                    if (last_mode_completed == MODE_REW)
+                    	g_lamp_mask ^= L_REW;
+                    else if (last_mode_completed == MODE_FWD)
+                    	g_lamp_mask ^= L_FWD;
+                    else
+                        g_lamp_mask ^= L_STOP;
+                }
             }
 
-			/*** PROCESS PENDING COMMAND STATES ***/
+            /*** PROCESS PENDING COMMAND STATES ***/
 
-        	switch(mode_pending)
-        	{
-            	case MODE_STOP:
+            switch(mode_pending)
+            {
+                case MODE_STOP:
 
-            		/* Has all motion stopped yet? */
-            		if (last_mode_completed != MODE_PLAY)
-            		{
-            			if (IS_SERVO_MOTION())
-            				break;
-            		}
+                    /* Has all motion stopped yet? */
+                    if (last_mode_completed != MODE_PLAY)
+                    {
+                        if (IS_SERVO_MOTION())
+                            break;
+                    }
 
-                	/* At this point, all motion has stopped from the last command
-                	 * that required a pending motion stop state. Here we process
-                	 * the final state portion of the previous pending command.
-                	 */
+                    /* At this point, all motion has stopped from the last command
+                     * that required a pending motion stop state. Here we process
+                     * the final state portion of the previous pending command.
+                     */
 
                     /* STOP capstan servo, disengage pinch roller & disable record. */
                     SetTransportMask(0, T_SERVO | T_PROL | T_RECH);
 
-            	    if ((prev_mode_requested == MODE_FWD) ||
-            	        (prev_mode_requested == MODE_REW) ||
-            	        (prev_mode_requested == MODE_PLAY))
-            	    {
-            	        if ((prev_mode_requested == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
-            	        {
+                    if ((prev_mode_requested == MODE_FWD) ||
+                        (prev_mode_requested == MODE_REW) ||
+                        (prev_mode_requested == MODE_PLAY))
+                    {
+                        if ((prev_mode_requested == MODE_PLAY) && (g_sys.sysflags & SF_BRAKES_STOP_PLAY))
+                        {
                             /* STOP - Engage brakes, stop capstan servo,
                              *        disengage pinch roller, disable record.
                              */
 
-            	        	/* Pre-brake delay, let servo stop loop have some effect */
-            	        	Task_sleep(225);
+                            /* Pre-brake delay, let servo stop loop have some effect */
+                            Task_sleep(225);
 
-            	        	/* Now apply the hard brakes */
+                            /* Now apply the hard brakes */
                             SetTransportMask(T_BRAKE, T_SERVO | T_PROL | T_RECH);
-           		        }
-           		        else
-           		        {
+                        }
+                        else
+                        {
                             /* STOP - Release brakes, stop capstan servo,
                              *        disengage pinch roller, disable record.
                              */
                             SetTransportMask(0, T_BRAKE | T_SERVO | T_PROL | T_RECH);
-           		        }
+                        }
 
-            	        /* Brake settle time after stop (~300 ms) */
-        		    	Task_sleep(g_sys.brake_settle_time);
-           		    }
+                        /* Brake settle time after stop (~300 ms) */
+                        Task_sleep(g_sys.brake_settle_time);
+                    }
 
-            		/* Stop lamp only, diag leds preserved */
-            		g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP;
+                    /* Stop lamp only, diag LED's preserved */
+                    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP;
 
-            		/* Stop capstan servo, release brakes, release lifter,
-            		 * release pinch roller and end any record mode.
-            		 */
+                    /* Stop capstan servo, release brakes, release lifter,
+                     * release pinch roller and end any record mode.
+                     */
 
-            		mask = GetTransportMask();
+                    mask = GetTransportMask();
 
-            		/* Leave lifter engaged at stop if enabled. */
-            		if (g_sys.sysflags & SF_LIFTER_AT_STOP)
-            		{
-            			/* Assure lifter engaged */
-                		SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH);
-            		}
-            		else
-            		{
-            			/* Release the lifter */
-            			SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH);
-            		}
+                    /* Leave lifter engaged at stop if enabled. */
+                    if (g_sys.sysflags & SF_LIFTER_AT_STOP)
+                    {
+                        /* Assure lifter engaged */
+                        SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH);
+                    }
+                    else
+                    {
+                        /* Release the lifter */
+                        SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH);
 
-            		/* Tape lifter settling Time */
-            		if (mask & T_TLIFT)
-            			Task_sleep(g_sys.lifter_settle_time);
+                        /* Tape lifter settling Time */
+                        if (mask & T_TLIFT)
+                            Task_sleep(g_sys.lifter_settle_time);
+                    }
 
-            		/* Leave brakes engaged if DIP switch #3 enabled, otherwise release brakes */
-            		if (g_sys.sysflags & SF_BRAKES_AT_STOP)
-            		    SetTransportMask(T_BRAKE, 0);
-            		else
-        		    	SetTransportMask(0, T_BRAKE);
+                    /* Leave brakes engaged if brakes at stop enabled, otherwise release brakes */
+                    if (g_sys.sysflags & SF_BRAKES_AT_STOP)
+                        SetTransportMask(T_BRAKE, 0);
+                    else
+                        SetTransportMask(0, T_BRAKE);
 
-            		last_mode_completed = MODE_STOP;
-            		mode_pending = 0;
-            		break;
+                    last_mode_completed = MODE_STOP;
+                    mode_pending = 0;
+                    break;
 
-           		case MODE_PLAY:
+                case MODE_PLAY:
 
-           			/* Has all motion stopped yet? */
-           	    	if (IS_SERVO_MOTION())
-           	    		break;
+                    /* Has all motion stopped yet? */
+                    if (IS_SERVO_MOTION())
+                        break;
 
                     /* All motion has stopped, allow 1 second settling
                      * time prior to engaging play after shuttle mode.
                      */
 
-            	    /* Play lamp only, diag leds preserved */
-        		    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
+                    /* Play lamp only, diag leds preserved */
+                    g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
-            	    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
-            	    {
-            	    	/* Setting time before engaging play after shuttle */
-            	    	Task_sleep(g_sys.play_settle_time);
-            	    }
+                    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
+                    {
+                        /* Setting time before engaging play after shuttle */
+                        Task_sleep(g_sys.play_settle_time);
+                    }
 
-            	    mask = GetTransportMask();
+                    mask = GetTransportMask();
 
-        		    /* Disengage tape lifters & brakes. */
-        		    SetTransportMask(0, T_TLIFT | T_BRAKE);
+                    /* Disengage tape lifters & brakes. */
+                    SetTransportMask(0, T_TLIFT | T_BRAKE);
 
-        		    /* Settling time for tape lifter release */
-        		    if (mask & T_TLIFT)
-        		    {
-        		    	if (g_sys.sysflags & SF_LIFTER_AT_STOP)
-        		    		Task_sleep(g_sys.lifter_settle_time);
-        		    }
+                    /* Settling time for tape lifter release */
+                    if (mask & T_TLIFT)
+                    {
+                        if (g_sys.sysflags & SF_LIFTER_AT_STOP)
+                            Task_sleep(g_sys.lifter_settle_time);
+                    }
 
-        		    /* Things happen pretty quickly from here. First we engage the
-        		     * pinch roller and allow it time to settle. Next we start
-        		     * the reel motors with PID values just set. Immediately
-        		     * afterward we must start the capstan motor so the tape
-        		     * can finally begin moving.
-        		     */
+                    /* Things happen pretty quickly from here. First we engage the
+                     * pinch roller and allow it time to settle. Next we start
+                     * the reel motors with PID values just set. Immediately
+                     * afterward we must start the capstan motor so the tape
+                     * can finally begin moving.
+                     */
 
-        		    /* [1] Engage the pinch roller */
-        		    if (g_sys.sysflags & SF_ENGAGE_PINCH_ROLLER)
-        		    {
-        		      	/* Engage the pinch roller */
-       		        	SetTransportMask(T_PROL, 0);
+                    /* [1] Engage the pinch roller */
+                    if (g_sys.sysflags & SF_ENGAGE_PINCH_ROLLER)
+                    {
+                        /* Engage the pinch roller */
+                        SetTransportMask(T_PROL, 0);
 
-       		        	/* Give pinch roller time to settle */
-   		            	Task_sleep(g_sys.pinch_settle_time);
-       		        }
+                        /* Give pinch roller time to settle */
+                        Task_sleep(g_sys.pinch_settle_time);
+                    }
 
-        		    /* Set the play mode velocity */
-        		    ResetPlayServo();
+                    /* Set the play mode velocity */
+                    ResetServoPlay();
 
-       		        /* [2] Start the reel servos in PLAY mode */
-       		        SET_SERVO_MODE(MODE_PLAY);
+                    /* [2] Start the reel servos in PLAY mode */
+                    SET_SERVO_MODE(MODE_PLAY);
 
-      		        /* [3] Now start the capstan servo motor */
-       		        SetTransportMask(T_SERVO, 0);
+                    /* [3] Now start the capstan servo motor */
+                    SetTransportMask(T_SERVO, 0);
 
-       		        /* [4] Enable record if record flag was set */
-       		        if (record)
-       		        {
-       		        	record = 0;
-       		        	RecordEnable();
-       		        }
+                    /* [4] Enable record if record flag was set */
+                    if (record)
+                    {
+                        record = 0;
+                        RecordEnable();
+                    }
 
-       		        last_mode_completed = MODE_PLAY;
-               		mode_pending = 0;
-           		    break;
+                    last_mode_completed = MODE_PLAY;
+                    mode_pending = 0;
+                    break;
 
-   		        default:
-   		        	//System_printf("invalid pend stop state %d!\n", mode_pending);
-	            	//System_flush();
-           		    break;
+                default:
+                    //System_printf("invalid pend stop state %d!\n", mode_pending);
+                    //System_flush();
+                	mode_pending = 0;
+                    break;
             }
- 	    }
+        }
     }
 }
 
@@ -798,49 +808,51 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 void HandleImmediateCommand(CMDMSG *p)
 {
-	switch(p->command)
-	{
-		case CMD_STROBE_RECORD:
-			/* Enabled, disable or toggle record mode! */
-			if (IS_SERVO_MODE(MODE_PLAY))
-			{
-				if (p->opcode == 0)
-				{
-					/* punch out */
-					RecordDisable();
-				}
-				else if (p->opcode == 1)
-				{
-					/* punch in */
-					RecordEnable();
-				}
-				else
-				{
-					/* toggle record mode */
-					if (GetTransportMask() & T_RECH)
-						RecordDisable();
-					else
-						RecordEnable();
-				}
-			}
-			break;
+	int32_t mode = ServoGetMode();
 
-		case CMD_TOGGLE_LIFTER:
-			/* Must be in STOP or PLAY mode */
-			if (IS_SERVO_MODE(MODE_STOP) || IS_SERVO_MODE(MODE_PLAY))
-			{
-				/* toggle lifter defeat */
-				if (GetTransportMask() & T_TLIFT)
-					SetTransportMask(0, T_TLIFT);
-				else
-					SetTransportMask(T_TLIFT, 0);
-			}
-			break;
+    switch(p->command)
+    {
+        case CMD_STROBE_RECORD:
+            /* Enabled, disable or toggle record mode! */
+            if (mode == MODE_PLAY)
+            {
+                if (p->opcode == 0)
+                {
+                    /* punch out */
+                    RecordDisable();
+                }
+                else if (p->opcode == 1)
+                {
+                    /* punch in */
+                    RecordEnable();
+                }
+                else
+                {
+                    /* toggle record mode */
+                    if (GetTransportMask() & T_RECH)
+                        RecordDisable();
+                    else
+                        RecordEnable();
+                }
+            }
+            break;
 
-		default:
-			/* invalid command */
-			break;
-	}
+        case CMD_TOGGLE_LIFTER:
+            /* Must be in HALT, STOP or PLAY mode */
+            if ((mode == MODE_HALT) || (mode == MODE_STOP) || (mode == MODE_PLAY))
+            {
+                /* toggle lifter defeat */
+                if (GetTransportMask() & T_TLIFT)
+                    SetTransportMask(0, T_TLIFT);
+                else
+                    SetTransportMask(T_TLIFT, 0);
+            }
+            break;
+
+        default:
+            /* invalid command */
+            break;
+    }
 }
 
 // End-Of-File

@@ -657,22 +657,30 @@ Void MainControlTask(UArg a0, UArg a1)
         }
 
         /* Next process the tape transport buttons */
+
         bits &= S_BUTTON_MASK;
 
-        temp = bits & ~(S_REC);
-
-        if (temp != tran_prev)
+        if (bits)
         {
-            if (++debounce_tran >= DEBOUNCE)
-            {
-                debounce_tran = 0;
+        	temp = bits & ~(S_REC);
 
-                /* Debounced a button press, send it to transport task */
-                tran_prev = temp;
+			if (temp != tran_prev)
+			{
+				if (++debounce_tran >= DEBOUNCE)
+				{
+					debounce_tran = 0;
 
-                /* Send the button press to transport ctrl/cmd task */
-                Mailbox_post(g_mailboxCommander, &bits, 10);
-            }
+					/* Debounced a button press, send it to transport task */
+					tran_prev = temp;
+
+					/* Send the button press to transport ctrl/cmd task */
+					Mailbox_post(g_mailboxCommander, &bits, 10);
+				}
+			}
+        }
+        else
+        {
+        	tran_prev = 0xff;
         }
 
         /*

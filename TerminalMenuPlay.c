@@ -97,37 +97,32 @@ static MENUITEM play_items[] = {
 		.param2.U = DAC_MAX,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_boost_end },
 
-{ 10, 6, NULL, "PLAY SETTINGS", MI_TEXT,
+{ 11, 6, NULL, "PLAY SETTINGS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 12, 2, "10", "Play Tension Velocity Gain   ", MI_NUMERIC,
-		.param1.F = 0.01f,
-		.param2.F = 0.20f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_tension_gain },
-
-{ 13, 2, "11", "Pinch Roller Settling Time   ", MI_NUMERIC,
+{ 13, 2, "10", "Pinch Roller Settling Time   ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 1000,
 		NULL, put_idata, DT_LONG, &g_sys.pinch_settle_time },
 
-{ 14, 2, "12", "Shuttle to Play Settling Time", MI_NUMERIC,
+{ 14, 2, "11", "Shuttle to Play Settling Time", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 1000,
 		NULL, put_idata, DT_LONG, &g_sys.play_settle_time },
 
-{ 15, 2, "13", "Brake Settle Time            ", MI_NUMERIC,
+{ 15, 2, "12", "Brake Settle Time            ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 2000,
 		NULL, put_idata, DT_LONG, &g_sys.brake_settle_time },
 
-{ 16, 2, "14", "Use Brakes to Stop Play Mode ", MI_BITFLAG,
+{ 16, 2, "13", "Use Brakes to Stop Play Mode ", MI_BITFLAG,
 		.param1.U = SF_BRAKES_STOP_PLAY,
 		.param2.U = SF_BRAKES_STOP_PLAY,
         NULL, NULL, DT_LONG, &g_sys.sysflags },
 
-{ 17, 2, "15", "Engage Pinch Roller at Play  ", MI_BITFLAG,
+{ 17, 2, "14", "Engage Pinch Roller at Play  ", MI_BITFLAG,
 		.param1.U = SF_ENGAGE_PINCH_ROLLER,
 		.param2.U = SF_ENGAGE_PINCH_ROLLER,
         NULL, NULL, DT_LONG, &g_sys.sysflags },

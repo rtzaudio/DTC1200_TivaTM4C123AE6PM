@@ -145,12 +145,12 @@ void MotorDAC_write(float supply_dac, float takeup_dac)
 
     //if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
     {
+		/* DEBUG - save current values */
+		g_servo.dac_supply = supply_dac;
+		g_servo.dac_takeup = takeup_dac;
+
 		uint32_t supply = (uint32_t)supply_dac;
 	    uint32_t takeup = (uint32_t)takeup_dac;
-
-		/* DEBUG - save current values */
-		g_servo.dac_supply = supply;
-		g_servo.dac_takeup = takeup;
 
 		takeup = DAC_MAX - takeup;
 		supply = DAC_MAX - supply;

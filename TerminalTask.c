@@ -406,7 +406,7 @@ void show_menu(void)
         	if (item->datatype == DT_FLOAT)
         	{
         		fval = (float)(*((float*) item->data));
-        		tty_printf("%2s) %s : %.2f", item->menuopt, item->menutext, fval);
+        		tty_printf("%2s) %s : %.3f", item->menuopt, item->menutext, fval);
         	}
         	else
         	{
@@ -634,7 +634,7 @@ int prompt_menu_item(MENUITEM* item, int nextprev)
 				float fparam1 = item->param1.F;
 				float fparam2 = item->param2.F;
 				/* prompt with range low-high values */
-				tty_printf(" (%.2f - %.2f): ", fparam1, fparam2);
+				tty_printf(" (%.3f - %.3f): ", fparam1, fparam2);
 			}
 			else
 			{

@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        13        	/* firmware revision */
+#define FIRMWARE_REV        14        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -178,21 +178,22 @@ typedef struct _SYSPARMS
 
     /*** PLAY SERVO PARAMETERS ***/
 
-    int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
-    int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
-    int32_t play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
-    int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    float   play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
+    float   play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    float   play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
+    float   play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_max_torque;           	/* must be <= DAC_MAX */
     int32_t play_min_torque;
-    float   play_tension_gain;			/* play tension velocity gain factor   ) */
+    /* play high speed boost parameters */
     int32_t play_hi_boost_start;
     int32_t play_hi_boost_end;
+    int32_t play_hi_boost_time;
+    int32_t play_hi_boost_step;
+    /* play low speed boost parameters */
     int32_t play_lo_boost_start;
     int32_t play_lo_boost_end;
     int32_t play_lo_boost_time;			/* duration of play boost acceleration   */
     int32_t play_lo_boost_step;		 	/* amount to decrement boost count by    */
-    int32_t play_hi_boost_time;
-    int32_t play_hi_boost_step;
     int32_t reserved10;
 } SYSPARMS;
 
@@ -232,16 +233,15 @@ typedef struct _SERVODATA
     int32_t		play_boost_step;	/* decrement boost time step     */
     int32_t		play_boost_start;
     int32_t		play_boost_end;
-    float		play_tension_gain;
-    int32_t 	play_supply_tension;
-    int32_t 	play_takeup_tension;
+    float		play_supply_tension;
+    float		play_takeup_tension;
 	uint32_t	qei_takeup_error_cnt;
 	uint32_t	qei_supply_error_cnt;
     float		tsense;				/* tension sensor value 		 */
     float		cpu_temp;			/* CPU temp included in ADC read */
     uint32_t	adc[8];				/* ADC values (tension, etc)     */
-    uint32_t	dac_takeup;			/* current takeup DAC level      */
-    uint32_t	dac_supply;			/* current supply DAC level      */
+    float		dac_takeup;			/* current takeup DAC level      */
+    float		dac_supply;			/* current supply DAC level      */
     uint32_t 	dac_halt_supply;	/* halt mode DAC level           */
     uint32_t	dac_halt_takeup;	/* halt mode DAC level           */
 	FPID		fpid;

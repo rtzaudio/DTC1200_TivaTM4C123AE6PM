@@ -110,7 +110,6 @@ void ResetServoPlay(void)
     g_capdata_count = 0;
 #endif
 
-    g_servo.play_tension_gain = g_sys.play_tension_gain;
     g_servo.play_boost_count  = 0;
 
     /* Initialize the play servo data items */
@@ -125,12 +124,6 @@ void ResetServoPlay(void)
         g_servo.play_boost_step     = g_sys.play_hi_boost_step;
         g_servo.play_boost_start    = g_sys.play_hi_boost_start;
         g_servo.play_boost_end      = g_sys.play_hi_boost_end;
-
-        /* If play boost end config parameter is 0, then use
-         * the takeup tension parameter value instead.
-         */
-        if (g_sys.play_hi_boost_end == 0)
-            g_servo.play_boost_end = g_sys.play_hi_takeup_tension;
     }
     else
     {
@@ -143,16 +136,7 @@ void ResetServoPlay(void)
         g_servo.play_boost_step     = g_sys.play_lo_boost_step;
         g_servo.play_boost_start    = g_sys.play_lo_boost_start;
         g_servo.play_boost_end      = g_sys.play_lo_boost_end;
-
-        /* If play boost end config parameter is 0, then use
-         * the takeup tension parameter value instead.
-         */
-        if (g_sys.play_lo_boost_end == 0)
-            g_servo.play_boost_end = g_sys.play_lo_takeup_tension;
     }
-
-    //System_printf("Boost %u\n", g_servo.play_boost_time);
-    //System_flush();
 
     TapeTach_reset();
 

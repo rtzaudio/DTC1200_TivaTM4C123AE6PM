@@ -89,6 +89,7 @@
 
 /* Calculate the tension value from the ADC reading */
 #define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
+#define TENSION_F(adc)			( (2047.0f - (float)adc) )
 
 #define OFFSET_SCALE_F        	500.0f
 #define OFFSET_CALC_PERIOD  	500
@@ -170,6 +171,8 @@ int32_t IsServoMotion()
  *
  *****************************************************************************/
 
+#define RADIUS_F(ts, rs)  ((ts)/((rs)+1.0f))
+
 Void ServoLoopTask(UArg a0, UArg a1)
 {
     static void (*jmptab[5])(void) = {
@@ -232,7 +235,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.cpu_temp = ADC_TO_CELCIUS(g_servo.adc[4]);
 
         /* calculate the tension sensor value */
-        g_servo.tsense = (float)(TENSION(g_servo.adc[0])) * g_sys.tension_sensor_gain;
+        g_servo.tsense = TENSION_F(g_servo.adc[0]) * g_sys.tension_sensor_gain;
 
         /***********************************************************
          * BEGIN REELING RADIUS CALCULATIONS
@@ -255,8 +258,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
             /* Calculate the current reeling radius as tape speed divided by
              * the reel speed. Takeup and supply velocity must not be zero!
              */
-            g_servo.radius_takeup = g_servo.tape_tach / g_servo.velocity_takeup;
-            g_servo.radius_supply = g_servo.tape_tach / g_servo.velocity_supply;
+            g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup);
+            g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply);
 
             /* Calculate the difference in velocity of the two reels */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
@@ -359,16 +362,14 @@ static void SvcServoHalt(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-#define RADIUS(ts, rs)  ((ts)/((rs)+1.0f))
-
 static void SvcServoPlay(void)
 {
     float dac_s;
     float dac_t;
 
     /* Calculate the "reeling radius" for each reel */
-    float rad_t = RADIUS(g_servo.tape_tach, g_servo.velocity_takeup);
-    float rad_s = RADIUS(g_servo.tape_tach, g_servo.velocity_supply);
+    float rad_t = g_servo.radius_takeup;	//RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup);
+    float rad_s = g_servo.radius_supply;	//RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply);
 
     /* Play acceleration boost state? */
     
@@ -379,10 +380,7 @@ static void SvcServoPlay(void)
         g_servo.play_boost_count += 1;
 
         dac_t = ((g_servo.play_boost_start * 2.0f) / ((g_servo.velocity_takeup * 0.10f) + 1.0f));
-
-        dac_s = ((g_servo.play_supply_tension + g_servo.offset_supply) + ((float)TENSION(g_servo.adc[0]) * 0.5f));
-
-        //dac_s = (float)(TENSION(g_servo.adc[0]) * g_servo.play_tension_gain);
+        dac_s = (rad_s * 34.5) + g_servo.tsense;	//DAC_MAX - dac_t;
 
         /* Boost status LED on */
         g_lamp_mask |= L_STAT3;
@@ -413,18 +411,15 @@ static void SvcServoPlay(void)
     }
     else
     {
-        /* Calculate the SUPPLY Torque & Safety clamp */
-        dac_s = (((float)g_servo.play_supply_tension * rad_s) * g_servo.play_tension_gain) + g_servo.tsense;
+    	/* Calculate the SUPPLY Torque */
+        dac_s = (rad_s * g_servo.play_supply_tension) + g_servo.tsense;
 
-        /* Calculate the TAKEUP Torque & Safety clamp */
-        dac_t = (((float)g_servo.play_takeup_tension * rad_t) * g_servo.play_tension_gain) + g_servo.play_takeup_tension;
+        /* Calculate the TAKEUP Torque */
+        dac_t = (rad_t * g_servo.play_takeup_tension) + g_servo.tsense;
     }
 
     Semaphore_post(g_semaServo);
     
-    // DEBUG
-    g_servo.db_debug = rad_t;
-
     /* Play Mode Diagnostic Data Capture */
 
 #if (CAPDATA_SIZE > 0)

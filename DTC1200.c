@@ -262,7 +262,6 @@ Void MainControlTask(UArg a0, UArg a1)
     g_servo.offset_null_sum   = 0.0f;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
-	g_servo.play_tension_gain = g_sys.play_tension_gain;
 	g_servo.play_boost_count  = 0;
 	g_servo.rpm_takeup        = 0;
 	g_servo.rpm_takeup_sum    = 0;
@@ -538,7 +537,6 @@ Void MainControlTask(UArg a0, UArg a1)
     g_servo.offset_null_sum   = 0.0f;
     g_servo.dac_halt_takeup   = 0;
     g_servo.dac_halt_supply   = 0;
-	g_servo.play_tension_gain = g_sys.play_tension_gain;
 	g_servo.play_boost_count  = 0;
 
     /* Servo's start in halt mode! */
@@ -727,8 +725,8 @@ void InitSysDefaults(SYSPARMS* p)
     p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
-    p->reel_radius_gain         = 0.12f;    /* null offset gain */
-    p->tension_sensor_gain      = 0.25f;
+    p->reel_radius_gain         = 0.12f;    /* null offset gain                 */
+    p->tension_sensor_gain      = 0.13f;	/* tension sensor arm gain          */
 
     p->debounce                 = 30;		/* button debounce time             */
     p->lifter_settle_time       = 600;      /* tape lifter settling delay in ms */
@@ -738,14 +736,14 @@ void InitSysDefaults(SYSPARMS* p)
     p->record_pulse_time     	= REC_PULSE_TIME;
     p->rechold_settle_time    	= REC_SETTLE_TIME;
 
-    p->stop_supply_tension      = 250;      /* supply tension level (0-DAC_MAX) */
-    p->stop_takeup_tension      = 250;      /* takeup tension level (0-DAC_MAX) */
+    p->stop_supply_tension      = 360;      /* supply tension level (0-DAC_MAX) */
+    p->stop_takeup_tension      = 385;      /* takeup tension level (0-DAC_MAX) */
     p->stop_max_torque          = DAC_MAX;  /* max stop servo torque (0-DAC_MAX)*/
     p->stop_min_torque          = 10;       /* min stop servo torque            */
     p->stop_brake_torque        = 650;    	/* max dynamic stop brake torque   */
 
-    p->shuttle_supply_tension   = 250;      /* shuttle supply reel tension      */
-    p->shuttle_takeup_tension   = 250;      /* shuttle takeup reel tension      */
+    p->shuttle_supply_tension   = 360;      /* shuttle supply reel tension      */
+    p->shuttle_takeup_tension   = 385;      /* shuttle takeup reel tension      */
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
     p->shuttle_velocity         = 475;      /* max shuttle velocity             */
@@ -755,11 +753,10 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_servo_igain      = PID_Ki;   /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = PID_Kd;   /* shuttle mode servo D-gain        */
 
-    p->play_tension_gain        = 0.11f;    /* play tension velocity gain factor*/
-    p->play_lo_supply_tension   = 186;      /* supply tension level (0-DAC_MAX) */
-    p->play_lo_takeup_tension   = 186;      /* takeup tension level (0-DAC_MAX) */
-    p->play_hi_supply_tension   = 188;      /* supply tension level (0-DAC_MAX) */
-    p->play_hi_takeup_tension   = 188;      /* takeup tension level (0-DAC_MAX) */
+    p->play_lo_supply_tension   = 34.5f;    /* supply tension level             */
+    p->play_lo_takeup_tension   = 37.5f;    /* takeup tension level             */
+    p->play_hi_supply_tension   = 34.5f;    /* supply tension level             */
+    p->play_hi_takeup_tension   = 37.5f;    /* takeup tension level             */
     p->play_max_torque          = DAC_MAX;  /* play mode max torque (0-DAC_MAX) */
     p->play_min_torque          = 10;       /* play mode min torque (0-DAC_MAX) */
     p->play_lo_boost_time       = 1500;     /* play mode accel boost from stop  */

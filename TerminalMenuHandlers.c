@@ -293,7 +293,7 @@ void show_monitor_data()
 
         /* SUPPLY */
         tty_pos(4, 14);
-        tty_printf(": %-4d", g_servo.dac_supply);
+        tty_printf(": %-8u", (uint32_t)g_servo.dac_supply);
         tty_pos(5, 14);
         tty_printf(": %-8.2f", g_servo.velocity_supply);
         tty_pos(6, 14);
@@ -307,7 +307,7 @@ void show_monitor_data()
 
         /* TAKEUP */
         tty_pos(4, 47);
-        tty_printf(": %-4d", g_servo.dac_takeup);
+        tty_printf(": %-8u", (uint32_t)g_servo.dac_takeup);
         tty_pos(5, 47);
         tty_printf(": %-8.2f", g_servo.velocity_takeup);
         tty_pos(6, 47);

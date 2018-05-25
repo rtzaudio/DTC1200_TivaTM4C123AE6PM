@@ -173,6 +173,9 @@ Void WTimer1AIntHandler(void)
 
     TimerIntClear(WTIMER1_BASE, TIMER_CAPA_EVENT);
 
+    /* ENTER - Critical Section */
+    key = Hwi_disable();
+
     thisCount = TimerValueGet(WTIMER1_BASE, TIMER_A);
     thisPeriod = g_tach.previousCount - thisCount;
     g_tach.previousCount = thisCount;
@@ -186,25 +189,22 @@ Void WTimer1AIntHandler(void)
         g_tach.averageIdx++;
         g_tach.averageIdx %= TACH_AVG_QTY;
 
-        /* ENTER - Critical Section */
-        key = Hwi_disable();
-        {
-            /* Sets the status to indicate tach is alive */
-            g_tach.tachAlive = true;
+        /* Sets the status to indicate tach is alive */
+        g_tach.tachAlive = true;
 
-            /* Store RAW value, which refers to one measurement only */
-            g_tach.frequencyRawHz = (float)g_systemClock / (float)thisPeriod;
+        /* Store RAW value, which refers to one measurement only */
+        g_tach.frequencyRawHz = (float)g_systemClock / (float)thisPeriod;
 
-            /* Update the average sum */
-            if (g_tach.averageSum)
-                g_tach.frequencyAvgHz = (float)g_systemClock / ((float)g_tach.averageSum / (float)TACH_AVG_QTY);
-        }
-        /* EXIT - Critical Section */
-        Hwi_restore(key);
+        /* Update the average sum */
+        if (g_tach.averageSum)
+            g_tach.frequencyAvgHz = (float)g_systemClock / ((float)g_tach.averageSum / (float)TACH_AVG_QTY);
 
         /* Resets timeout timer */
         HWREG(WTIMER1_BASE + TIMER_O_TBV) = g_systemClock / 2;
     }
+
+    /* EXIT - Critical Section */
+    Hwi_restore(key);
 }
 
 /****************************************************************************

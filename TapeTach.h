@@ -45,7 +45,7 @@
 
 //#define WIDE_TIMER_TACH
 
-#define TACH_AVG_QTY	8
+#define TACH_AVG_QTY	100
 
 //*****************************************************************************
 //  Wide Timer Tach Data

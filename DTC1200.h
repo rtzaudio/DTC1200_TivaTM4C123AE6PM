@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        17        	/* firmware revision */
+#define FIRMWARE_REV        20        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -156,8 +156,6 @@ typedef struct _SYSPARMS
 
     int32_t stop_supply_tension;       	/* supply tension level (0-DAC_MAX)  */
     int32_t stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
-    int32_t stop_max_torque;           	/* must be <= DAC_MAX */
-    int32_t stop_min_torque;
     int32_t stop_brake_torque;   		/* stop brake torque in shuttle mode */
     int32_t reserved3;
     int32_t reserved4;
@@ -166,8 +164,6 @@ typedef struct _SYSPARMS
 
     int32_t shuttle_supply_tension;    	/* play supply tension (0-DAC_MAX)   */
     int32_t shuttle_takeup_tension;    	/* play takeup tension               */
-    int32_t shuttle_max_torque;        	/* must be <= DAC_MAX */
-    int32_t shuttle_min_torque;
     int32_t shuttle_velocity;          	/* target speed for shuttle mode     */
     int32_t shuttle_lib_velocity;		/* library wind mode velocity        */
     /* reel servo PID values */
@@ -180,22 +176,18 @@ typedef struct _SYSPARMS
 
     /*** PLAY SERVO PARAMETERS ***/
 
-    int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
-    int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    /* play high speed boost parameters */
     int32_t play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
     int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
-    int32_t play_max_torque;           	/* must be <= DAC_MAX */
-    int32_t play_min_torque;
-    /* play high speed boost parameters */
-    int32_t play_hi_boost_start;
     int32_t play_hi_boost_end;
-    int32_t play_hi_boost_time;
-    int32_t play_hi_boost_step;
+    float   play_hi_boost_supply_gain;
+    float   play_hi_boost_takeup_gain;
     /* play low speed boost parameters */
-    int32_t play_lo_boost_start;
+    int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
+    int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_lo_boost_end;
-    int32_t play_lo_boost_time;			/* duration of play boost acceleration   */
-    int32_t play_lo_boost_step;		 	/* amount to decrement boost count by    */
+    float   play_lo_boost_supply_gain;
+    float   play_lo_boost_takeup_gain;
     int32_t reserved10;
 } SYSPARMS;
 
@@ -212,41 +204,40 @@ typedef struct _SYSPARMS
 
 typedef struct _SERVODATA
 {
-	uint32_t	mode;				/* the current servo mode        */
-	uint32_t	mode_prev;			/* previous servo mode           */
-	int32_t		motion;				/* servo motion flag             */
-	int32_t 	direction;			/* 1 = fwd or -1 = reverse       */
-	float		velocity;		    /* sum of both reel velocities   */
-	float		velocity_supply;	/* supply tach count per sample  */
-	float 		velocity_takeup;    /* takeup tach count per sample  */
-	float		tape_tach;			/* tape roller tachometer        */
-	float		radius_takeup;		/* takeup reel reeling radius    */
-	float		radius_supply;		/* supply reel reeling radius    */
-	float		stop_torque_supply;	/* stop mode supply null         */
-	float		stop_torque_takeup;	/* stop mode takeup null         */
-	int32_t		stop_brake_state;	/* stop servo dynamic brake state*/
+	uint32_t	mode;					/* the current servo mode        */
+	uint32_t	mode_prev;				/* previous servo mode           */
+	int32_t		motion;					/* servo motion flag             */
+	int32_t 	direction;				/* 1 = fwd or -1 = reverse       */
+	float		velocity;		    	/* sum of both reel velocities   */
+	float		velocity_supply;		/* supply tach count per sample  */
+	float 		velocity_takeup;    	/* takeup tach count per sample  */
+	float		tape_tach;				/* tape roller tachometer        */
+	float		radius_takeup;			/* takeup reel reeling radius    */
+	float		radius_supply;			/* supply reel reeling radius    */
+	float		stop_torque_supply;		/* stop mode supply null         */
+	float		stop_torque_takeup;		/* stop mode takeup null         */
+	int32_t		stop_brake_state;		/* stop servo dynamic brake state*/
 	int32_t		offset_sample_cnt;
-	float		offset_null;       	/* takeup/supply tach difference */
+	float		offset_null;       		/* takeup/supply tach difference */
 	float		offset_null_sum;
-	float 		offset_takeup;		/* takeup null offset value      */
-	float		offset_supply;		/* supply null offset value      */
+	float 		offset_takeup;			/* takeup null offset value      */
+	float		offset_supply;			/* supply null offset value      */
 	int32_t		play_boost_count;
-    int32_t 	play_boost_time;	/* play boost timer counter      */
-    int32_t		play_boost_step;	/* decrement boost time step     */
-    int32_t		play_boost_start;
-    int32_t		play_boost_end;
+    int32_t		play_boost_end;			/* tape velocity to exit boost   */
+    float 	    play_boost_supply_gain;	/* play boost gain               */
+    float 	    play_boost_takeup_gain;	/* play boost gain               */
     float		play_supply_tension;
     float		play_takeup_tension;
     uint32_t    shuttle_velocity;
 	uint32_t	qei_takeup_error_cnt;
 	uint32_t	qei_supply_error_cnt;
-    uint32_t	adc[8];				/* ADC values (tension, etc)     */
-    float		tsense;				/* tension sensor value 		 */
-    float		cpu_temp;			/* CPU temp included in ADC read */
-    float		dac_takeup;			/* current takeup DAC level      */
-    float		dac_supply;			/* current supply DAC level      */
-    uint32_t 	dac_halt_supply;	/* halt mode DAC level           */
-    uint32_t	dac_halt_takeup;	/* halt mode DAC level           */
+    uint32_t	adc[8];					/* ADC values (tension, etc)     */
+    float		tsense;					/* tension sensor value 		 */
+    float		cpu_temp;				/* CPU temp included in ADC read */
+    float		dac_takeup;				/* current takeup DAC level      */
+    float		dac_supply;				/* current supply DAC level      */
+    uint32_t 	dac_halt_supply;		/* halt mode DAC level           */
+    uint32_t	dac_halt_takeup;		/* halt mode DAC level           */
 	FPID		fpid;
 	/*** Debug Variables ***/
 	float 		db_cv;

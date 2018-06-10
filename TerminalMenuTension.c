@@ -99,6 +99,7 @@ static MENUITEM tension_items[] = {
 		.param2.U = 1024.0f,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_takeup_tension },
 
+#if 0
 { 10, 6, "", "MIN TORQUE", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
@@ -138,6 +139,7 @@ static MENUITEM tension_items[] = {
 		.param1.U = 1,
 		.param2.U = DAC_MAX,
 		NULL, put_idata, DT_LONG, &g_sys.play_max_torque },
+#endif
 
 { 16,  6, "", "SERVO PARAMETERS", MI_TEXT,
 		.param1.U = 1,

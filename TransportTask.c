@@ -110,32 +110,26 @@ void ResetServoPlay(void)
     g_capdata_count = 0;
 #endif
 
-    g_servo.play_boost_count  = 0;
+    g_servo.play_boost_count  = 300;
 
     /* Initialize the play servo data items */
     if (g_high_speed_flag)
     {
         /* Reset the tension values */
-        g_servo.play_supply_tension = (float)g_sys.play_hi_supply_tension;
-        g_servo.play_takeup_tension = (float)g_sys.play_hi_takeup_tension;
-
-        /* Reset the play boost counters */
-        g_servo.play_boost_time     = g_sys.play_hi_boost_time;
-        g_servo.play_boost_step     = g_sys.play_hi_boost_step;
-        g_servo.play_boost_start    = g_sys.play_hi_boost_start;
-        g_servo.play_boost_end      = g_sys.play_hi_boost_end;
+        g_servo.play_supply_tension    = (float)g_sys.play_hi_supply_tension;
+        g_servo.play_takeup_tension    = (float)g_sys.play_hi_takeup_tension;
+        g_servo.play_boost_supply_gain = g_sys.play_hi_boost_supply_gain;
+        g_servo.play_boost_takeup_gain = g_sys.play_hi_boost_takeup_gain;
+        g_servo.play_boost_end         = g_sys.play_hi_boost_end;
     }
     else
     {
         /* Reset the tension values */
-        g_servo.play_supply_tension = (float)g_sys.play_lo_supply_tension;
-        g_servo.play_takeup_tension = (float)g_sys.play_lo_takeup_tension;
-
-        /* Reset the play boost counters */
-        g_servo.play_boost_time     = g_sys.play_lo_boost_time;
-        g_servo.play_boost_step     = g_sys.play_lo_boost_step;
-        g_servo.play_boost_start    = g_sys.play_lo_boost_start;
-        g_servo.play_boost_end      = g_sys.play_lo_boost_end;
+        g_servo.play_supply_tension    = (float)g_sys.play_lo_supply_tension;
+        g_servo.play_takeup_tension    = (float)g_sys.play_lo_takeup_tension;
+        g_servo.play_boost_supply_gain = g_sys.play_lo_boost_supply_gain;
+        g_servo.play_boost_takeup_gain = g_sys.play_lo_boost_takeup_gain;
+        g_servo.play_boost_end         = g_sys.play_lo_boost_end;
     }
 
     TapeTach_reset();
@@ -156,7 +150,7 @@ void ResetServoPID(void)
              g_sys.shuttle_servo_pgain,     // P-gain
              g_sys.shuttle_servo_igain,     // I-gain
              g_sys.shuttle_servo_dgain,     // D-gain
-             (float)DAC_MAX,
+             DAC_MAX_F,
              PID_TOLERANCE_F);              // PID deadband
 
     Semaphore_post(g_semaServo);

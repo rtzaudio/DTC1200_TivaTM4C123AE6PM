@@ -44,6 +44,10 @@
  *
  */
 
+/* The AMS AS5047D quadrature encoder is 2000 step per revolution,
+ * or 500 pulses per revolution (PPR).
+ */
+
 #define QEI_BASE_SUPPLY	    QEI0_BASE   	/* QEI-0 is SUPPLY encoder */
 #define QEI_BASE_TAKEUP	    QEI1_BASE   	/* QEI-1 is TAKEUP encoder */
 

@@ -279,7 +279,7 @@ void TapeTach_reset(void)
  * WTIMER1A as 32-bit input edge count mode.
   ****************************************************************************/
 
-#define TACH_EDGE_COUNT	10
+#define TACH_EDGE_COUNT	20
 
 static uint32_t g_prevCount = 0xFFFFFFFF;
 static uint32_t g_thisPeriod;

@@ -62,6 +62,7 @@ extern "C" {
 
 #define DAC_MIN			0           /* zero scale DAC setting  */
 #define DAC_MAX			0x03FF      /* 10-bit full scale DAC   */
+#define DAC_MAX_F		((float)DAC_MAX)
 
 #define ADC_MIN			0           /* zero scale ADC input    */
 #define ADC_MAX			0x0FFF      /* 12-bit full scale ADC   */

@@ -21,7 +21,7 @@
 
 #define PID_Kp				0.56f
 #define PID_Ki				0.19f
-#define PID_Kd				0.03f
+#define PID_Kd				0.01f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */
 

@@ -384,36 +384,21 @@ static void SvcServoPlay(void)
     
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
     
-    if (g_servo.play_boost_time)
+    if (g_servo.play_boost_count)
     {
-        g_servo.play_boost_count += 1;
-
-        dac_t = (g_servo.play_boost_start - (g_servo.velocity_takeup * 10.0f)) + g_servo.tsense;
-
-        dac_s = (g_servo.velocity_takeup * 18.75f) + g_servo.tsense;
+        --g_servo.play_boost_count;
 
         /* Boost status LED on */
         g_lamp_mask |= L_STAT3;
 
-        if (g_servo.play_boost_time >= g_servo.play_boost_step)
-        {
-            g_servo.play_boost_time -= g_servo.play_boost_step;
+        dac_t = (DAC_MAX_F - (g_servo.velocity_takeup * g_servo.play_boost_takeup_gain)) + g_servo.tsense;
 
-            /* End boost if we're at the desired speed */
-            if (g_servo.play_boost_end)
-            {
-                if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
-                {
-                    g_servo.play_boost_time = 0;
+        dac_s = (g_servo.velocity_supply * g_servo.play_boost_supply_gain) + g_servo.tsense;
 
-                    /* Turn off boost status LED */
-                    g_lamp_mask &= ~(L_STAT3);
-                }
-            }
-        }
-        else
+
+        if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
         {
-            g_servo.play_boost_time = 0;
+            g_servo.play_boost_count = 0;
 
             /* Turn off boost status LED */
             g_lamp_mask &= ~(L_STAT3);
@@ -421,14 +406,17 @@ static void SvcServoPlay(void)
     }
     else
     {
-    	/* Calculate the SUPPLY Torque */
-        dac_s = (g_servo.play_supply_tension + g_servo.tsense) + g_servo.offset_supply;
-
         /* Calculate the TAKEUP Torque */
-        dac_t = (g_servo.play_takeup_tension - g_servo.tsense) + g_servo.offset_takeup;
+        dac_t = (g_servo.play_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
+
+        /* Calculate the SUPPLY Torque */
+        dac_s = (g_servo.play_supply_tension + g_servo.tsense) + g_servo.offset_supply;
     }
 
     Semaphore_post(g_semaServo);
+
+    // DEBUG
+    g_servo.db_debug = (float)g_servo.play_boost_count;
     
     /* Play Mode Diagnostic Data Capture */
 
@@ -449,8 +437,8 @@ static void SvcServoPlay(void)
 
     /* Clamp the DAC values within range if needed */
 
-    DAC_CLAMP(dac_s, (float)g_sys.play_min_torque, (float)g_sys.play_max_torque);
-    DAC_CLAMP(dac_t, (float)g_sys.play_min_torque, (float)g_sys.play_max_torque);
+    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
+    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
 
     /* Set the servo DAC levels */
 
@@ -534,8 +522,8 @@ static void SvcServoStop(void)
 
     /* Safety Clamps */
 
-    DAC_CLAMP(dac_s, (float)g_sys.stop_min_torque, (float)g_sys.stop_max_torque);
-    DAC_CLAMP(dac_t, (float)g_sys.stop_min_torque, (float)g_sys.stop_max_torque);
+    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
+    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
 
     /* Set the DAC levels to the servos */
 
@@ -595,8 +583,8 @@ static void SvcServoFwd(void)
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
 
     /* Safety Clamp */
-    DAC_CLAMP(dac_s, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
-    DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
+    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
 
     /* Set the servo DAC levels */
     MotorDAC_write(dac_s, dac_t);
@@ -655,8 +643,8 @@ static void SvcServoRew(void)
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) - cv) + g_servo.offset_takeup;
 
     /* Safety clamp */
-    DAC_CLAMP(dac_s, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
-    DAC_CLAMP(dac_t, (float)g_sys.shuttle_min_torque, (float)g_sys.shuttle_max_torque);
+    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
+    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
 
     /* Set the servo DAC levels */
     MotorDAC_write(dac_s, dac_t);

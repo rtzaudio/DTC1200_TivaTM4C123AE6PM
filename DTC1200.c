@@ -725,7 +725,8 @@ void InitSysDefaults(SYSPARMS* p)
     p->sysflags					= SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
     p->vel_detect_threshold     = 5;        /* 10 pulses or less = no velocity  */
-    p->reel_radius_gain         = 0.12f;    /* null offset gain                 */
+    p->play_radius_gain         = 0.10f;	/* play mode reeling radius gain    */
+    p->reel_offset_gain         = 0.12f;    /* null offset gain                 */
     p->tension_sensor_gain      = 0.13f;	/* tension sensor arm gain          */
 
     p->debounce                 = 30;		/* button debounce time             */
@@ -747,16 +748,18 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_max_torque       = DAC_MAX;  /* shuttle max torque               */
     p->shuttle_min_torque       = 10;       /* shuttle min torque               */
     p->shuttle_velocity         = 475;      /* max shuttle velocity             */
+    p->shuttle_lib_velocity     = 225;      /* max shuttle velocity             */
     p->shuttle_slow_offset      = 60;       /* offset to reduce velocity at     */
     p->shuttle_slow_velocity    = 0;        /* reduce velocity to speed         */
     p->shuttle_servo_pgain      = PID_Kp;   /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain      = PID_Ki;   /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain      = PID_Kd;   /* shuttle mode servo D-gain        */
 
-    p->play_lo_supply_tension   = 34.5f;    /* supply tension level             */
-    p->play_lo_takeup_tension   = 37.5f;    /* takeup tension level             */
-    p->play_hi_supply_tension   = 34.5f;    /* supply tension level             */
-    p->play_hi_takeup_tension   = 37.5f;    /* takeup tension level             */
+    p->play_lo_supply_tension   = 350;      /* supply tension level             */
+    p->play_lo_takeup_tension   = 375;      /* takeup tension level             */
+    p->play_hi_supply_tension   = 350;      /* supply tension level             */
+    p->play_hi_takeup_tension   = 375;      /* takeup tension level             */
+
     p->play_max_torque          = DAC_MAX;  /* play mode max torque (0-DAC_MAX) */
     p->play_min_torque          = 10;       /* play mode min torque (0-DAC_MAX) */
     p->play_lo_boost_time       = 1500;     /* play mode accel boost from stop  */
@@ -766,7 +769,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_lo_boost_start      = DAC_MAX;
     p->play_lo_boost_end        = 105;
     p->play_hi_boost_start      = DAC_MAX;
-    p->play_hi_boost_end        = 235;		// 215;
+    p->play_hi_boost_end        = 238;		// 215;
 
     p->reserved3                = 0;        /* reserved */
     p->reserved4                = 0;        /* reserved */
@@ -788,7 +791,7 @@ int32_t SysParamsWrite(SYSPARMS* sp)
 
     rc = EEPROMProgram((uint32_t *)sp, 0, sizeof(SYSPARMS));
 
-    System_printf("Writing System Parameters %d\n", rc);
+    System_printf("Writing System Parameters (size=%d)\n", sizeof(SYSPARMS));
     System_flush();
 
     return rc;

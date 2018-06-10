@@ -43,9 +43,9 @@
 #ifndef DTC1200_TAPE_TACH_H_
 #define DTC1200_TAPE_TACH_H_
 
-//#define WIDE_TIMER_TACH
+#define TACH_TYPE_EDGE_WIDTH	0
 
-#define TACH_AVG_QTY	100
+#define TACH_AVG_QTY			100
 
 //*****************************************************************************
 //  Wide Timer Tach Data

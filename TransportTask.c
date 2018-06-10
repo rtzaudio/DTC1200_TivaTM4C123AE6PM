@@ -116,8 +116,8 @@ void ResetServoPlay(void)
     if (g_high_speed_flag)
     {
         /* Reset the tension values */
-        g_servo.play_supply_tension = g_sys.play_hi_supply_tension;
-        g_servo.play_takeup_tension = g_sys.play_hi_takeup_tension;
+        g_servo.play_supply_tension = (float)g_sys.play_hi_supply_tension;
+        g_servo.play_takeup_tension = (float)g_sys.play_hi_takeup_tension;
 
         /* Reset the play boost counters */
         g_servo.play_boost_time     = g_sys.play_hi_boost_time;
@@ -128,8 +128,8 @@ void ResetServoPlay(void)
     else
     {
         /* Reset the tension values */
-        g_servo.play_supply_tension = g_sys.play_lo_supply_tension;
-        g_servo.play_takeup_tension = g_sys.play_lo_takeup_tension;
+        g_servo.play_supply_tension = (float)g_sys.play_lo_supply_tension;
+        g_servo.play_takeup_tension = (float)g_sys.play_lo_takeup_tension;
 
         /* Reset the play boost counters */
         g_servo.play_boost_time     = g_sys.play_lo_boost_time;
@@ -299,9 +299,17 @@ Void TransportCommandTask(UArg a0, UArg a1)
             {
                 QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD);
             }
+            else if (mbutton == (S_FWD|S_REC))		/* fast fwd + rec button */
+            {
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD|M_LIBWIND);
+            }
             else if (mbutton == S_REW)              /* rewind button */
             {
                 QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW);
+            }
+            else if (mbutton == (S_REW|S_REC))     /* rewind + rec button */
+            {
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW|M_LIBWIND);
             }
             else if (mbutton == S_PLAY)             /* play only button pressed? */
             {
@@ -455,7 +463,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* If we're blinking the stop lamp during pending stop
                      * requests, then turn on the STOP lamp initially also.
                      */
-                    if (g_dip_switch & M_DIPSW2)
+                    if (!(g_dip_switch & M_DIPSW2))
                         lamp_mask |= L_STOP;
 
                     /* Stop and new lamp mask, diag leds preserved */
@@ -521,6 +529,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Initialize shuttle mode PID values */
                     ResetServoPID();
 
+                    /* Set the servo velocity parameter */
+                    g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
+
                     // 500 ms delay for tape lifter settling time
                     if (!IS_SERVO_MOTION())
                         Task_sleep(g_sys.lifter_settle_time);
@@ -552,6 +563,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                      /* Initialize the shuttle tension sensor and velocity PID data */
                     ResetServoPID();
+
+                    /* Set the servo velocity parameter */
+                    g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
 
                     // 500 ms delay for tape lifter settling time
                     if (!IS_SERVO_MOTION())
@@ -605,7 +619,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
             /* Blink the stop lamp to indicate stop is pending */
 
-            if (g_dip_switch & M_DIPSW2)
+            if (!(g_dip_switch & M_DIPSW2))
             {
                 if ((stoptimer % 12) == 0)
                 {

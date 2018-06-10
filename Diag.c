@@ -485,10 +485,10 @@ int diag_dump_capture(MENUITEM* mp)
 
     for (i=0; i < CAPDATA_SIZE; i++)
     {
-    	tty_printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",
+    	tty_printf("%u,%u,%u,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f\r\n",
    			i,
-    		g_capdata[i].dac_supply,
-    		g_capdata[i].dac_takeup,
+    		(uint32_t)g_capdata[i].dac_supply,
+    		(uint32_t)g_capdata[i].dac_takeup,
     		g_capdata[i].vel_supply,
     		g_capdata[i].vel_takeup,
     		g_capdata[i].rad_supply,

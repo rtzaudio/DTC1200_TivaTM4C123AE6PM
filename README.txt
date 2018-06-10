@@ -23,21 +23,21 @@ the LMFLASH utility for firmware updates over RS-232.
 Download and install the LMFLASH utility. Follow the DTC bootloader firmware
 update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
-web and download free from TI. Note the tension parameters have changed
-in scaling. You'll notice these values look higher than the previous
-release.
+web and download free from TI.
 
-=== VERSION 2.14 ===========================================================
+=== VERSION 2.16 (05/27/2018) ==============================================
 
-Code for the tension sensor works differently now and can be monitored
-on the DTC diagnostics screen. The tension sensor trimmer should be 
-adjusted to read roughly around zero with the sensor arm at the cal 
-mark on the deck (around 9oz force on the arm). Note the tension sensor 
-gain parameter in the configuration can be set to zero to ignore the 
-tension sensor in the servo loop calculations. We will set this to zero 
-while calibrating the base tape tension levels with the Tentelometer. 
-This way we can remove the effect of the tension sensor to set our 
-base tension levels.
+Note the tension parameters have changed in scaling. You'll notice these
+values look higher than the previous release. Code for the tension sensor
+works differently now and can be monitored on the DTC diagnostics screen.
+
+The tension sensor gain trimmer should be adjusted to read closely around
+zero with the sensor arm at the calibration mark on the deck (around 9oz
+force on the arm). Note the tension sensor gain parameter in the 
+configuration can be set to zero to ignore the tension sensor in the servo
+loop calculations. We will set this to zero while calibrating the base tape
+tension levels with the Tentelometer. This way we can remove the effect
+of the tension sensor to set our base tension levels.
 
 Make sure the 15V/27V rails are on spec before adjusting things. Use 
 the DTC diagnostic function to align the MDA offset as described in 

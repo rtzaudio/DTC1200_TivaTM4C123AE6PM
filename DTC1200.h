@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        14        	/* firmware revision */
+#define FIRMWARE_REV        17        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -138,7 +138,8 @@ typedef struct _SYSPARMS
     int32_t debug;                     	/* debug level */
     int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
     int32_t reserved1;
-    float   reel_radius_gain;			/* reeling radius gain factor        */
+    float   play_radius_gain;			/* reeling radius play gain factor   */
+    float   reel_offset_gain;			/* reeling radius offset gain factor */
     float   tension_sensor_gain;		/* tension sensor gain divisor       */
     int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
     int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
@@ -163,11 +164,12 @@ typedef struct _SYSPARMS
 
     /*** SHUTTLE SERVO PARAMETERS ***/
 
-    int32_t shuttle_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
-    int32_t shuttle_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t shuttle_supply_tension;    	/* play supply tension (0-DAC_MAX)   */
+    int32_t shuttle_takeup_tension;    	/* play takeup tension               */
     int32_t shuttle_max_torque;        	/* must be <= DAC_MAX */
     int32_t shuttle_min_torque;
-    int32_t shuttle_velocity;          	/* target speed for shuttle mode         */
+    int32_t shuttle_velocity;          	/* target speed for shuttle mode     */
+    int32_t shuttle_lib_velocity;		/* library wind mode velocity        */
     /* reel servo PID values */
     int32_t reserved5;
     float   shuttle_servo_pgain;       	/* P-gain */
@@ -178,10 +180,10 @@ typedef struct _SYSPARMS
 
     /*** PLAY SERVO PARAMETERS ***/
 
-    float   play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
-    float   play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
-    float   play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
-    float   play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
+    int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
+    int32_t play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
+    int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_max_torque;           	/* must be <= DAC_MAX */
     int32_t play_min_torque;
     /* play high speed boost parameters */
@@ -235,11 +237,12 @@ typedef struct _SERVODATA
     int32_t		play_boost_end;
     float		play_supply_tension;
     float		play_takeup_tension;
+    uint32_t    shuttle_velocity;
 	uint32_t	qei_takeup_error_cnt;
 	uint32_t	qei_supply_error_cnt;
+    uint32_t	adc[8];				/* ADC values (tension, etc)     */
     float		tsense;				/* tension sensor value 		 */
     float		cpu_temp;			/* CPU temp included in ADC read */
-    uint32_t	adc[8];				/* ADC values (tension, etc)     */
     float		dac_takeup;			/* current takeup DAC level      */
     float		dac_supply;			/* current supply DAC level      */
     uint32_t 	dac_halt_supply;	/* halt mode DAC level           */

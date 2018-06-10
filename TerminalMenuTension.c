@@ -65,14 +65,14 @@ static MENUITEM tension_items[] = {
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_supply_tension },
 
 { 7, 2, "3", "Play LO", MI_NUMERIC,
-		.param1.F = 10.0f,
-		.param2.F = 100.0f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_supply_tension },
+		.param1.U = 10,
+		.param2.U = 1024,
+		NULL, put_idata, DT_LONG, &g_sys.play_lo_supply_tension },
 
 { 8, 2, "4", "Play HI", MI_NUMERIC,
-		.param1.F = 10.0f,
-		.param2.F = 100.0f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_supply_tension },
+		.param1.U = 10,
+		.param2.U = 1024,
+		NULL, put_idata, DT_LONG, &g_sys.play_hi_supply_tension },
 
 { 3, 30, "", "TAKEUP TENSION", MI_TEXT,
 		.param1.U = 1,
@@ -90,14 +90,14 @@ static MENUITEM tension_items[] = {
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_takeup_tension },
 
 { 7, 26, "7", "Play LO", MI_NUMERIC,
-		.param1.F = 10.0f,
-		.param2.F = 100.0f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_takeup_tension },
+		.param1.U = 10.0f,
+		.param2.U = 1024.0f,
+		NULL, put_idata, DT_LONG, &g_sys.play_lo_takeup_tension },
 
 { 8, 26, "8", "Play HI", MI_NUMERIC,
-		.param1.F = 10.0f,
-		.param2.F = 100.0f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_takeup_tension },
+		.param1.U = 10.0f,
+		.param2.U = 1024.0f,
+		NULL, put_idata, DT_LONG, &g_sys.play_hi_takeup_tension },
 
 { 10, 6, "", "MIN TORQUE", MI_TEXT,
 		.param1.U = 1,
@@ -139,17 +139,22 @@ static MENUITEM tension_items[] = {
 		.param2.U = DAC_MAX,
 		NULL, put_idata, DT_LONG, &g_sys.play_max_torque },
 
-{ 16,  6, "", "SERVO SETTINGS", MI_TEXT,
+{ 16,  6, "", "SERVO PARAMETERS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 18,  2, "15", "Reeling Radius Gain", MI_NUMERIC,
+{ 18,  2, "15", "Reel Offset Gain   ", MI_NUMERIC,
 		.param1.F = 0.01f,
 		.param2.F = 1.00f,
-		NULL, put_idata, DT_FLOAT, &g_sys.reel_radius_gain },
+		NULL, put_idata, DT_FLOAT, &g_sys.reel_offset_gain },
 
-{ 19,  2, "16", "Tension Sensor Gain", MI_NUMERIC,
+{ 19,  2, "16", "Play Radius Gain   ", MI_NUMERIC,
+		.param1.F = 0.025f,
+		.param2.F = 1.00f,
+		NULL, put_idata, DT_FLOAT, &g_sys.play_radius_gain },
+
+{ 20,  2, "17", "Tension Sensor Gain", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 1.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.tension_sensor_gain },

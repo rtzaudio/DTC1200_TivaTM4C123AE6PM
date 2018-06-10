@@ -92,7 +92,7 @@ static MENUITEM main_items[] = {
 		.param2.U = 0,
 		NULL, mc_read_config, 0, 0 },
 
-{ 15, 2, "8", "Reset Config to Defaults", MI_EXEC,
+{ 15, 2, "8", "Reset to Defaults", MI_EXEC,
 		.param1.U = 0,
 		.param2.U = 0,
 		NULL, mc_default_config, 0, 0 },

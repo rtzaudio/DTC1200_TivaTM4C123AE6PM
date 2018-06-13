@@ -110,7 +110,8 @@ void ResetServoPlay(void)
     g_capdata_count = 0;
 #endif
 
-    g_servo.play_boost_count  = 300;
+    g_servo.play_boost_count = 500;
+    g_servo.play_boost_index = 0;
 
     /* Initialize the play servo data items */
     if (g_high_speed_flag)
@@ -468,15 +469,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     /* Set the reel servos for stop mode */
                     SET_SERVO_MODE(MODE_STOP);
-#if 0
-                    if (last_mode_completed == MODE_PLAY)
-                    {
-                        if (g_sys.sysflags & SF_BRAKES_STOP_PLAY)
-                        {
-                            SetTransportMask(T_BRAKE, 0);
-                        }
-                    }
-#endif
+
                     mode_pending = MODE_STOP;
                     break;
 
@@ -493,7 +486,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Turn on the play lamp */
                     //g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
-                    /* upper bit indicates record when starting play mode */
+                    /* save upper bit as it indicates record+play mode */
                     record = (msg.opcode & M_RECORD) ? 1 : 0;
 
                     /* Set the reel servos to stop mode initially */
@@ -766,11 +759,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Set the play mode velocity */
                     ResetServoPlay();
 
-                    /* [2] Start the reel servos in PLAY mode */
-                    SET_SERVO_MODE(MODE_PLAY);
-
                     /* [3] Now start the capstan servo motor */
                     SetTransportMask(T_SERVO, 0);
+
+                    /* [2] Start the reel servos in PLAY mode */
+                    SET_SERVO_MODE(MODE_PLAY);
 
                     /* [4] Enable record if record flag was set */
                     if (record)

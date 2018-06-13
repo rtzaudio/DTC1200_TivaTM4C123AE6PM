@@ -54,12 +54,12 @@ static MENUITEM play_items[] = {
 
 { 5, 2, "1", "Takeup Gain", MI_NUMERIC,
 		.param1.F = 1.0f,
-		.param2.F = 30.0f,
+		.param2.F = 200.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_boost_takeup_gain },
 
 { 6, 2, "2", "Supply Gain", MI_NUMERIC,
 		.param1.F = 1.0f,
-		.param2.F = 30.0f,
+		.param2.F = 200.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_boost_supply_gain },
 
 { 7, 2, "3", "Boost End  ", MI_NUMERIC,
@@ -74,12 +74,12 @@ static MENUITEM play_items[] = {
 
 { 5, 34, "5", "Takeup Gain", MI_NUMERIC,
 		.param1.F = 1.0f,
-		.param2.F = 30.0f,
+		.param2.F = 200.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_boost_takeup_gain },
 
 { 6, 34, "6", "Supply Gain", MI_NUMERIC,
 		.param1.F = 1.0f,
-		.param2.F = 30.0f,
+		.param2.F = 200.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_boost_supply_gain },
 
 { 7, 34, "7", "Boost End  ", MI_NUMERIC,

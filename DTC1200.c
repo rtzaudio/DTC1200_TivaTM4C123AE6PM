@@ -237,8 +237,6 @@ Void MainControlTask(UArg a0, UArg a1)
     memset(&g_servo, 0, sizeof(SERVODATA));
     memset(&g_sys, 0, sizeof(SYSPARMS));
 
-    InitSysDefaults(&g_sys);
-
     InitPeripherals();
 
     /* Read the initial mode switch states */
@@ -249,6 +247,9 @@ Void MainControlTask(UArg a0, UArg a1)
     /* Read the initial transport switch states */
     GetTransportSwitches(&tout_prev);
     g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
+
+    /* Initialize the default system paramters */
+    InitSysDefaults(&g_sys);
 
     /* Read the system config parameters from storage */
     status = SysParamsRead(&g_sys);
@@ -510,9 +511,10 @@ Void MainControlTask(UArg a0, UArg a1)
     memset(&g_servo, 0, sizeof(SERVODATA));
     memset(&g_sys, 0, sizeof(SYSPARMS));
 
-    InitSysDefaults(&g_sys);
-
     InitPeripherals();
+
+    /* Detect tape width from head stack mounted */
+    g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
 
     /* Read the initial mode switch states */
     GetModeSwitches(&mode_prev);
@@ -523,22 +525,15 @@ Void MainControlTask(UArg a0, UArg a1)
     GetTransportSwitches(&tout_prev);
     g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
 
-    /* Detect tape width from head stack mounted */
-    g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
+    /* Initialize the default system paramters */
+    InitSysDefaults(&g_sys);
 
     /* Read the system config parameters from storage */
     status = SysParamsRead(&g_sys);
 
-    /* Initialize servo loop controller data */
-    g_servo.mode              = MODE_HALT;
-    g_servo.offset_sample_cnt = 0;
-    g_servo.offset_null_sum   = 0.0f;
-    g_servo.dac_halt_takeup   = 0;
-    g_servo.dac_halt_supply   = 0;
-	g_servo.play_boost_count  = 0;
-
-    /* Servo's start in halt mode! */
-    SET_SERVO_MODE(MODE_HALT);
+    /*
+     *  Start up the various system task threads
+     */
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
@@ -724,46 +719,67 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->vel_detect_threshold      = 5;        /* 10 pulses or less = no velocity  */
     p->reel_offset_gain          = 0.110f;   /* reel torque null offset gain     */
-    p->play_radius_gain          = 0.100f;	/* play mode reeling radius gain    */
-    p->tension_sensor_gain       = 0.050f;	/* tension sensor arm gain          */
+    p->play_radius_gain          = 1.000f;	 /* play mode reeling radius gain    */
+    p->tension_sensor_gain       = 0.050f;	 /* tension sensor arm gain          */
 
-    p->debounce                  = 30;		/* button debounce time             */
+    p->debounce                  = 30;		 /* button debounce time             */
     p->lifter_settle_time        = 600;      /* tape lifter settling delay in ms */
     p->brake_settle_time         = 450;
-    p->play_settle_time			 = 800;		/* play after shuttle settle time   */
+    p->play_settle_time			 = 800;		 /* play after shuttle settle time   */
     p->pinch_settle_time         = 250;      /* start 250ms after pinch roller   */
     p->record_pulse_time     	 = REC_PULSE_TIME;
     p->rechold_settle_time    	 = REC_SETTLE_TIME;
 
     p->stop_supply_tension       = 360;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension       = 385;      /* takeup tension level (0-DAC_MAX) */
-    p->stop_brake_torque         = 650;    	/* max dynamic stop brake torque   */
+    p->stop_brake_torque         = 600;    	 /* max dynamic stop brake torque   */
 
     p->shuttle_supply_tension    = 360;      /* shuttle supply reel tension      */
     p->shuttle_takeup_tension    = 385;      /* shuttle takeup reel tension      */
     p->shuttle_velocity          = 475;      /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 250;      /* max shuttle lib wind velocity    */
-    p->shuttle_slow_offset       = 60;       /* offset to reduce velocity at     */
-    p->shuttle_slow_velocity     = 0;        /* reduce velocity to speed         */
+    p->shuttle_autoslow_offset   = 40;       /* offset to reduce velocity at     */
+    p->shuttle_autoslow_velocity = 100;      /* reduce velocity to speed         */
     p->shuttle_servo_pgain       = PID_Kp;   /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;   /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;   /* shuttle mode servo D-gain        */
 
-    p->play_lo_supply_tension    = 350;      /* supply tension level             */
     p->play_lo_takeup_tension    = 375;      /* takeup tension level             */
-    p->play_lo_boost_supply_gain = 18.75f;
-    p->play_lo_boost_takeup_gain = 10.0f;
+    p->play_lo_supply_tension    = 350;      /* supply tension level             */
+    p->play_lo_boost_takeup_gain = 100.0f;
+    p->play_lo_boost_supply_gain = 76.0f;
     p->play_lo_boost_end         = 28;
 
-
-    p->play_hi_supply_tension    = 350;      /* supply tension level             */
     p->play_hi_takeup_tension    = 375;      /* takeup tension level             */
-    p->play_hi_boost_supply_gain = 18.75f;
-    p->play_hi_boost_takeup_gain = 10.0f;
+    p->play_hi_supply_tension    = 350;      /* supply tension level             */
+    p->play_hi_boost_takeup_gain = 100.0f;
+    p->play_hi_boost_supply_gain = 76.0f;
     p->play_hi_boost_end         = 118;
 
     p->reserved3                 = 0;        /* reserved */
     p->reserved4                 = 0;        /* reserved */
+
+    /* If running 1" tape width headstack, overwrite any members
+     * that require different default values. Mainly we load the
+     * tensions with 1/2 the values required for 2".
+     */
+
+    if (g_tape_width == 1)
+    {
+        p->stop_brake_torque         = 400;		/* max dynamic stop brake torque   */
+
+        p->stop_supply_tension       /= 2;		/* supply tension level (0-DAC_MAX) */
+        p->stop_takeup_tension       /= 2;		/* takeup tension level (0-DAC_MAX) */
+
+        p->shuttle_supply_tension    /= 2;		/* shuttle supply reel tension      */
+        p->shuttle_takeup_tension    /= 2;		/* shuttle takeup reel tension      */
+
+        p->play_lo_takeup_tension    /= 2;		/* takeup tension level             */
+        p->play_lo_supply_tension    /= 2;		/* supply tension level             */
+
+        p->play_hi_takeup_tension    /= 2;		/* takeup tension level             */
+        p->play_hi_supply_tension    /= 2;		/* supply tension level             */
+    }
 }
 
 //*****************************************************************************
@@ -777,10 +793,14 @@ int32_t SysParamsWrite(SYSPARMS* sp)
 {
     int32_t rc = 0;
 
+    uint32_t uAddress;
+
+    uAddress = (g_tape_width == 1) ? 0: sizeof(SYSPARMS);
+
     sp->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
     sp->magic   = MAGIC;
 
-    rc = EEPROMProgram((uint32_t *)sp, 0, sizeof(SYSPARMS));
+    rc = EEPROMProgram((uint32_t *)sp, uAddress, sizeof(SYSPARMS));
 
     System_printf("Writing System Parameters (size=%d)\n", sizeof(SYSPARMS));
     System_flush();
@@ -800,7 +820,11 @@ int32_t SysParamsRead(SYSPARMS* sp)
 {
     InitSysDefaults(sp);
 
-    EEPROMRead((uint32_t *)sp, 0, sizeof(SYSPARMS));
+    uint32_t uAddress = 0;
+
+    uAddress = (g_tape_width == 1) ? 0: sizeof(SYSPARMS);
+
+    EEPROMRead((uint32_t *)sp, uAddress, sizeof(SYSPARMS));
 
     if (sp->magic != MAGIC)
     {

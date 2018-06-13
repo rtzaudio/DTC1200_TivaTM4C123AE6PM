@@ -171,7 +171,7 @@ int32_t IsServoMotion()
  *
  *****************************************************************************/
 
-#define RADIUS_F(ts, rs)  ( (ts)/((rs)+1.0f) )
+#define RADIUS_F(ts, rs)  ( ts / rs )
 
 Void ServoLoopTask(UArg a0, UArg a1)
 {
@@ -182,6 +182,17 @@ Void ServoLoopTask(UArg a0, UArg a1)
         SvcServoFwd,      /* MODE_FWD  */
         SvcServoRew       /* MODE_REW  */
     };
+
+    /* Initialize servo loop controller data */
+    g_servo.mode              = MODE_HALT;
+    g_servo.offset_sample_cnt = 0;
+    g_servo.offset_null_sum   = 0.0f;
+    g_servo.dac_halt_takeup   = 0;
+    g_servo.dac_halt_supply   = 0;
+	g_servo.play_boost_count  = 0;
+
+    /* Servo's start in halt mode! */
+    SET_SERVO_MODE(MODE_HALT);
 
     /* Initialize the QEI interface and interrupts */
     ReelQEI_initialize();
@@ -249,17 +260,22 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * velocity tach values.
          */
 
-        float veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;
         float delta = 0.0f;
+        float veldetect = 40.0f;
 
-        if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
-        {
+        if (g_servo.velocity > veldetect)
+   		{
             /* Calculate the current reeling radius as tape speed divided by
              * the reel speed. Takeup and supply velocity must not be zero!
              */
-            g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.play_radius_gain;
-            g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.play_radius_gain;
+       		g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.play_radius_gain;
+       		g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.play_radius_gain;
+        }
 
+        veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;
+
+        if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
+        {
             /* Calculate the difference in velocity of the two reels */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
                 delta = ((g_servo.velocity_takeup * OFFSET_SCALE_F) / g_servo.velocity_supply) - OFFSET_SCALE_F;
@@ -388,13 +404,31 @@ static void SvcServoPlay(void)
     {
         --g_servo.play_boost_count;
 
+        ++g_servo.play_boost_index;
+
         /* Boost status LED on */
         g_lamp_mask |= L_STAT3;
 
-        dac_t = (DAC_MAX_F - (g_servo.velocity_takeup * g_servo.play_boost_takeup_gain)) + g_servo.tsense;
+        /* Calculate the TAKEUP boost torque */
 
-        dac_s = (g_servo.velocity_supply * g_servo.play_boost_supply_gain) + g_servo.tsense;
+        //dac_t = (DAC_MAX_F - ((g_servo.velocity_takeup * g_servo.play_boost_takeup_gain) + g_servo.offset_takeup));
+        //dac_t = (DAC_MAX_F - ((g_servo.velocity_takeup * g_servo.play_boost_takeup_gain)));
 
+        dac_t = (g_servo.radius_takeup * g_servo.play_boost_takeup_gain) + g_servo.play_boost_count;
+
+        if (dac_t < 0.0f)
+        	dac_t = 0.0f;
+
+        /* Calculate the SUPPLY boost torque */
+
+        //dac_s = ((g_servo.velocity_supply * g_servo.play_boost_supply_gain) + g_servo.tsense) + g_servo.offset_supply;
+
+        dac_s = (g_servo.radius_supply * g_servo.play_boost_supply_gain);	/* 76.0f */
+
+        //if (dac_s > g_servo.play_supply_tension)
+        //	dac_s = g_servo.play_supply_tension;
+
+        /* Has tape roller tach reached the correct speed yet? */
 
         if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
         {
@@ -406,10 +440,10 @@ static void SvcServoPlay(void)
     }
     else
     {
-        /* Calculate the TAKEUP Torque */
+        /* Calculate the TAKEUP boost torque */
         dac_t = (g_servo.play_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
 
-        /* Calculate the SUPPLY Torque */
+        /* Calculate the SUPPLY boost torque */
         dac_s = (g_servo.play_supply_tension + g_servo.tsense) + g_servo.offset_supply;
     }
 
@@ -548,14 +582,21 @@ static void SvcServoFwd(void)
 
     float target_velocity = (float)g_servo.shuttle_velocity;
 
-    if (g_sys.shuttle_slow_velocity > 0)
+    if (g_sys.shuttle_autoslow_velocity)
     {
-        if (g_servo.offset_takeup >= (float)g_sys.shuttle_slow_offset)
+        if (fabsf(g_servo.offset_takeup) >= (float)g_sys.shuttle_autoslow_offset)
         {
-        	float slow_velocity = (float)g_sys.shuttle_slow_velocity;
+        	/* Shuttling towards tail of reel? */
+        	if ((g_servo.velocity_supply > g_servo.velocity_takeup) && (g_servo.velocity >= (g_sys.shuttle_velocity - 10.0f)))
+        	{
+				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
 
-            if (g_servo.velocity >= slow_velocity)
-                target_velocity = slow_velocity;
+				if ((g_servo.velocity >= slow_velocity) && (g_servo.velocity > 300.0f))
+				{
+					target_velocity = slow_velocity;
+					g_servo.shuttle_velocity = target_velocity;
+				}
+        	}
         }
     }
 
@@ -574,7 +615,7 @@ static void SvcServoFwd(void)
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.fpid.error;
-    g_servo.db_debug = (float)g_servo.shuttle_velocity;
+    g_servo.db_debug = target_velocity;
 
     /* DECREASE SUPPLY Torque */
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) - cv) + g_servo.offset_supply;
@@ -606,16 +647,23 @@ static void SvcServoRew(void)
      * reel based on the null offset value.
      */
 
-    float target_velocity = g_servo.shuttle_velocity;
+    float target_velocity = (float)g_servo.shuttle_velocity;
 
-    if (g_sys.shuttle_slow_velocity > 0)
+    if (g_sys.shuttle_autoslow_velocity)
     {
-        if (g_servo.offset_supply >= (float)g_sys.shuttle_slow_offset)
+        if (fabsf(g_servo.offset_supply) >= (float)g_sys.shuttle_autoslow_offset)
         {
-        	float slow_velocity = (float)g_sys.shuttle_slow_velocity;
+        	/* Shuttling towards head of reel? */
+        	if ((g_servo.velocity_supply < g_servo.velocity_takeup) && (g_servo.velocity >= (g_sys.shuttle_velocity - 10.0f)))
+        	{
+				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
 
-            if (g_servo.velocity >= slow_velocity)
-                target_velocity = slow_velocity;
+				if (g_servo.velocity >= slow_velocity)
+				{
+					target_velocity = slow_velocity;
+					g_servo.shuttle_velocity = target_velocity;
+				}
+        	}
         }
     }
 
@@ -634,7 +682,7 @@ static void SvcServoRew(void)
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.fpid.error;
-    g_servo.db_debug = (float)g_servo.shuttle_velocity;
+    g_servo.db_debug = target_velocity;
 
     /* INCREASE SUPPLY Torque */
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;

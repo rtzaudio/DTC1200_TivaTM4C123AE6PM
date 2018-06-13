@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        20        	/* firmware revision */
+#define FIRMWARE_REV        21        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -141,8 +141,8 @@ typedef struct _SYSPARMS
     float   play_radius_gain;			/* reeling radius play gain factor   */
     float   reel_offset_gain;			/* reeling radius offset gain factor */
     float   tension_sensor_gain;		/* tension sensor gain divisor       */
-    int32_t shuttle_slow_velocity;     	/* velocity to reduce speed to       */
-    int32_t shuttle_slow_offset;       	/* null offset to reduce velocity at */
+    int32_t shuttle_autoslow_velocity;  /* velocity to reduce speed to       */
+    int32_t shuttle_autoslow_offset;    /* null offset to reduce velocity at */
     int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
     int32_t lifter_settle_time;	  	    /* lifter settling time in ms        */
     int32_t brake_settle_time;  		/* break settling time after STOP    */
@@ -222,7 +222,8 @@ typedef struct _SERVODATA
 	float		offset_null_sum;
 	float 		offset_takeup;			/* takeup null offset value      */
 	float		offset_supply;			/* supply null offset value      */
-	int32_t		play_boost_count;
+	uint32_t	play_boost_index;
+	uint32_t	play_boost_count;
     int32_t		play_boost_end;			/* tape velocity to exit boost   */
     float 	    play_boost_supply_gain;	/* play boost gain               */
     float 	    play_boost_takeup_gain;	/* play boost gain               */

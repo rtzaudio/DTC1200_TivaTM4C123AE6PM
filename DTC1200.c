@@ -720,7 +720,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->vel_detect_threshold      = 5;        /* 10 pulses or less = no velocity  */
     p->reel_offset_gain          = 0.110f;   /* reel torque null offset gain     */
     p->play_radius_gain          = 1.000f;	 /* play mode reeling radius gain    */
-    p->tension_sensor_gain       = 0.050f;	 /* tension sensor arm gain          */
+    p->tension_sensor_gain       = 0.07f;	 /* tension sensor arm gain          */
 
     p->debounce                  = 30;		 /* button debounce time             */
     p->lifter_settle_time        = 600;      /* tape lifter settling delay in ms */

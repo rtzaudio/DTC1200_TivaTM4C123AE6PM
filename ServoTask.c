@@ -410,20 +410,13 @@ static void SvcServoPlay(void)
         g_lamp_mask |= L_STAT3;
 
         /* Calculate the TAKEUP boost torque */
-
-        //dac_t = (DAC_MAX_F - ((g_servo.velocity_takeup * g_servo.play_boost_takeup_gain) + g_servo.offset_takeup));
-        //dac_t = (DAC_MAX_F - ((g_servo.velocity_takeup * g_servo.play_boost_takeup_gain)));
-
-        dac_t = (g_servo.radius_takeup * g_servo.play_boost_takeup_gain) + g_servo.play_boost_count;
+        dac_t = (g_servo.radius_takeup * g_servo.play_boost_takeup_gain) + (g_servo.play_boost_count >> 1);
 
         if (dac_t < 0.0f)
         	dac_t = 0.0f;
 
         /* Calculate the SUPPLY boost torque */
-
-        //dac_s = ((g_servo.velocity_supply * g_servo.play_boost_supply_gain) + g_servo.tsense) + g_servo.offset_supply;
-
-        dac_s = (g_servo.radius_supply * g_servo.play_boost_supply_gain);	/* 76.0f */
+        dac_s = (g_servo.radius_supply * g_servo.play_boost_supply_gain);
 
         //if (dac_s > g_servo.play_supply_tension)
         //	dac_s = g_servo.play_supply_tension;

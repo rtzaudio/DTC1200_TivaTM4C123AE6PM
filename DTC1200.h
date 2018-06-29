@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        21        	/* firmware revision */
+#define FIRMWARE_REV        23        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -166,8 +166,8 @@ typedef struct _SYSPARMS
     int32_t shuttle_takeup_tension;    	/* play takeup tension               */
     int32_t shuttle_velocity;          	/* target speed for shuttle mode     */
     int32_t shuttle_lib_velocity;		/* library wind mode velocity        */
+    float   shuttle_tension_gain;		/* velocity tension gain factor      */
     /* reel servo PID values */
-    int32_t reserved5;
     float   shuttle_servo_pgain;       	/* P-gain */
     float   shuttle_servo_igain;       	/* I-gain */
     float   shuttle_servo_dgain;       	/* D-gain */

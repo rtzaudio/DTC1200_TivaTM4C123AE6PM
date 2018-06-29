@@ -619,9 +619,9 @@ Void MainControlTask(UArg a0, UArg a1)
             g_lamp_mask_prev = g_lamp_mask;
         }
 
-        /*
-         * Poll the transport control buttons to read the
-         * current transport button switch states
+        /* Poll the transport switches to see if the tape out arm on the
+         * right hand side of the machine is triggered. If not then we
+         * continue processing polling for any transport buttons pressed.
          */
 
         GetTransportSwitches(&bits);
@@ -674,8 +674,7 @@ Void MainControlTask(UArg a0, UArg a1)
         	tran_prev = 0xff;
         }
 
-        /*
-         * Poll the mode config switches to read the DIP switches on
+        /* Poll the mode config switches to read the DIP switches on
          * the PCB and the hi/lo speed switch on the transport control.
          */
 
@@ -697,6 +696,12 @@ Void MainControlTask(UArg a0, UArg a1)
                 g_dip_switch = bits & M_DIPSW_MASK;
             }
         }
+
+        /* Poll the accessory optical tape end sensor. If the sensor
+         * is active, we issue a STOP command to halt the transport.
+         */
+
+        //uint32_t tapeend = GPIO_read(Board_TAPE_END);
 
         /* delay for 10ms and loop */
         Task_sleep(5);
@@ -732,14 +737,15 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->stop_supply_tension       = 360;      /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension       = 385;      /* takeup tension level (0-DAC_MAX) */
-    p->stop_brake_torque         = 600;    	 /* max dynamic stop brake torque   */
+    p->stop_brake_torque         = 575;    	 /* max dynamic stop brake torque   */
 
     p->shuttle_supply_tension    = 360;      /* shuttle supply reel tension      */
     p->shuttle_takeup_tension    = 385;      /* shuttle takeup reel tension      */
-    p->shuttle_velocity          = 475;      /* max shuttle velocity             */
+    p->shuttle_velocity          = 500;      /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 250;      /* max shuttle lib wind velocity    */
     p->shuttle_autoslow_offset   = 40;       /* offset to reduce velocity at     */
-    p->shuttle_autoslow_velocity = 100;      /* reduce velocity to speed         */
+    p->shuttle_autoslow_velocity = 0;        /* reduce shuttle velocity speed to */
+    p->shuttle_tension_gain      = 0.75f;
     p->shuttle_servo_pgain       = PID_Kp;   /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;   /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;   /* shuttle mode servo D-gain        */

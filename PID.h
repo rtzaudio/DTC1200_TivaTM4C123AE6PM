@@ -19,9 +19,15 @@
 //#define PID_CVmax       255     	// 0 to 255
 //#define PID_INTERVAL    120     	// 120ms between "I&D" updates
 
-#define PID_Kp				0.56f
-#define PID_Ki				0.19f
-#define PID_Kd				0.01f
+// Gentle Shuttle Defaults
+//#define PID_Kp				0.56f
+//#define PID_Ki				0.19f
+//#define PID_Kd				0.01f
+
+// Aggressive Shuttle Defaults
+#define PID_Kp				1.350f
+#define PID_Ki				0.250f
+#define PID_Kd				0.025f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */
 

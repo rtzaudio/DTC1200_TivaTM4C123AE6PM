@@ -67,32 +67,37 @@ static MENUITEM shuttle_items[] = {
 		.param2.F = 1.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_servo_dgain },
 
-{ 9, 6, NULL, "SHUTTLE SETTINGS", MI_TEXT,
+{ 10, 6, NULL, "SHUTTLE SETTINGS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 11, 2, "7",  "Shuttle Mode Velocity", MI_NUMERIC,
+{ 12, 2, "5",  "Back Tension Gain    ", MI_NUMERIC,
+		.param1.F = 0.25f,
+		.param2.F = 1.0f,
+		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_tension_gain },
+
+{ 13, 2, "6",  "Shuttle Mode Velocity", MI_NUMERIC,
 		.param1.U = 50,
 		.param2.U = 550,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_velocity },
 
-{ 12, 2, "8",  "Library Wind Velocity", MI_NUMERIC,
+{ 14, 2, "7",  "Library Wind Velocity", MI_NUMERIC,
 		.param1.U = 50,
 		.param2.U = 400,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_lib_velocity },
 
-{ 13, 2, "9",  "Auto Slow Velocity   ", MI_NUMERIC,
+{ 15, 2, "8",  "Auto Slow Velocity   ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 250,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_autoslow_velocity },
 
-{ 14, 2, "10", "Auto Slow at offset  ", MI_NUMERIC,
+{ 16, 2, "9",  "Auto Slow at offset  ", MI_NUMERIC,
 		.param1.U = 30,
 		.param2.U = 100,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_autoslow_offset },
 
-{ 15, 2, "11", "Lifter Settle Time   ", MI_NUMERIC,
+{ 17, 2, "10", "Lifter Settle Time   ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 2000,
 		NULL, put_idata, DT_LONG, &g_sys.lifter_settle_time },

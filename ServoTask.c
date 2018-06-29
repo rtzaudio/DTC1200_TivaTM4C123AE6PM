@@ -418,11 +418,7 @@ static void SvcServoPlay(void)
         /* Calculate the SUPPLY boost torque */
         dac_s = (g_servo.radius_supply * g_servo.play_boost_supply_gain);
 
-        //if (dac_s > g_servo.play_supply_tension)
-        //	dac_s = g_servo.play_supply_tension;
-
         /* Has tape roller tach reached the correct speed yet? */
-
         if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
         {
             g_servo.play_boost_count = 0;
@@ -519,8 +515,8 @@ static void SvcServoStop(void)
 	Semaphore_post(g_semaTransportMode);
 
 	/* Save brake torque for debug purposes */
-    g_servo.stop_torque_supply = braketorque;
     g_servo.stop_torque_takeup = braketorque;
+    g_servo.stop_torque_supply = braketorque;
 
 	/*
 	 * DYNAMIC BRAKING: Apply the braking torque required to null motion.
@@ -611,7 +607,7 @@ static void SvcServoFwd(void)
     g_servo.db_debug = target_velocity;
 
     /* DECREASE SUPPLY Torque */
-    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) - cv) + g_servo.offset_supply;
+    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) - (cv * g_sys.shuttle_tension_gain)) + g_servo.offset_supply;
 
     /* INCREASE TAKEUP Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
@@ -681,7 +677,7 @@ static void SvcServoRew(void)
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
     /* DECREASE TAKEUP Torque */
-    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) - cv) + g_servo.offset_takeup;
+    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) - (cv * g_sys.shuttle_tension_gain)) + g_servo.offset_takeup;
 
     /* Safety clamp */
     DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);

@@ -73,7 +73,7 @@ static MENUITEM shuttle_items[] = {
 		NULL, NULL, 0, 0 },
 
 { 12, 2, "5",  "Back Tension Gain    ", MI_NUMERIC,
-		.param1.F = 0.25f,
+		.param1.F = 0.10f,
 		.param2.F = 1.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_tension_gain },
 

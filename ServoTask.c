@@ -601,15 +601,23 @@ static void SvcServoFwd(void)
 
     Semaphore_post(g_semaServo);
 
+    /* Back tension compensates for decreasing motor torque as the motors
+     * gain velocity and free wheel. Initially the motor current is high
+     * as torque is first applied, but the current drops as the motor
+     * gains velocity and free wheels at the target velocity.
+     */
+
+    float backtension = g_servo.velocity_supply * g_sys.shuttle_tension_gain;
+
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.fpid.error;
     g_servo.db_debug = target_velocity;
 
-    /* DECREASE SUPPLY Torque */
-    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) - (cv * g_sys.shuttle_tension_gain)) + g_servo.offset_supply;
+    /* DECREASE SUPPLY Motor Torque */
+    dac_s = ((float)g_sys.shuttle_supply_tension + backtension + g_servo.tsense - cv) + g_servo.offset_supply;
 
-    /* INCREASE TAKEUP Torque */
+    /* INCREASE TAKEUP Motor Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
 
     /* Safety Clamp */
@@ -668,16 +676,23 @@ static void SvcServoRew(void)
 
     Semaphore_post(g_semaServo);
 
+    /* Back tension compensates for decreasing motor torque as the motors
+     * gain velocity and free wheel. Initially the motor current is high
+     * as torque is first applied, but the current drops as the motor
+     * gains velocity and free wheels at the target velocity.
+     */
+    float backtension = g_servo.velocity_takeup * g_sys.shuttle_tension_gain;
+
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.fpid.error;
     g_servo.db_debug = target_velocity;
 
-    /* INCREASE SUPPLY Torque */
+    /* INCREASE SUPPLY Motor Torque */
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
-    /* DECREASE TAKEUP Torque */
-    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) - (cv * g_sys.shuttle_tension_gain)) + g_servo.offset_takeup;
+    /* DECREASE TAKEUP Motor Torque */
+    dac_t = (((float)g_sys.shuttle_takeup_tension + backtension + g_servo.tsense) - cv) + g_servo.offset_takeup;
 
     /* Safety clamp */
     DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);

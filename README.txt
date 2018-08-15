@@ -2,7 +2,7 @@
 
  DTC-1200 Digital Transport Controller for Ampex MM-1200 Tape Machines
 
- Copyright (C) 2018, RTZ Professional Audio, LLC
+ Copyright (C) 2016-2018, RTZ Professional Audio, LLC
 
  All Rights Reserved
 
@@ -33,5 +33,12 @@ web and download free from TI.
 
 Version 2.23 is the first official public release of the DTC firmware. This
 includes all changes from recent beta site testing and updates.
+
+=== VERSION 2.24 (08/14/2018) ==============================================
+
+Implemented back tension gain for shuttle mode. This helps to keep constant
+tension as the reels gain velocity and motor torque required to maintain 
+velocity decrease. A new back tension gain parameter was added to the
+shuttle mode configuration parameters.
 
 

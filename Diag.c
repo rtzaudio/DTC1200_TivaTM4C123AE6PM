@@ -180,10 +180,10 @@ void LampBlinkError(void)
     /* All lamps off */
     SetLamp(0);
 
-    /* Flash all lamps 3 times on error */
+    /* Flash record LED and all three status LED's on error */
     for (i=0; i < 3; i++)
     {
-        SetLamp(L_STOP| L_FWD | L_REW | L_PLAY | L_REC | L_STAT3);
+        SetLamp(L_REC | L_STAT1 | L_STAT2| L_STAT3);
         Task_sleep(200);
         SetLamp(0);
         Task_sleep(100);

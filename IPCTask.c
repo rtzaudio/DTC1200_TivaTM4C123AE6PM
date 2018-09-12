@@ -75,13 +75,13 @@
 /* Global Data Items */
 
 UART_Handle uartHandle;
-FCB g_RxFcb;
-FCB g_TxFcb;
+FCB g_rxFcb;
+FCB g_txFcb;
 
 /* The following objects are created statically. */
 extern Semaphore_Handle sem;
 extern Queue_Handle msgQueue;
-extern Queue_Handle freeQueue;
+extern Queue_Handle g_txQueue;
 
 /* Static Function Prototypes */
 
@@ -105,7 +105,7 @@ int IPC_init(void)
 
     /* Put all messages on freeQueue */
     for (i=0; i < NUMMSGS; msg++, i++)
-        Queue_put(freeQueue, (Queue_Elem *)msg);
+        Queue_put(g_txQueue, (Queue_Elem *)msg);
 
     /* Open the UART for binary mode */
 
@@ -145,11 +145,11 @@ Void IPCReaderTaskFxn(UArg arg0, UArg arg1)
 
     /* Now begin the main program command task processing loop */
 
-    RAMP_InitFcb(&g_RxFcb);
+    RAMP_InitFcb(&g_rxFcb);
 
     while (true)
     {
-        rc = RAMP_RxFrame(uartHandle, &g_RxFcb, rxBuf, sizeof(rxBuf));
+        rc = RAMP_RxFrame(uartHandle, &g_rxFcb, rxBuf, sizeof(rxBuf));
 
         //msg = (IPCMSG *)Queue_get(freeQueue);
 
@@ -169,14 +169,14 @@ Void IPCWriterTaskFxn(UArg arg0, UArg arg1)
 
     /* Now begin the main program command task processing loop */
 
-    RAMP_InitFcb(&g_TxFcb);
+    RAMP_InitFcb(&g_txFcb);
 
     while (true)
     {
         /* Wait for semaphore to be posted by writer(). */
         Semaphore_pend(sem, BIOS_WAIT_FOREVER);
 
-        rc = RAMP_TxFrame(uartHandle, &g_TxFcb, txBuf, sizeof(txBuf));
+        rc = RAMP_TxFrame(uartHandle, &g_txFcb, txBuf, sizeof(txBuf));
 
         /* Increment the frame sequence number */
         //g_TxFcb.seqnum = INC_SEQ_NUM(g_RxFcb.seqnum);

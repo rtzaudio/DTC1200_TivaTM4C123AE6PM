@@ -391,6 +391,87 @@ static void SvcServoPlay(void)
 {
     float dac_s;
     float dac_t;
+    float cv = 0.0f;
+    float target_velocity;
+
+    /* Calculate the "reeling radius" for each reel */
+    //float rad_t = g_servo.radius_takeup;
+    //float rad_s = g_servo.radius_supply;
+
+    /* Play acceleration boost state? */
+
+    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+    if (g_servo.play_boost_count)
+    {
+        --g_servo.play_boost_count;
+
+        /* Boost status LED on */
+        g_lamp_mask |= L_STAT3;
+
+        /* Get the PID current CV value based on the velocity */
+
+        target_velocity = (float)g_servo.play_boost_end;
+
+        cv = fpid_calc(
+                &g_servo.pid_play,      /* play boost PID accumulator      */
+        		target_velocity,        /* desired velocity for play speed */
+				g_servo.tape_tach       /* current tape roller velocity    */
+                );
+
+        /* DECREASE SUPPLY Motor Torque */
+        dac_s = (((float)g_servo.play_supply_tension + g_servo.tsense)) + g_servo.offset_supply;
+
+        /* INCREASE TAKEUP Motor Torque */
+        dac_t = ((float)g_servo.play_takeup_tension + cv) + g_servo.offset_takeup;
+
+        if (!g_servo.play_boost_count)
+        	g_lamp_mask &= ~(L_STAT3);
+
+#if 1
+        /* Has tape roller tach reached the correct speed yet? */
+        //if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
+        if (cv == 0.0f)
+        {
+            g_servo.play_boost_count = 0;
+
+            /* Turn off boost status LED */
+            g_lamp_mask &= ~(L_STAT3);
+        }
+#endif
+        // DEBUG
+        g_servo.db_cv    = cv;
+        g_servo.db_error = g_servo.pid_play.error;
+        g_servo.db_debug = target_velocity;
+    }
+    else
+    {
+        /* Calculate the SUPPLY boost torque */
+        dac_s = (g_servo.play_supply_tension + g_servo.tsense) + g_servo.offset_supply;
+
+        /* Calculate the TAKEUP boost torque */
+        dac_t = (g_servo.play_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
+    }
+
+    Semaphore_post(g_semaServo);
+
+    /* Clamp the DAC values within range if needed */
+
+    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
+    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
+
+    /* Set the servo DAC levels */
+
+    MotorDAC_write(dac_s, dac_t);
+}
+
+
+/* SAVED CODE */
+#if 0
+static void SvcServoPlay(void)
+{
+    float dac_s;
+    float dac_t;
 
     /* Calculate the "reeling radius" for each reel */
     //float rad_t = g_servo.radius_takeup;
@@ -467,6 +548,7 @@ static void SvcServoPlay(void)
 
     MotorDAC_write(dac_s, dac_t);
 }
+#endif
 
 //*****************************************************************************
 // STOP SERVO - This function handles dynamic braking for stop mode to
@@ -594,7 +676,7 @@ static void SvcServoFwd(void)
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
     cv = fpid_calc(
-            &g_servo.fpid,			/* PID accumulator  */
+            &g_servo.pid_shuttle,			/* PID accumulator  */
 			target_velocity,		/* desired velocity */
             g_servo.velocity   		/* current velocity */
             );
@@ -611,7 +693,7 @@ static void SvcServoFwd(void)
 
     // DEBUG
     g_servo.db_cv    = cv;
-    g_servo.db_error = g_servo.fpid.error;
+    g_servo.db_error = g_servo.pid_shuttle.error;
     g_servo.db_debug = target_velocity;
 
     /* DECREASE SUPPLY Motor Torque */
@@ -669,7 +751,7 @@ static void SvcServoRew(void)
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
     cv = fpid_calc(
-            &g_servo.fpid,          /* PID accumulator  */
+            &g_servo.pid_shuttle,   /* PID accumulator  */
 			target_velocity,		/* desired velocity */
             g_servo.velocity   		/* current velocity */
             );
@@ -685,7 +767,7 @@ static void SvcServoRew(void)
 
     // DEBUG
     g_servo.db_cv    = cv;
-    g_servo.db_error = g_servo.fpid.error;
+    g_servo.db_error = g_servo.pid_shuttle.error;
     g_servo.db_debug = target_velocity;
 
     /* INCREASE SUPPLY Motor Torque */

@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        24        	/* firmware revision */
+#define FIRMWARE_REV        25        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -180,14 +180,15 @@ typedef struct _SYSPARMS
     int32_t play_hi_supply_tension;    	/* play supply tension level (0-DAC_MAX) */
     int32_t play_hi_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_hi_boost_end;
-    float   play_hi_boost_supply_gain;
-    float   play_hi_boost_takeup_gain;
+    float   play_hi_boost_pgain;       	/* P-gain */
+    float   play_hi_boost_igain;       	/* I-gain */
     /* play low speed boost parameters */
     int32_t play_lo_supply_tension;		/* play supply tension level (0-DAC_MAX) */
     int32_t play_lo_takeup_tension;    	/* play takeup tension level (0-DAC_MAX) */
     int32_t play_lo_boost_end;
-    float   play_lo_boost_supply_gain;
-    float   play_lo_boost_takeup_gain;
+    float   play_lo_boost_pgain;   		/* P-gain */
+    float   play_lo_boost_igain;   		/* I-gain */
+
     int32_t reserved10;
 } SYSPARMS;
 
@@ -222,11 +223,8 @@ typedef struct _SERVODATA
 	float		offset_null_sum;
 	float 		offset_takeup;			/* takeup null offset value      */
 	float		offset_supply;			/* supply null offset value      */
-	uint32_t	play_boost_index;
 	uint32_t	play_boost_count;
     int32_t		play_boost_end;			/* tape velocity to exit boost   */
-    float 	    play_boost_supply_gain;	/* play boost gain               */
-    float 	    play_boost_takeup_gain;	/* play boost gain               */
     float		play_supply_tension;
     float		play_takeup_tension;
     uint32_t    shuttle_velocity;
@@ -239,7 +237,8 @@ typedef struct _SERVODATA
     float		dac_supply;				/* current supply DAC level      */
     uint32_t 	dac_halt_supply;		/* halt mode DAC level           */
     uint32_t	dac_halt_takeup;		/* halt mode DAC level           */
-	FPID		fpid;
+	FPID		pid_shuttle;			/* PID for shuttle velocity ctrl */
+	FPID		pid_play;				/* PID for play mode boost stage */
 	/*** Debug Variables ***/
 	float 		db_cv;
 	float 		db_error;

@@ -110,8 +110,9 @@ void ResetServoPlay(void)
     g_capdata_count = 0;
 #endif
 
-    g_servo.play_boost_count = 500;
-    g_servo.play_boost_index = 0;
+    /* Initialize the PID used for play boost */
+
+    g_servo.play_boost_count = 1000;
 
     /* Initialize the play servo data items */
     if (g_high_speed_flag)
@@ -119,18 +120,28 @@ void ResetServoPlay(void)
         /* Reset the tension values */
         g_servo.play_supply_tension    = (float)g_sys.play_hi_supply_tension;
         g_servo.play_takeup_tension    = (float)g_sys.play_hi_takeup_tension;
-        g_servo.play_boost_supply_gain = g_sys.play_hi_boost_supply_gain;
-        g_servo.play_boost_takeup_gain = g_sys.play_hi_boost_takeup_gain;
         g_servo.play_boost_end         = g_sys.play_hi_boost_end;
+
+        fpid_init(&g_servo.pid_play,
+                 g_sys.play_hi_boost_pgain,   	// P-gain
+                 g_sys.play_hi_boost_igain,   	// I-gain
+                 0.0f,     						// D-gain
+                 DAC_MAX_F,
+                 1.0f);              			// PID deadband
     }
     else
     {
         /* Reset the tension values */
         g_servo.play_supply_tension    = (float)g_sys.play_lo_supply_tension;
         g_servo.play_takeup_tension    = (float)g_sys.play_lo_takeup_tension;
-        g_servo.play_boost_supply_gain = g_sys.play_lo_boost_supply_gain;
-        g_servo.play_boost_takeup_gain = g_sys.play_lo_boost_takeup_gain;
         g_servo.play_boost_end         = g_sys.play_lo_boost_end;
+
+        fpid_init(&g_servo.pid_play,
+                 g_sys.play_lo_boost_pgain,   	// P-gain
+                 g_sys.play_lo_boost_igain,   	// I-gain
+                 0.0f,     						// D-gain
+                 DAC_MAX_F,
+                 1.0f);              			// PID deadband
     }
 
     TapeTach_reset();
@@ -147,7 +158,7 @@ void ResetServoPID(void)
 {
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
-    fpid_init(&g_servo.fpid,
+    fpid_init(&g_servo.pid_shuttle,
              g_sys.shuttle_servo_pgain,     // P-gain
              g_sys.shuttle_servo_igain,     // I-gain
              g_sys.shuttle_servo_dgain,     // D-gain

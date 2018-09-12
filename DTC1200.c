@@ -745,22 +745,22 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_lib_velocity      = 250;      /* max shuttle lib wind velocity    */
     p->shuttle_autoslow_offset   = 40;       /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 0;        /* reduce shuttle velocity speed to */
-    p->shuttle_tension_gain      = 0.75f;
+    p->shuttle_tension_gain      = 0.750f;
     p->shuttle_servo_pgain       = PID_Kp;   /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;   /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;   /* shuttle mode servo D-gain        */
 
     p->play_lo_takeup_tension    = 375;      /* takeup tension level             */
     p->play_lo_supply_tension    = 350;      /* supply tension level             */
-    p->play_lo_boost_takeup_gain = 100.0f;
-    p->play_lo_boost_supply_gain = 76.0f;
     p->play_lo_boost_end         = 28;
+    p->play_lo_boost_pgain       = 1.300f;   /* P-gain */
+    p->play_lo_boost_igain       = 0.300f;   /* I-gain */
 
     p->play_hi_takeup_tension    = 375;      /* takeup tension level             */
     p->play_hi_supply_tension    = 350;      /* supply tension level             */
-    p->play_hi_boost_takeup_gain = 100.0f;
-    p->play_hi_boost_supply_gain = 76.0f;
     p->play_hi_boost_end         = 118;
+    p->play_hi_boost_pgain       = 1.350f;   /* P-gain */
+    p->play_hi_boost_igain       = 0.250f;   /* I-gain */
 
     p->reserved3                 = 0;        /* reserved */
     p->reserved4                 = 0;        /* reserved */

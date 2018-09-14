@@ -42,8 +42,12 @@
 
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Event.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/family/arm/m3/Hwi.h>
 
 /* TI-RTOS Driver files */
 #include <ti/drivers/GPIO.h>
@@ -65,47 +69,32 @@
 
 /* PMX42 Board Header file */
 
-#include "DTC1200.h"
-#include "Globals.h"
-#include "RAMP.h"
+//#include "STC1200.h"
+#include "Board.h"
 #include "IPCTask.h"
 
 /* External Data Items */
 
 /* Global Data Items */
 
-UART_Handle uartHandle;
-FCB g_rxFcb;
-FCB g_txFcb;
-
-/* The following objects are created statically. */
-extern Semaphore_Handle sem;
-extern Queue_Handle msgQueue;
-extern Queue_Handle g_txQueue;
+static IPCSVR_OBJECT g_ipc;
 
 /* Static Function Prototypes */
+
+static Void IPCReaderTaskFxn(UArg a0, UArg a1);
+static Void IPCWriterTaskFxn(UArg arg0, UArg arg1);
 
 //*****************************************************************************
 //
 //*****************************************************************************
 
-int IPC_init(void)
+Bool IPC_Server_init(void)
 {
     Int i;
-    IPCMSG *msg;
+    FCBMSG* msg;
     Error_Block eb;
     UART_Params uartParams;
-
-    Error_init(&eb);
-
-    msg = (IPCMSG *)Memory_alloc(NULL, NUMMSGS * sizeof(IPCMSG), 0, &eb);
-
-    if (msg == NULL)
-        System_abort("Memory allocation failed");
-
-    /* Put all messages on freeQueue */
-    for (i=0; i < NUMMSGS; msg++, i++)
-        Queue_put(g_txQueue, (Queue_Elem *)msg);
+    Task_Params taskParams;
 
     /* Open the UART for binary mode */
 
@@ -125,12 +114,188 @@ int IPC_init(void)
     uartParams.stopBits       = UART_STOP_ONE;
     uartParams.parityType     = UART_PAR_NONE;
 
-    uartHandle = UART_open(Board_UART_IPC, &uartParams);
+    g_ipc.uartHandle = UART_open(Board_UART_IPC, &uartParams);
 
-    if (uartHandle == NULL)
+    if (g_ipc.uartHandle == NULL)
         System_abort("Error initializing UART\n");
 
-    return 1;
+    /* Create the queues needed */
+    g_ipc.txFreeQue = Queue_create(NULL, NULL);
+    g_ipc.txDataQue = Queue_create(NULL, NULL);
+
+    /* Create semaphores needed */
+    g_ipc.txFreeSem = Semaphore_create(MAX_WINDOW, NULL, NULL);
+    g_ipc.txDataSem = Semaphore_create(0, NULL, NULL);
+
+    /* Allocate Transmit Buffer Memory */
+
+    Error_init(&eb);
+
+    if ((g_ipc.txMsgBuf = (FCBMSG*)Memory_alloc(NULL, MAX_WINDOW * sizeof(FCBMSG), 0, &eb)) == NULL)
+        System_abort("TxBuf allocation failed");
+
+    msg = g_ipc.txMsgBuf;
+
+    /* Put all tx message buffers on the freeQueue */
+    for (i=0; i < MAX_WINDOW; i++, msg++) {
+        Queue_enqueue(g_ipc.txFreeQue, (Queue_Elem*)msg);
+    }
+
+    /* Allocate Single Receive Buffer Memory */
+
+    Error_init(&eb);
+
+    if ((g_ipc.rxMsgBuf = (FCBMSG*)Memory_alloc(NULL, sizeof(FCBMSG), 0, &eb)) == NULL)
+        System_abort("RxBuf allocation failed");
+
+    /* Initialize all Server Data Items */
+
+    g_ipc.numFreeMsgs = MAX_WINDOW;
+    g_ipc.currSeq     = MIN_SEQ_NUM;	/* current tx sequence# */
+    g_ipc.expectSeq   = 1;     			/* expected rx seq#     */
+    g_ipc.lastSeq     = 0;     			/* last seq# rx'ed      */
+    Error_init(&eb);
+
+    /* Create the reader/writer tasks */
+
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 800;
+    taskParams.priority  = 5;
+    Task_create((Task_FuncPtr)IPCWriterTaskFxn, &taskParams, &eb);
+
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = 800;
+    taskParams.priority  = 6;
+    Task_create((Task_FuncPtr)IPCReaderTaskFxn, &taskParams, &eb);
+
+    return TRUE;
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+
+Bool IPC_Send_datagram(IPCMSG* msg, UInt32 timeout)
+{
+    UChar type = MAKETYPE(F_DATAGRAM, TYPE_MSG_ONLY);
+
+    return IPC_Send_message(msg, type, 0, timeout);
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+
+Bool IPC_Send_transaction(IPCMSG* msg, UInt32 timeout)
+{
+    UChar type = MAKETYPE(0, TYPE_MSG_ONLY);
+
+    return IPC_Send_message(msg, type, 0, timeout);
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+
+Bool IPC_Send_message(IPCMSG* msg, UChar type, UChar acknak, UInt32 timeout)
+{
+    UInt key;
+    FCBMSG* elem;
+
+    if (Semaphore_pend(g_ipc.txFreeSem, timeout))
+    {
+        /* perform the dequeue and decrement numFreeMsgs atomically */
+        key = Hwi_disable();
+
+        /* get a message from the free queue */
+        elem = Queue_dequeue(g_ipc.txFreeQue);
+
+        /* Make sure that a valid pointer was returned. */
+        if (elem == (FCBMSG*)(g_ipc.txFreeQue))
+        {
+            Hwi_restore(key);
+            return FALSE;
+        }
+
+        /* decrement the numFreeMsgs */
+        g_ipc.numFreeMsgs--;
+
+        /* re-enable ints */
+        Hwi_restore(key);
+
+        /* copy msg to element */
+        if (msg)
+            memcpy(&(elem->msg), msg, sizeof(IPCMSG));
+
+        elem->fcb.type    = type;       /* frame type bits       */
+        elem->fcb.acknak  = acknak;     /* frame ACK/NAK seq#    */
+        elem->fcb.address = 0;
+
+        /* put message on dataQueue */
+        Queue_put(g_ipc.txDataQue, (Queue_Elem *)elem);
+
+        /* post the semaphore */
+        Semaphore_post(g_ipc.txDataSem);
+
+        return TRUE;          /* success */
+    }
+
+    return FALSE;         /* error */
+}
+
+//*****************************************************************************
+//
+//*****************************************************************************
+
+Void IPCWriterTaskFxn(UArg arg0, UArg arg1)
+{
+    UInt key;
+    FCBMSG* elem;
+
+    /* Now begin the main program command task processing loop */
+
+    while (TRUE)
+    {
+        /* Wait for a packet in the tx queue */
+    	if (!Semaphore_pend(g_ipc.txDataSem, 1000))
+    	{
+    	    /* Timeout, nothing to send */
+    	    continue;
+    	}
+
+    	/* get message from dataQue */
+        elem = Queue_get(g_ipc.txDataQue);
+
+        elem->fcb.textbuf = &(elem->msg);
+        elem->fcb.textlen = sizeof(IPCMSG);
+
+        /* Set the sequence number prior to transmit */
+        elem->fcb.seqnum = g_ipc.currSeq;
+
+        /* Transmit the packet! */
+        RAMP_TxFrame(g_ipc.uartHandle, &(elem->fcb));
+
+        /* Perform the enqueue and increment numFreeMsgs atomically */
+        key = Hwi_disable();
+
+        /* Put message buffer back on the free queue */
+        Queue_enqueue(g_ipc.txFreeQue, (Queue_Elem *)elem);
+
+        /* Increment numFreeMsgs */
+        g_ipc.numFreeMsgs++;
+
+        /* Increment total number of packets transmitted */
+        g_ipc.txCount++;
+
+        /* Increment the servers tx sequence number */
+        g_ipc.currSeq = INC_SEQ_NUM(g_ipc.currSeq);
+
+        /* re-enable ints */
+        Hwi_restore(key);
+
+        /* post the semaphore */
+        Semaphore_post(g_ipc.txFreeSem);
+    }
 }
 
 //*****************************************************************************
@@ -140,46 +305,65 @@ int IPC_init(void)
 Void IPCReaderTaskFxn(UArg arg0, UArg arg1)
 {
     int rc;
-    uint8_t rxBuf[16];
-    IPCMSG msg;
+
+    FCB *fcb = &(g_ipc.rxMsgBuf->fcb);
 
     /* Now begin the main program command task processing loop */
 
-    RAMP_InitFcb(&g_rxFcb);
-
     while (true)
     {
-        rc = RAMP_RxFrame(uartHandle, &g_rxFcb, rxBuf, sizeof(rxBuf));
+    	fcb->textbuf = &g_ipc.rxMsgBuf->msg;
+    	fcb->textlen = sizeof(IPCMSG);
 
-        //msg = (IPCMSG *)Queue_get(freeQueue);
+        rc = RAMP_RxFrame(g_ipc.uartHandle, fcb);
 
-        /* Increment the frame sequence number */
-        //g_RxFcb.seqnum = INC_SEQ_NUM(g_RxFcb.seqnum);
-    }
-}
+        if (rc == ERR_TIMEOUT)
+        	continue;
 
-//*****************************************************************************
-//
-//*****************************************************************************
+        if (rc != 0)
+        {
+        	System_printf("RAMP_RxFrame Error %d\n", rc);
+        	System_flush();
+        	continue;
+        }
 
-Void IPCWriterTaskFxn(UArg arg0, UArg arg1)
-{
-    int rc;
-    uint8_t txBuf[16];
+        /* Save the last sequence number received */
+        g_ipc.lastSeq = fcb->seqnum;
 
-    /* Now begin the main program command task processing loop */
+        /* Increment the total packets received count */
+        g_ipc.rxCount++;
 
-    RAMP_InitFcb(&g_txFcb);
+        /* We've received a valid frame, attempt to decode it */
 
-    while (true)
-    {
-        /* Wait for semaphore to be posted by writer(). */
-        Semaphore_pend(sem, BIOS_WAIT_FOREVER);
+        switch(fcb->type & FRAME_TYPE_MASK)
+        {
+        	case TYPE_ACK_ONLY:			/* ACK message frame only      */
+        		break;
 
-        rc = RAMP_TxFrame(uartHandle, &g_txFcb, txBuf, sizeof(txBuf));
+        	case TYPE_NAK_ONLY:			/* NAK message frame only      */
+        		break;
 
-        /* Increment the frame sequence number */
-        //g_TxFcb.seqnum = INC_SEQ_NUM(g_RxFcb.seqnum);
+        	case TYPE_MSG_ONLY:			/* message only frame          */
+
+        		//if (fcb->type & F_DATAGRAM)
+        		{
+                	System_printf("IPC Rx: %04x : %04x\n",
+                			g_ipc.rxMsgBuf->msg.type,
+							g_ipc.rxMsgBuf->msg.opcode);
+
+                	System_flush();
+        		}
+        		break;
+
+        	case TYPE_MSG_ACK:			/* piggyback message plus ACK  */
+        		break;
+
+        	case TYPE_MSG_NAK:			/* piggyback message plus NAK  */
+        		break;
+
+        	default:
+        		break;
+        }
     }
 }
 

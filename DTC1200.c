@@ -53,6 +53,7 @@
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
 #include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Queue.h>
 
 /* TI-RTOS Driver files */
 #include <ti/drivers/GPIO.h>
@@ -85,6 +86,7 @@
 #include "MotorDAC.h"
 #include "IOExpander.h"
 #include "Diag.h"
+#include "IPCTask.h"
 
 Semaphore_Handle g_semaSPI;
 Semaphore_Handle g_semaServo;
@@ -594,6 +596,9 @@ Void MainControlTask(UArg a0, UArg a1)
     else
         LampBlinkChase();
 
+    /* Initialize the IPC interface to STC-1200 card */
+    IPC_Server_init();
+
     /* Set initial status blink LED mask */
     g_lamp_blink_mask = L_STAT1;
 
@@ -666,6 +671,14 @@ Void MainControlTask(UArg a0, UArg a1)
 
 					/* Send the button press to transport ctrl/cmd task */
 					Mailbox_post(g_mailboxCommander, &bits, 10);
+
+					IPCMSG msg;
+					msg.type     = IPC_TYPE_NOTIFY;
+					msg.opcode   = OP_NOTIFY_BUTTON;
+					msg.param1.U = bits;
+					msg.param2.U = 0;
+
+					IPC_Send_datagram(&msg, 0);
 				}
 			}
         }

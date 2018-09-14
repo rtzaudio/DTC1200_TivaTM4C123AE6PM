@@ -43,32 +43,70 @@
 #ifndef _IPCTASK_H_
 #define _IPCTASK_H_
 
-#define NUMMSGS     8
-#define MSG_BUFSIZ  8
+#include "RAMP.h"
 
-/* Transport Message Command Structure */
-typedef struct _CMDMSG {
-    uint32_t command;           /* command code   */
-    uint32_t opcode;            /* operation code */
-} CMDMSG;
+/* Message types for IPCMSG.type */
+#define IPC_TYPE_NOTIFY				100
+#define IPC_TYPE_TRANSACTION		101
 
-typedef struct ipcmsg_t {
-    Queue_Elem  elem;           /* first field for Queue */
-    FCB         fcb;
-    CMDMSG      msg;
+/* Operation Codes for IPCMSG.opcode */
+#define OP_NOTIFY_BUTTON			10
+#define OP_NOTIFY_TRANSPORT			11
+
+/* ============================================================================
+ * IPC Message Structure
+ * ============================================================================ */
+
+typedef struct _IPCMSG {
+    uint32_t    type;                    /* command code   */
+    uint32_t    opcode;                  /* operation code */
+    union {
+        uint32_t    U;
+        float       F;
+    } param1;
+    union {
+        uint32_t    U;
+        float       F;
+    }  param2;
 } IPCMSG;
 
-/* ACK/NAK Message Structure */
-typedef struct ackmsg_t {
-    Queue_Elem  elem;           /* first field for Queue */
-    uint8_t     seqnum;         /* frame tx/rx seq#      */
-    uint8_t     acknak;         /* frame ACK/NAK seq#    */
-} ACKMSG;
+/* ============================================================================
+ * IPC Message List Entry Structure
+ * ============================================================================ */
+
+typedef struct _FCBMSG {
+	Queue_Elem	elem;
+	FCB			fcb;
+    IPCMSG      msg;
+} FCBMSG;
+
+/* ============================================================================
+ * IPC Message Server Object
+ * ============================================================================ */
+
+typedef struct _IPCSVR_OBJECT {
+	UART_Handle         uartHandle;
+	Queue_Handle        txFreeQue;
+    Queue_Handle        txDataQue;
+    Semaphore_Handle    txDataSem;
+    Semaphore_Handle    txFreeSem;
+    int					numFreeMsgs;
+    uint32_t			txCount;
+    uint32_t			rxCount;
+    uint8_t             currSeq;            /* current tx sequence# */
+    uint8_t             expectSeq;          /* expected recv seq#   */
+    uint8_t             lastSeq;            /* last seq# accepted   */
+    FCBMSG*             txMsgBuf;
+    FCBMSG*             rxMsgBuf;
+} IPCSVR_OBJECT;
 
 /* Function Prototypes */
 
-int IPC_init(void);
-Void IPCReaderTaskFxn(UArg a0, UArg a1);
-Void IPCWriterTaskFxn(UArg arg0, UArg arg1);
+Bool IPC_Server_init(void);
+
+Bool IPC_Send_transaction(IPCMSG* msg, UInt32 timeout);
+Bool IPC_Send_datagram(IPCMSG* msg, UInt32 timeout);
+
+Bool IPC_Send_message(IPCMSG* msg, UChar type, UChar acknak, UInt32 timeout);
 
 #endif /* _IPCTASK_H_ */

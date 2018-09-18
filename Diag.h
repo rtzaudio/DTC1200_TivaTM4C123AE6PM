@@ -40,9 +40,6 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ============================================================================ */
 
-void LampBlinkChase();
-void LampBlinkError();
-
 int diag_lamp(MENUITEM* mp);
 int diag_tach(MENUITEM* mp);
 int diag_transport(MENUITEM* mp);

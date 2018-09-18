@@ -88,6 +88,8 @@
 #include "Diag.h"
 #include "IPCTask.h"
 
+/* Global Data Items */
+
 Semaphore_Handle g_semaSPI;
 Semaphore_Handle g_semaServo;
 Semaphore_Handle g_semaTransportMode;
@@ -100,9 +102,14 @@ Event_Handle g_eventSPI;
 #endif
 
 /* Static Function Prototypes */
+
 Int main();
 Void MainControlTask(UArg a0, UArg a1);
-bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
+
+static bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
+
+static void FlashLEDSuccess(void);
+static void FlashLEDError(void);
 
 //*****************************************************************************
 // Main Program Entry Point
@@ -117,7 +124,7 @@ Int main()
     /* Enables Floating Point Hardware Unit */
     FPUEnable();
     /* Allows the FPU to be used inside interrupt service routines */
-    FPULazyStackingEnable();
+    //FPULazyStackingEnable();
 
     /* Call board init functions */
     Board_initGeneral();
@@ -126,10 +133,6 @@ Int main()
     Board_initI2C();
     Board_initSPI();
     Board_initADC();
-
-    /*
-     * Create a mailbox message queues for the transport control/command tasks
-     */
 
     /* Create transport controller task mailbox */
 
@@ -154,9 +157,7 @@ Int main()
     Error_init(&eb);
     g_semaTransportMode = Semaphore_create(1, NULL, &eb);
 
-    /*
-     * Now start the main application button polling task
-     */
+    /* Now start the main application button polling task */
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
@@ -207,6 +208,89 @@ void InitPeripherals(void)
 
     /* Read the serial number into memory */
     ReadSerialNumber(g_handleI2C1, g_ui8SerialNumber);
+}
+
+//*****************************************************************************
+// This function attempts to read the unique serial number from
+// the AT24CS01 I2C serial EPROM and serial# number device.
+//*****************************************************************************
+
+bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16])
+{
+    bool            ret;
+    uint8_t         txByte;
+    I2C_Transaction i2cTransaction;
+
+    /* default invalid serial number is all FF's */
+    memset(ui8SerialNumber, 0xFF, sizeof(ui8SerialNumber));
+
+    /* Note the Upper bit of the word address must be set
+     * in order to read the serial number. Thus 80H would
+     * set the starting address to zero prior to reading
+     * this sixteen bytes of serial number data.
+     */
+
+    txByte = 0x80;
+
+    i2cTransaction.slaveAddress = Board_AT24CS01_SERIAL_ADDR;
+    i2cTransaction.writeBuf     = &txByte;
+    i2cTransaction.writeCount   = 1;
+    i2cTransaction.readBuf      = ui8SerialNumber;
+    i2cTransaction.readCount    = 16;
+
+    ret = I2C_transfer(handle, &i2cTransaction);
+
+    if (!ret)
+    {
+        System_printf("Unsuccessful I2C transfer\n");
+        System_flush();
+    }
+
+    return ret;
+}
+
+//*****************************************************************************
+// Chase through the three status LED's for successful boot indication.
+//*****************************************************************************
+
+void FlashLEDSuccess(void)
+{
+    UInt32 delay = 100;
+    SetLamp(L_STAT1);
+    Task_sleep(delay);
+    SetLamp(L_STAT2);
+    Task_sleep(delay);
+    SetLamp(L_STAT3);
+    Task_sleep(delay);
+    SetLamp(L_STAT2);
+    Task_sleep(delay);
+    SetLamp(L_STAT1);
+    Task_sleep(delay);
+    SetLamp(0);
+}
+
+//*****************************************************************************
+// Flash all three status LED's to indicate configuration parameter load error.
+//*****************************************************************************
+
+void FlashLEDError(void)
+{
+    int i;
+
+    /* All lamps off */
+    SetLamp(0);
+
+    /* Flash record LED and all three status LED's on error */
+    for (i=0; i < 5; i++)
+    {
+        SetLamp(L_STAT1 | L_STAT2| L_STAT3);
+        Task_sleep(200);
+        SetLamp(0);
+        Task_sleep(100);
+    }
+
+    /* All lamps off */
+    SetLamp(0);
 }
 
 //*****************************************************************************
@@ -334,9 +418,9 @@ Void MainControlTask(UArg a0, UArg a1)
      */
 
     if (status != 0)
-        LampBlinkError();
+        FlashLEDError();
     else
-        LampBlinkChase();
+        FlashLEDSuccess();
 
     /* Set initial status blink LED mask */
     g_lamp_blink_mask = L_STAT1;
@@ -527,15 +611,13 @@ Void MainControlTask(UArg a0, UArg a1)
     GetTransportSwitches(&tout_prev);
     g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
 
-    /* Initialize the default system paramters */
+    /* Initialize the default system parameters */
     InitSysDefaults(&g_sys);
 
     /* Read the system config parameters from storage */
     status = SysParamsRead(&g_sys);
 
-    /*
-     *  Start up the various system task threads
-     */
+    /* Start up the various system task threads */
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
@@ -557,13 +639,6 @@ Void MainControlTask(UArg a0, UArg a1)
     taskParams.priority  = 1;
     if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
         System_abort("TerminalTask()!\n");
-
-    /* Initialize the tape tach timers and interrupt.
-     * This tach provides the tape speed from the tape
-     * counter roller.
-     */
-
-    TapeTach_initialize();
 
     /* Start the transport servo loop timer clock running.
      * We create an auto-reload periodic timer for the servo loop.
@@ -587,17 +662,17 @@ Void MainControlTask(UArg a0, UArg a1)
     temp = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
     Mailbox_post(g_mailboxCommander, &temp, 10);
 
+    /* Initialize the IPC interface to STC-1200 card */
+    IPC_Server_init();
+
     /* Blink all lamps if error reading EPROM config data, otherwise
      * blink each lamp sequentially on success.
      */
 
     if (status != 0)
-        LampBlinkError();
+        FlashLEDError();
     else
-        LampBlinkChase();
-
-    /* Initialize the IPC interface to STC-1200 card */
-    IPC_Server_init();
+        FlashLEDSuccess();
 
     /* Set initial status blink LED mask */
     g_lamp_blink_mask = L_STAT1;
@@ -678,7 +753,7 @@ Void MainControlTask(UArg a0, UArg a1)
 					msg.param1.U = bits;
 					msg.param2.U = 0;
 
-					IPC_Send_datagram(&msg, 0);
+					IPC_Notify(&msg, 0);
 				}
 			}
         }
@@ -875,41 +950,4 @@ int32_t SysParamsRead(SYSPARMS* sp)
     return 0;
 }
 
-//*****************************************************************************
-// This function attempts to read the unique serial number from
-// the AT24CS01 I2C serial EPROM and serial# number device.
-//*****************************************************************************
-
-bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16])
-{
-	bool			ret;
-	uint8_t			txByte;
-	I2C_Transaction i2cTransaction;
-
-    /* default invalid serial number is all FF's */
-    memset(ui8SerialNumber, 0xFF, sizeof(ui8SerialNumber));
-
-	/* Note the Upper bit of the word address must be set
-	 * in order to read the serial number. Thus 80H would
-	 * set the starting address to zero prior to reading
-	 * this sixteen bytes of serial number data.
-	 */
-
-	txByte = 0x80;
-
-	i2cTransaction.slaveAddress = Board_AT24CS01_SERIAL_ADDR;
-	i2cTransaction.writeBuf     = &txByte;
-	i2cTransaction.writeCount   = 1;
-	i2cTransaction.readBuf      = ui8SerialNumber;
-	i2cTransaction.readCount    = 16;
-
-	ret = I2C_transfer(handle, &i2cTransaction);
-
-	if (!ret)
-	{
-		System_printf("Unsuccessful I2C transfer\n");
-		System_flush();
-	}
-
-	return ret;
-}
+/* End-Of-File */

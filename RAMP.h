@@ -43,7 +43,7 @@
  * 
  *      * Frame length: Total length less preamble (includes CRC bytes)
  * 
- *      * Flags: E=ERROR, R=RESYNC, P=PRIORITY, A=ACK/NAK response required
+ *      * Flags: E=ERROR, D=DATAGRAM, P=PRIORITY, A=ACK/NAK response required
  *
  *      * Type: 1 = ACK-only           2 = NAK-only           3 = msg-only
  *              4 = msg+piggyback-ACK  5 = msg+piggyback-NAK
@@ -144,6 +144,7 @@
 #define MAKETYPE(f, t)			( (uint8_t)((f & 0xF0) | (t & 0x0F)) )
 
 /* Error Code Constants */
+#define ERR_SUCCESS             0
 #define ERR_TIMEOUT             1           /* comm port timeout           */
 #define ERR_SYNC                2           /* SOF frame sync error        */
 #define ERR_SHORT_FRAME         3           /* short rx-frame error        */
@@ -164,14 +165,13 @@ typedef struct fcb_t {
     uint8_t     seqnum;             /* frame tx/rx seq#      */
     uint8_t     acknak;             /* frame ACK/NAK seq#    */
     uint8_t     address;            /* tx/rx node address    */
-    uint16_t    textlen;            /* text len rx/tx data   */
-    void*		textbuf;            /* pointer to text buf   */
 } FCB;
 
-/* RAMP Function Prototypes */
+/*** RAMP Function Prototypes **********************************************/
 
 void RAMP_InitFcb(FCB* fcb);
-int RAMP_TxFrame(UART_Handle handle, FCB *fcb);
-int RAMP_RxFrame(UART_Handle handle, FCB *fcb);
+
+int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
+int RAMP_RxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
 
 /* end-of-file */

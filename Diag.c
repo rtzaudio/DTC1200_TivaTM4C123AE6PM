@@ -139,59 +139,9 @@ static bool check_halt()
 	return true;
 }
 
-/*
- * This function is called at startup to flash all the lamps
- * sequentially to indicate everything is up and running. 
- *
- * NOTE: This can only be called before interrupts are enabled.
- *       The interrupt background routine handles all led/lamp
- *       control once interrupts are enabled.
- */
-
 //*****************************************************************************
-// Various Helper and Utility Functions
+// DIAGNOSTIC FUNCTIONS
 //*****************************************************************************
-
-void LampBlinkChase(void)
-{
-    int i;
-
-    static const unsigned char s_lamp[] = { L_STOP, L_FWD, L_REW, L_PLAY, L_REC };
-
-    /* All lamps off */
-    SetLamp(0);
-
-    /* Chase the lamps across */
-    for (i=0; i < sizeof(s_lamp)/sizeof(unsigned char); i++)
-    {
-        SetLamp(s_lamp[i]);
-        Task_sleep(150);
-        SetLamp(0);
-    }
-
-    /* All lamps off */
-    SetLamp(0);
-}
-
-void LampBlinkError(void)
-{
-    int i;
-
-    /* All lamps off */
-    SetLamp(0);
-
-    /* Flash record LED and all three status LED's on error */
-    for (i=0; i < 3; i++)
-    {
-        SetLamp(L_REC | L_STAT1 | L_STAT2| L_STAT3);
-        Task_sleep(200);
-        SetLamp(0);
-        Task_sleep(100);
-    }
-
-    /* All lamps off */
-    SetLamp(0);
-}
 
 /*
  * This set the DAC's to various zero torque reference points
@@ -215,7 +165,7 @@ int diag_dacadjust(MENUITEM* mp)
     	static uint32_t dac[] = { 0, 50, 75, 100, 125, 150, 175, 200, 225, 250 };
 
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 
         /* Release the brakes */
         SetTransportMask(0, T_BRAKE);
@@ -249,7 +199,7 @@ int diag_dacadjust(MENUITEM* mp)
         SetTransportMask(T_BRAKE, 0);
 
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
     }
     
     return 1;
@@ -273,7 +223,7 @@ int diag_dacramp(MENUITEM* mp)
                    VT100_UL_ON, VT100_UL_OFF);
         
         /* Transport MUST be in halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 
         /* Release the brakes */
         SetTransportMask(0, T_BRAKE);
@@ -316,7 +266,7 @@ int diag_dacramp(MENUITEM* mp)
         SetTransportMask(T_BRAKE, 0);
 
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
     }
     
     wait4continue();
@@ -339,7 +289,7 @@ int diag_transport(MENUITEM* mp)
     if (check_halt())
     {
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 
         SetTransportMask(0, 0xFF);
 
@@ -367,7 +317,7 @@ int diag_transport(MENUITEM* mp)
         }
 
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
     }
 
     wait4continue();
@@ -390,7 +340,7 @@ int diag_pinch_roller(MENUITEM* mp)
     if (check_halt())
     {
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 
         /* Engage pinch roller */
 
@@ -421,7 +371,7 @@ int diag_pinch_roller(MENUITEM* mp)
         }
 
         /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
     }
 
     return 1;

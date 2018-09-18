@@ -197,7 +197,10 @@ Void ServoLoopTask(UArg a0, UArg a1)
     /* Initialize the QEI interface and interrupts */
     ReelQEI_initialize();
 
-    /* Run the servo loop forever! */
+    /* Initialize tape roller tach timers and interrupt */
+    TapeTach_initialize();
+
+    /*** ENTER SERVO LOOP FOREVER ***/
 
     while (1)
     {
@@ -243,7 +246,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         Board_readADC(g_servo.adc);
 
         /* Calculate the CPU temp since we read it here anyway */
-        g_servo.cpu_temp = ADC_TO_CELCIUS(g_servo.adc[4]);
+        g_servo.cpu_temp = (float)g_servo.adc[4];
 
         /* calculate the tension sensor value */
         g_servo.tsense = TENSION_F(g_servo.adc[0]) * g_sys.tension_sensor_gain;
@@ -428,7 +431,6 @@ static void SvcServoPlay(void)
         if (!g_servo.play_boost_count)
         	g_lamp_mask &= ~(L_STAT3);
 
-#if 1
         /* Has tape roller tach reached the correct speed yet? */
         //if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
         if (cv == 0.0f)
@@ -438,7 +440,7 @@ static void SvcServoPlay(void)
             /* Turn off boost status LED */
             g_lamp_mask &= ~(L_STAT3);
         }
-#endif
+
         // DEBUG
         g_servo.db_cv    = cv;
         g_servo.db_error = g_servo.pid_play.error;
@@ -464,91 +466,6 @@ static void SvcServoPlay(void)
 
     MotorDAC_write(dac_s, dac_t);
 }
-
-
-/* SAVED CODE */
-#if 0
-static void SvcServoPlay(void)
-{
-    float dac_s;
-    float dac_t;
-
-    /* Calculate the "reeling radius" for each reel */
-    //float rad_t = g_servo.radius_takeup;
-    //float rad_s = g_servo.radius_supply;
-
-    /* Play acceleration boost state? */
-    
-    Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
-    
-    if (g_servo.play_boost_count)
-    {
-        --g_servo.play_boost_count;
-
-        ++g_servo.play_boost_index;
-
-        /* Boost status LED on */
-        g_lamp_mask |= L_STAT3;
-
-        /* Calculate the TAKEUP boost torque */
-        dac_t = (g_servo.radius_takeup * g_servo.play_boost_takeup_gain) + (g_servo.play_boost_count >> 1);
-
-        if (dac_t < 0.0f)
-        	dac_t = 0.0f;
-
-        /* Calculate the SUPPLY boost torque */
-        dac_s = (g_servo.radius_supply * g_servo.play_boost_supply_gain);
-
-        /* Has tape roller tach reached the correct speed yet? */
-        if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
-        {
-            g_servo.play_boost_count = 0;
-
-            /* Turn off boost status LED */
-            g_lamp_mask &= ~(L_STAT3);
-        }
-    }
-    else
-    {
-        /* Calculate the TAKEUP boost torque */
-        dac_t = (g_servo.play_takeup_tension + g_servo.tsense) + g_servo.offset_takeup;
-
-        /* Calculate the SUPPLY boost torque */
-        dac_s = (g_servo.play_supply_tension + g_servo.tsense) + g_servo.offset_supply;
-    }
-
-    Semaphore_post(g_semaServo);
-
-    // DEBUG
-    g_servo.db_debug = (float)g_servo.play_boost_count;
-    
-    /* Play Mode Diagnostic Data Capture */
-
-#if (CAPDATA_SIZE > 0)
-    if (g_capdata_count < CAPDATA_SIZE)
-    {
-        g_capdata[g_capdata_count].dac_supply = dac_s;
-        g_capdata[g_capdata_count].dac_takeup = dac_t;
-        g_capdata[g_capdata_count].vel_supply = g_servo.velocity_supply;
-        g_capdata[g_capdata_count].vel_takeup = g_servo.velocity_takeup;
-        g_capdata[g_capdata_count].rad_supply = rad_t;
-        g_capdata[g_capdata_count].rad_takeup = rad_s;
-        g_capdata[g_capdata_count].tape_tach  = g_servo.tape_tach;
-        g_capdata[g_capdata_count].tension    = g_servo.tsense;
-        ++g_capdata_count;
-    }
-#endif
-
-    /* Clamp the DAC values within range if needed */
-
-    DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);
-    DAC_CLAMP(dac_t, 0.0f, DAC_MAX_F);
-
-    /* Set the servo DAC levels */
-
-    MotorDAC_write(dac_s, dac_t);
-}
-#endif
 
 //*****************************************************************************
 // STOP SERVO - This function handles dynamic braking for stop mode to

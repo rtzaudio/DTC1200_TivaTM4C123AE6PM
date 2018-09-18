@@ -1,8 +1,9 @@
 /* ============================================================================
  *
- * DTC-1200 Digital Transport Controller for Ampex MM-1200 Tape Machines
+ * DTC-1200 & STC-1200 Digital Transport Controllers for
+ * Ampex MM-1200 Tape Machines
  *
- * Copyright (C) 2016, RTZ Professional Audio, LLC
+ * Copyright (C) 2016-2018, RTZ Professional Audio, LLC
  * All Rights Reserved
  *
  * RTZ is registered trademark of RTZ Professional Audio, LLC
@@ -44,41 +45,42 @@
 #define _IPCTASK_H_
 
 #include "RAMP.h"
-
-/* Message types for IPCMSG.type */
-#define IPC_TYPE_NOTIFY				100
-#define IPC_TYPE_TRANSACTION		101
-
-/* Operation Codes for IPCMSG.opcode */
-#define OP_NOTIFY_BUTTON			10
-#define OP_NOTIFY_TRANSPORT			11
+#include "IPCMessage.h"
 
 /* ============================================================================
  * IPC Message Structure
  * ============================================================================ */
 
 typedef struct _IPCMSG {
-    uint32_t    type;                    /* command code   */
-    uint32_t    opcode;                  /* operation code */
+    uint16_t        type;           /* the IPC message type code   */
+    uint16_t        opcode;         /* application defined op code */
     union {
         uint32_t    U;
         float       F;
-    } param1;
+    } param1;                       /* unsigned or float param1 */
     union {
         uint32_t    U;
         float       F;
-    }  param2;
+    }  param2;                      /* unsigned or float param2 */
 } IPCMSG;
 
 /* ============================================================================
- * IPC Message List Entry Structure
+ * IPC Tx/Rx Message List Element Structure
  * ============================================================================ */
 
-typedef struct _FCBMSG {
+typedef struct _IPC_ELEM {
 	Queue_Elem	elem;
 	FCB			fcb;
     IPCMSG      msg;
-} FCBMSG;
+} IPC_ELEM;
+
+typedef struct _IPC_ACK {
+    uint8_t     status;
+    uint8_t     acknak;
+    uint8_t     retry;
+    uint8_t     type;
+    IPCMSG      msg;
+} IPC_ACK;
 
 /* ============================================================================
  * IPC Message Server Object
@@ -86,27 +88,53 @@ typedef struct _FCBMSG {
 
 typedef struct _IPCSVR_OBJECT {
 	UART_Handle         uartHandle;
+    /* tx queues and semaphores */
 	Queue_Handle        txFreeQue;
     Queue_Handle        txDataQue;
     Semaphore_Handle    txDataSem;
     Semaphore_Handle    txFreeSem;
-    int					numFreeMsgs;
+    Event_Handle        ackEvent;
+    /* rx queues and semaphores */
+    Queue_Handle        rxFreeQue;
+    Queue_Handle        rxDataQue;
+    Semaphore_Handle    rxDataSem;
+    Semaphore_Handle    rxFreeSem;
+    /* server data items */
+    int					txNumFreeMsgs;
+    int                 txErrors;
     uint32_t			txCount;
-    uint32_t			rxCount;
-    uint8_t             currSeq;            /* current tx sequence# */
-    uint8_t             expectSeq;          /* expected recv seq#   */
-    uint8_t             lastSeq;            /* last seq# accepted   */
-    FCBMSG*             txMsgBuf;
-    FCBMSG*             rxMsgBuf;
+    uint8_t             txNextSeq;          /* next tx sequence# */
+    int                 rxNumFreeMsgs;
+    int                 rxErrors;
+    uint32_t            rxCount;
+    uint8_t             rxExpectedSeq;		/* expected recv seq#   */
+    uint8_t             rxLastSeq;       	/* last seq# accepted   */
+    /* callback handlers */
+    Bool (*datagramHandlerFxn)(IPCMSG* msg, FCB* fcb);
+    Bool (*transactionHandlerFxn)(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+    /* frame memory buffers */
+    IPC_ELEM*           txBuf;
+    IPC_ELEM*           rxBuf;
+    IPC_ACK*            ackBuf;
 } IPCSVR_OBJECT;
 
-/* Function Prototypes */
+/* ============================================================================
+ * IPC Function Prototypes
+ * ============================================================================ */
 
 Bool IPC_Server_init(void);
 
-Bool IPC_Send_transaction(IPCMSG* msg, UInt32 timeout);
-Bool IPC_Send_datagram(IPCMSG* msg, UInt32 timeout);
+/* Application specific callback handlers */
+Bool IPC_Handle_datagram(IPCMSG* msg, FCB* fcb);
+Bool IPC_Handle_transaction(IPCMSG* msg, FCB* fcb, UInt32 timeout);
 
-Bool IPC_Send_message(IPCMSG* msg, UChar type, UChar acknak, UInt32 timeout);
+/* IPC server internal use */
+Bool IPC_Message_post(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+Bool IPC_Message_pend(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+uint8_t IPC_GetTxSeqNum(void);
+
+/* High level functions to send messages */
+Bool IPC_Notify(IPCMSG* msg, UInt32 timeout);
+Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout);
 
 #endif /* _IPCTASK_H_ */

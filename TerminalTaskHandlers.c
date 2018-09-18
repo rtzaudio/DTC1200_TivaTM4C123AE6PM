@@ -336,7 +336,7 @@ void show_monitor_data()
         tty_printf(": %-8.2f", g_servo.tsense);
 
         tty_pos(12, 47);
-        tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(g_servo.cpu_temp));
+        tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(ADC_TO_CELCIUS(g_servo.cpu_temp)));
     }
 }
 

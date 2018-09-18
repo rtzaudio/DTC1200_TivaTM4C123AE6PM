@@ -169,20 +169,6 @@ void ResetServoPID(void)
 }
 
 //*****************************************************************************
-// Set the next or immediate transport mode requested.
-//*****************************************************************************
-
-void QueueTransportCommand(uint8_t command, uint8_t opcode)
-{
-    CMDMSG msg;
-
-    msg.command = command;      /* Set the command message type */
-    msg.opcode  = opcode;       /* Set any cmd specfic op-code  */
-
-    Mailbox_post(g_mailboxController, &msg, 10);
-}
-
-//*****************************************************************************
 // Enable record mode! This function is called to enable record mode on the
 // transport for any channels with record mode armed. First we must set the
 // record hole line high to hold any armed channels in record when strobed.
@@ -235,6 +221,21 @@ void RecordDisable(void)
     }
 }
 
+//*****************************************************************************
+// Set the next or immediate transport mode requested.
+//*****************************************************************************
+
+Bool QueueTransportCommand(uint8_t command, uint8_t opcode, uint16_t param1)
+{
+    CMDMSG msg;
+
+    msg.command = command;      /* Set the command message type */
+    msg.opcode  = opcode;       /* Set any cmd specfic op-code  */
+    msg.param1  = param1;
+
+    return Mailbox_post(g_mailboxController, &msg, 10);
+}
+
 /*****************************************************************************
  * MAIN TRANSPORT COMMAND TASK
  *
@@ -264,7 +265,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        if (!IS_SERVO_MODE(MODE_HALT) || firststate)
 		        {
 		        	firststate = 0;
-		        	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT);
+		        	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 		        	continue;
 		        }
 		    }
@@ -274,14 +275,14 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        if (IS_SERVO_MODE(MODE_HALT) || firststate)
 		        {
 		        	firststate = 0;
-		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP);
+		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
 		            continue;
 		        }
 		    }
 		    else if (mbutton == S_LDEF)
             {
 		        /* lift defeat button */
-                QueueTransportCommand(CMD_TOGGLE_LIFTER, 0);
+                QueueTransportCommand(CMD_TOGGLE_LIFTER, 0, 0);
                 continue;
             }
 
@@ -299,32 +300,32 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    /* Stop only button pressed? */
 		    if (mbutton == S_STOP)
 		    {
-		        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP);
+		        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
 		    }
             else if (mbutton == S_FWD)              /* fast fwd button */
             {
-                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD);
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD, 0);
             }
             else if (mbutton == (S_FWD|S_REC))		/* fast fwd + rec button */
             {
-                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD|M_LIBWIND);
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD|M_LIBWIND, 0);
             }
             else if (mbutton == S_REW)              /* rewind button */
             {
-                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW);
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW, 0);
             }
             else if (mbutton == (S_REW|S_REC))     /* rewind + rec button */
             {
-                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW|M_LIBWIND);
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW|M_LIBWIND, 0);
             }
             else if (mbutton == S_PLAY)             /* play only button pressed? */
             {
-                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY);
+                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY, 0);
             }
 		    else if (mbutton == (S_STOP | S_REC))   /* stop & record button? */
 		    {
 		    	if (IS_SERVO_MODE(MODE_PLAY))       /* punch out */
-		    		QueueTransportCommand(CMD_STROBE_RECORD, 0);
+		    		QueueTransportCommand(CMD_STROBE_RECORD, 0, 0);
 		    }
 		    else if ((mbutton & (S_PLAY | S_REC)) == (S_PLAY | S_REC))
 		    {
@@ -334,14 +335,14 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        {
 		        	/* Is transport already in record mode? */
 		        	if (GetTransportMask() & T_RECH)
-		        		QueueTransportCommand(CMD_STROBE_RECORD, 0);	/* punch out */
+		        		QueueTransportCommand(CMD_STROBE_RECORD, 0, 0);	/* punch out */
 		        	else
-		        		QueueTransportCommand(CMD_STROBE_RECORD, 1);	/* punch in */
+		        		QueueTransportCommand(CMD_STROBE_RECORD, 1, 0);	/* punch in */
 		        }
 		        else if (IS_SERVO_MODE(MODE_STOP))
 		        {
 		        	/* Startup PLAY in REC mode */
-		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY|M_RECORD);
+		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY|M_RECORD, 0);
 		        }
 		    }
 	    }
@@ -486,6 +487,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                 case MODE_PLAY:
 
+                    if (IS_SERVO_MODE(MODE_HALT))
+                        break;
+
                     /* Ignore if already in play mode */
                     if (IS_SERVO_MODE(MODE_PLAY))
                         break;
@@ -508,12 +512,20 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                 case MODE_REW:
 
+                    if (IS_SERVO_MODE(MODE_HALT))
+                        break;
+
                     /* Disable record if active! */
                     RecordDisable();
 
                     /* Ignore if already in rew mode */
                     if (IS_SERVO_MODE(MODE_REW))
+                    {
+                        /* Allow change in velocity if same command received */
+                        if (msg.param1)
+                            g_servo.shuttle_velocity = (uint32_t)msg.param1;
                         break;
+                    }
 
                     /* Light the rewind lamp only */
                     g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_REW;
@@ -528,7 +540,10 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     ResetServoPID();
 
                     /* Set the servo velocity parameter */
-                    g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
+                    if (msg.param1)
+                        g_servo.shuttle_velocity = (uint32_t)msg.param1;
+                    else
+                        g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
 
                     // 500 ms delay for tape lifter settling time
                     if (!IS_SERVO_MOTION())
@@ -543,12 +558,20 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                 case MODE_FWD:
 
+                    if (IS_SERVO_MODE(MODE_HALT))
+                        break;
+
                     /* Disable record if active! */
                     RecordDisable();
 
                     /* Ignore if already in ffwd mode */
                     if (IS_SERVO_MODE(MODE_FWD))
+                    {
+                        /* Allow change in velocity if same command received */
+                        if (msg.param1)
+                            g_servo.shuttle_velocity = (uint32_t)msg.param1;
                         break;
+                    }
 
                     /* Reset all lamps & light fast fwd lamp */
                     g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_FWD;
@@ -563,7 +586,10 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     ResetServoPID();
 
                     /* Set the servo velocity parameter */
-                    g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
+                    if (msg.param1)
+                        g_servo.shuttle_velocity = (uint32_t)msg.param1;
+                    else
+                        g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
 
                     // 500 ms delay for tape lifter settling time
                     if (!IS_SERVO_MOTION())

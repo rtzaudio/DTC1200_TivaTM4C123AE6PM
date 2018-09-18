@@ -45,8 +45,9 @@
 
 /* Transport Message Command Structure */
 typedef struct _CMDMSG {
-    uint32_t command;		/* command code   */
-    uint32_t opcode;		/* operation code */
+    uint8_t     command;        /* command code   */
+    uint8_t     opcode;         /* operation code */
+    uint16_t    param1;         /* 16-bit param   */
 } CMDMSG;
 
 /* Transport Control Command Codes */
@@ -59,6 +60,6 @@ typedef struct _CMDMSG {
 Void TransportCommandTask(UArg a0, UArg a1);
 void TransportControllerTask(UArg a0, UArg a1);
 
-void QueueTransportCommand(uint8_t command, uint8_t opcode);
+Bool QueueTransportCommand(uint8_t command, uint8_t opcode, uint16_t param1);
 
 #endif /* DTC1200_TIVATM4C123AE6PMI_TRANSPORTTASK_H_ */

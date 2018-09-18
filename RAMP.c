@@ -78,23 +78,20 @@ void RAMP_InitFcb(FCB* fcb)
 	fcb->seqnum  = MIN_SEQ_NUM;
 	fcb->acknak  = 0;
 	fcb->address = 0;
-	fcb->textlen = 0;
-	fcb->textbuf = NULL;
 }
 
 //*****************************************************************************
 // Transmit a RAMP frame of data out the RS-422 port
 //*****************************************************************************
 
-int RAMP_TxFrame(UART_Handle handle, FCB *fcb)
+int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen)
 {
 	uint8_t b;
 	uint8_t type;
     uint16_t i;
     uint16_t framelen;
     uint16_t crc = 0;
-    uint8_t *textbuf = fcb->textbuf;
-    uint16_t textlen = fcb->textlen;
+    uint8_t *textbuf = (uint8_t*)text;
 
 	/* First check the text length is valid */
 	if (textlen > MAX_TEXT_LEN)
@@ -211,17 +208,17 @@ int RAMP_TxFrame(UART_Handle handle, FCB *fcb)
     b = (uint8_t)(crc & 0xFF);
     UART_write(handle, &b, 1);
 
-    return 0;
+    return ERR_SUCCESS;
 }
 
 //*****************************************************************************
 // Receive a RAMP data frame from the RS-422 port
 //*****************************************************************************
 
-int RAMP_RxFrame(UART_Handle handle, FCB *fcb)
+int RAMP_RxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen)
 {
-	int rc = 0;
     int i;
+	int rc = ERR_SUCCESS;
 	uint8_t b;
     uint8_t type;
     uint16_t lsb;
@@ -229,9 +226,7 @@ int RAMP_RxFrame(UART_Handle handle, FCB *fcb)
     uint16_t framelen;
     uint16_t rxcrc;
     uint16_t crc = 0;
-
-    uint8_t *textbuf = fcb->textbuf;
-    uint16_t textlen = fcb->textlen;
+    uint8_t *textbuf = (uint8_t*)text;
 
     /* First, try to synchronize to 0x89 SOF byte */
 

@@ -75,7 +75,7 @@ typedef struct _IPC_ELEM {
 } IPC_ELEM;
 
 typedef struct _IPC_ACK {
-    uint8_t     status;
+    uint8_t     flags;
     uint8_t     acknak;
     uint8_t     retry;
     uint8_t     type;

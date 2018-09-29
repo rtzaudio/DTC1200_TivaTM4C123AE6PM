@@ -76,7 +76,7 @@
 
 /* Board Header file */
 #include "Board.h"
-#include "IPCTask.h"
+#include "IPCServer.h"
 
 /* Global Data Items */
 static IPCSVR_OBJECT g_ipc;
@@ -106,7 +106,7 @@ Bool IPC_Server_init(void)
 
     uartParams.readMode       = UART_MODE_BLOCKING;
     uartParams.writeMode      = UART_MODE_BLOCKING;
-    uartParams.readTimeout    = 1000;                   // 1 second read timeout
+    uartParams.readTimeout    = 2000;                   // 1 second read timeout
     uartParams.writeTimeout   = BIOS_WAIT_FOREVER;
     uartParams.readCallback   = NULL;
     uartParams.writeCallback  = NULL;
@@ -514,7 +514,7 @@ Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
             if (fcb.type & F_DATAGRAM)
                 IPC_Handle_datagram(&msg, &fcb);
             else
-                IPC_Handle_transaction(&msg, &fcb, 1000);
+                IPC_Handle_transaction(&msg, &fcb, 2000);
         }
         else if ((fcb.type & FRAME_TYPE_MASK) == TYPE_MSG_ACK)
         {
@@ -574,7 +574,7 @@ Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
 
     size_t index = (fcb.seqnum - 1) % MAX_WINDOW;
 
-    g_ipc.ackBuf[index].status = 1;
+    g_ipc.ackBuf[index].flags  = 0x01;          /* ACK pending flag */
     g_ipc.ackBuf[index].retry  = 5;
     g_ipc.ackBuf[index].acknak = fcb.seqnum;
     g_ipc.ackBuf[index].type   = fcb.type;
@@ -587,13 +587,18 @@ Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
      */
 
     if (!IPC_Message_post(msg, &fcb, timeout))
+    {
+        g_ipc.ackBuf[index].flags = 0x00;       /* ACK no longer pending */
         return FALSE;
+    }
 
     /* Now block until we timeout or the selected bit fires */
     UInt events = Event_pend(g_ipc.ackEvent, Event_Id_NONE, 0xFFFF, timeout);
 
     if (events)
     {
+        g_ipc.ackBuf[index].flags = 0x00;       /* ACK no longer pending */
+
         /* Return reply in the callers buffer */
         msg->type   = g_ipc.ackBuf[index].msg.type;
         msg->opcode = g_ipc.ackBuf[index].msg.opcode;

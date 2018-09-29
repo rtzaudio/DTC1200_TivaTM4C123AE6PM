@@ -16,19 +16,20 @@
  * Message class types for IPCMSG.type
  * ============================================================================ */
 
-#define IPC_TYPE_NOTIFY				10
-#define IPC_TYPE_CONFIG		        20
-#define IPC_TYPE_TRANSPORT          30
+#define IPC_TYPE_NOTIFY				10      /* Notifications from DTC to STC  */
+#define IPC_TYPE_CONFIG		        20      /* DTC config Get/Set transaction */
+#define IPC_TYPE_TRANSPORT          30      /* DTC transport control commands */
 
-/* IPC_TYPE_NOTIFY Operation codes */
+/* IPC_TYPE_NOTIFY Operation codes to DTC from STC */
 #define OP_NOTIFY_BUTTON			100
 #define OP_NOTIFY_TRANSPORT			101
+#define OP_NOTIFY_EOT               102
 
-/* IPC_TYPE_CONFIG Operation codes */
+/* IPC_TYPE_CONFIG Operation codes from STC to DTC */
 #define OP_GET_SHUTTLE_VELOCITY     200
 #define OP_SET_SHUTTLE_VELOCITY     201
 
-/* IPC_TYPE_TRANSPORT Operation codes */
+/* IPC_TYPE_TRANSPORT Operation codes STC->DTC */
 #define OP_MODE_STOP                300
 #define OP_MODE_PLAY                301
 #define OP_MODE_FWD                 302     /* param1 specifies velocity */
@@ -36,15 +37,18 @@
 #define OP_MODE_REW                 304     /* param1 specifies velocity */
 #define OP_MODE_REW_LIB             305
 
+/* ============================================================================
+ * Notification Bit Flags
+ * ============================================================================ */
+
 /* OP_NOTIFY_BUTTON bits for param1.U */
-#define S_STOP          0x01        // stop button
-#define S_PLAY          0x02        // play button
-#define S_REC           0x04        // record button
-#define S_REW           0x08        // rewind button
-#define S_FWD           0x10        // fast fwd button
-#define S_LDEF          0x20        // lift defeat button
-#define S_TAPEOUT       0x40        // tape out switch
-#define S_TAPEIN        0x80        // tape detect (dummy bit)
-#define L_REC           0x01        // record indicator lamp
+#define S_STOP          0x01                /* stop button       */
+#define S_PLAY          0x02                /* play button        */
+#define S_REC           0x04                /* record button      */
+#define S_REW           0x08                /* rewind button      */
+#define S_FWD           0x10                /* fast fwd button    */
+#define S_LDEF          0x20                /* lift defeat button */
+#define S_TAPEOUT       0x40                /* tape detect out    */
+#define S_TAPEIN        0x80                /* tape detect in     */
 
 #endif /* _IPCMESSAGE_H_ */

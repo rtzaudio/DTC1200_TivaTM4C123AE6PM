@@ -98,6 +98,9 @@
  *      * CRC value: CRC-16 value calculated from offset 2 to 6
  */
 
+#ifndef __RAMP_H
+#define __RAMP_H
+
 /*** RAMP Constants and Defines ********************************************/
 
 #define PREAMBLE_MSB			0x89		/* first byte of preamble SOF  */
@@ -173,5 +176,7 @@ void RAMP_InitFcb(FCB* fcb);
 
 int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
 int RAMP_RxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
+
+#endif /* __RAMP_H */
 
 /* end-of-file */

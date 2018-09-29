@@ -52,17 +52,17 @@ static MENUITEM play_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 5,  2, "1", "P-Gain   ", MI_NUMERIC,
+{ 5,  2, "1", "P-Gain      ", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 5.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_boost_pgain },
 
-{ 6,  2, "2", "I-Gain   ", MI_NUMERIC,
+{ 6,  2, "2", "I-Gain      ", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 2.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_lo_boost_igain },
 
-{ 7,  2, "4", "Boost End", MI_NUMERIC,
+{ 7,  2, "4", "End Velocity", MI_NUMERIC,
 		.param1.U = 25,
 		.param2.U = 100,
 		NULL, put_idata, DT_LONG, &g_sys.play_lo_boost_end },
@@ -72,17 +72,17 @@ static MENUITEM play_items[] = {
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 5, 34, "5", "P-Gain   ", MI_NUMERIC,
+{ 5, 34, "5", "P-Gain      ", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 5.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_boost_pgain },
 
-{ 6, 34, "6", "I-Gain   ", MI_NUMERIC,
+{ 6, 34, "6", "I-Gain      ", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 2.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.play_hi_boost_igain },
 
-{ 7, 34, "7", "Boost End", MI_NUMERIC,
+{ 7, 34, "7", "End Velocity", MI_NUMERIC,
 		.param1.U = 100,
 		.param2.U = 130,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_boost_end },

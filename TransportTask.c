@@ -373,6 +373,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
     uint8_t prev_mode_requested = 0xFF;
     uint8_t mode_pending = 0;
     uint32_t stoptimer = 0;
+    bool shuttling = FALSE;
+
     CMDMSG msg;
 
     for(;;)
@@ -494,9 +496,21 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     if (IS_SERVO_MODE(MODE_PLAY))
                         break;
 
-                    /* Don't engage play if another mode is pending! */
-                    if (mode_pending)
+                    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
+                    {
+                        /* save upper bit as it indicates record+play mode */
+                        record = (msg.opcode & M_RECORD) ? 1 : 0;
+
+                        /* Set the reel servos to stop mode initially */
+                        SET_SERVO_MODE(MODE_STOP);
+
+                        mode_pending = MODE_PLAY;
                         break;
+                    }
+
+                    /* Don't engage play if another mode is pending! */
+                    //if (mode_pending != MODE_STOP)
+                    //    break;
 
                     /* Turn on the play lamp */
                     //g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
@@ -514,6 +528,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     if (IS_SERVO_MODE(MODE_HALT))
                         break;
+
+                    shuttling = TRUE;
 
                     /* Disable record if active! */
                     RecordDisable();
@@ -560,6 +576,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     if (IS_SERVO_MODE(MODE_HALT))
                         break;
+
+                    shuttling = TRUE;
 
                     /* Disable record if active! */
                     RecordDisable();
@@ -647,17 +665,25 @@ Void TransportControllerTask(UArg a0, UArg a1)
             {
                 if ((stoptimer % 12) == 0)
                 {
-                    //if (mode_pending == MODE_PLAY)
-                    //    g_lamp_mask ^= L_PLAY;
-                    //else
-                    //    g_lamp_mask ^= L_STOP;
-
-                    if (last_mode_completed == MODE_REW)
+                    if (mode_pending == MODE_PLAY)
+                    {
+                        g_lamp_mask &= ~(L_FWD | L_REW);
+                        g_lamp_mask ^= L_PLAY;
+                    }
+                    else if (last_mode_completed == MODE_REW)
+                    {
+                        g_lamp_mask &= ~(L_PLAY | L_FWD);
                     	g_lamp_mask ^= L_REW;
+                    }
                     else if (last_mode_completed == MODE_FWD)
+                    {
+                        g_lamp_mask &= ~(L_PLAY | L_REW);
                     	g_lamp_mask ^= L_FWD;
+                    }
                     else
+                    {
                         g_lamp_mask ^= L_STOP;
+                    }
                 }
             }
 
@@ -743,6 +769,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     last_mode_completed = MODE_STOP;
                     mode_pending = 0;
+                    shuttling = FALSE;
                     break;
 
                 case MODE_PLAY:
@@ -758,7 +785,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Play lamp only, diag leds preserved */
                     g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_PLAY;
 
-                    if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
+                    if (shuttling ||
+                        (prev_mode_requested == MODE_FWD) ||
+                        (prev_mode_requested == MODE_REW))
                     {
                         /* Setting time before engaging play after shuttle */
                         Task_sleep(g_sys.play_settle_time);
@@ -809,6 +838,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         RecordEnable();
                     }
 
+                    shuttling = FALSE;
                     last_mode_completed = MODE_PLAY;
                     mode_pending = 0;
                     break;

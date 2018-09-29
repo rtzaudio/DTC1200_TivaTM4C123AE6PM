@@ -62,7 +62,6 @@
 /* PMX42 Board Header file */
 #include "Board.h"
 #include "RAMP.h"
-//#include "STC1200.h"
 
 /* Static Function Prototypes */
 

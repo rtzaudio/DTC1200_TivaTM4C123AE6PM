@@ -71,7 +71,7 @@
 #include "Board.h"
 #include "DTC1200.h"
 #include "Globals.h"
-#include "IPCTask.h"
+#include "IPCServer.h"
 #include "ServoTask.h"
 #include "TransportTask.h"
 
@@ -99,7 +99,7 @@ Bool IPC_Handle_datagram(IPCMSG* msg, FCB* fcb)
 
 //*****************************************************************************
 // This handler processes application specific transaction based messages
-// the require an MSG+ACK response.
+// that require a MSG+ACK response.
 //*****************************************************************************
 
 Bool IPC_Handle_transaction(IPCMSG* msg, FCB* fcb, UInt32 timeout)
@@ -111,8 +111,8 @@ Bool IPC_Handle_transaction(IPCMSG* msg, FCB* fcb, UInt32 timeout)
     memcpy(&msgReply, msg, sizeof(IPCMSG));
 
     /* Execute the transaction for request */
-    System_printf("Xact(%d) Begin: %d %02x\n", fcb->seqnum, msg->opcode, msg->param1.U);
-    System_flush();
+    //System_printf("Xact(%d) Begin: %d %02x\n", fcb->seqnum, msg->opcode, msg->param1.U);
+    //System_flush();
 
     switch(msg->type)
     {

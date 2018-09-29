@@ -243,7 +243,7 @@ void Terminal_initialize(void)
     UART_Params uartParams;
 
     /* 57600, 38400, 19200, 9600, etc */
-    uint32_t baud = (g_dip_switch & M_DIPSW1) ? 9600: 19200;
+    uint32_t baud = (g_dip_switch & M_DIPSW1) ? 115200: 19200;
 
     /* Open the UART port for the TTY console */
 
@@ -251,7 +251,7 @@ void Terminal_initialize(void)
 
     uartParams.readMode       = UART_MODE_BLOCKING;
     uartParams.writeMode      = UART_MODE_BLOCKING;
-    uartParams.readTimeout    = 500;                    // 0.5 second read timeout
+    uartParams.readTimeout    = (baud > 19200) ? 250 : 500;     // 0.5 second read timeout
     uartParams.writeTimeout   = BIOS_WAIT_FOREVER;
     uartParams.readCallback   = NULL;
     uartParams.writeCallback  = NULL;

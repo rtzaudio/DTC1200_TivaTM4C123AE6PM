@@ -26,7 +26,7 @@
 
 // Aggressive Shuttle Defaults
 #define PID_Kp				1.350f
-#define PID_Ki				0.250f
+#define PID_Ki				0.190f
 #define PID_Kd				0.025f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */

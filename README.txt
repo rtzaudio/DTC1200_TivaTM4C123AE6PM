@@ -41,4 +41,24 @@ tension as the reels gain velocity and motor torque required to maintain
 velocity decrease. A new back tension gain parameter was added to the
 shuttle mode configuration parameters.
 
+=== VERSION 2.25 (09/04/2018) ==============================================
 
+Improved play boost performance by changing play boost to use PID 
+algorithm instead of counters. New P/I parameters were added to the
+PLAY confuration menu parameters.
+
+=== VERSION 2.26 (09/20/2018) ==============================================
+
+Implemented back tension gain for shuttle mode. This helps to keep constant
+tension as the reels gain velocity and motor torque required to maintain 
+velocity decrease. A new back tension gain parameter was added to the
+shuttle mode configuration parameters.
+
+=== VERSION 2.27 (09/28/2018) ==============================================
+
+Fixed bugs/issues with jog logic when toggling between shuttle, play and 
+stop during rewind operations. Add IPC logic and communications tasks
+so the DTC and STC locator can communicate and send commands between each
+other efficiently from multiple tasks. Changed DIPSW #1 function to select 
+TTY console between 19,200 or 115,200 baud. Enable SW1 to use high speed 
+115200 baud. DIPSW #4 overrides loading of EPROM config data if enabled.

@@ -864,7 +864,7 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->debounce                  = 30;		    /* button debounce time             */
     p->lifter_settle_time        = 600;         /* tape lifter settling delay in ms */
-    p->brake_settle_time         = 450;
+    p->brake_settle_time         = 100;
     p->play_settle_time			 = 800;		    /* play after shuttle settle time   */
     p->pinch_settle_time         = 250;         /* start 250ms after pinch roller   */
     p->record_pulse_time     	 = REC_PULSE_TIME;

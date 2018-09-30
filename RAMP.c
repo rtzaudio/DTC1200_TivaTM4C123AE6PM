@@ -71,7 +71,7 @@ static uint16_t CRC16Update(uint16_t crc, uint8_t data);
 // Initialize FCB structure to default values
 //*****************************************************************************
 
-void RAMP_InitFcb(FCB* fcb)
+void RAMP_InitFcb(RAMP_FCB* fcb)
 {
 	fcb->type    = MAKETYPE(0, TYPE_MSG_ONLY);
 	fcb->seqnum  = MIN_SEQ_NUM;
@@ -83,7 +83,7 @@ void RAMP_InitFcb(FCB* fcb)
 // Transmit a RAMP frame of data out the RS-422 port
 //*****************************************************************************
 
-int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen)
+int RAMP_TxFrame(UART_Handle handle, RAMP_FCB* fcb, void* text, uint16_t textlen)
 {
 	uint8_t b;
 	uint8_t type;
@@ -214,7 +214,7 @@ int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen)
 // Receive a RAMP data frame from the RS-422 port
 //*****************************************************************************
 
-int RAMP_RxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen)
+int RAMP_RxFrame(UART_Handle handle, RAMP_FCB* fcb, void* text, uint16_t textlen)
 {
     int i;
 	int rc = ERR_SUCCESS;

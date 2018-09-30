@@ -255,7 +255,7 @@ uint8_t IPC_GetTxSeqNum(void)
 // period specified.
 //*****************************************************************************
 
-Bool IPC_Message_pend(IPCMSG* msg, FCB* fcb, UInt32 timeout)
+Bool IPC_Message_pend(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 {
     UInt key;
     IPC_ELEM* elem;
@@ -279,7 +279,7 @@ Bool IPC_Message_pend(IPCMSG* msg, FCB* fcb, UInt32 timeout)
 
         /* return message and fcb data to caller */
         memcpy(msg, &(elem->msg), sizeof(IPCMSG));
-        memcpy(fcb, &(elem->fcb), sizeof(FCB));
+        memcpy(fcb, &(elem->fcb), sizeof(RAMP_FCB));
 
         /* post the semaphore */
         Semaphore_post(g_ipc.rxFreeSem);
@@ -296,7 +296,7 @@ Bool IPC_Message_pend(IPCMSG* msg, FCB* fcb, UInt32 timeout)
 // transmission within the timeout period specified.
 //*****************************************************************************
 
-Bool IPC_Message_post(IPCMSG* msg, FCB* fcb, UInt32 timeout)
+Bool IPC_Message_post(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 {
     UInt key;
     IPC_ELEM* elem;
@@ -325,7 +325,7 @@ Bool IPC_Message_post(IPCMSG* msg, FCB* fcb, UInt32 timeout)
 
         /* copy msg to element */
         memcpy(&(elem->msg), msg, sizeof(IPCMSG));
-        memcpy(&(elem->fcb), fcb, sizeof(FCB));
+        memcpy(&(elem->fcb), fcb, sizeof(RAMP_FCB));
 
         /* put message on txDataQueue */
         if (fcb->type & F_PRIORITY)
@@ -478,7 +478,7 @@ Void IPCReaderTaskFxn(UArg arg0, UArg arg1)
 
 Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
 {
-    FCB fcb;
+    RAMP_FCB fcb;
     IPCMSG msg;
 
     while (1)
@@ -549,7 +549,7 @@ Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
 
 Bool IPC_Notify(IPCMSG* msg, UInt32 timeout)
 {
-    FCB fcb;
+    RAMP_FCB fcb;
 
     fcb.type    = MAKETYPE(F_DATAGRAM, TYPE_MSG_ONLY);
     fcb.acknak  = 0;
@@ -565,7 +565,7 @@ Bool IPC_Notify(IPCMSG* msg, UInt32 timeout)
 
 Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
 {
-    FCB fcb;
+    RAMP_FCB fcb;
 
     fcb.type    = MAKETYPE(F_ACKNAK, TYPE_MSG_ONLY);
     fcb.acknak  = 0;

@@ -70,7 +70,7 @@ typedef struct _IPCMSG {
 
 typedef struct _IPC_ELEM {
 	Queue_Elem	elem;
-	FCB			fcb;
+	RAMP_FCB			fcb;
     IPCMSG      msg;
 } IPC_ELEM;
 
@@ -110,8 +110,8 @@ typedef struct _IPCSVR_OBJECT {
     uint8_t             rxExpectedSeq;		/* expected recv seq#   */
     uint8_t             rxLastSeq;       	/* last seq# accepted   */
     /* callback handlers */
-    Bool (*datagramHandlerFxn)(IPCMSG* msg, FCB* fcb);
-    Bool (*transactionHandlerFxn)(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+    Bool (*datagramHandlerFxn)(IPCMSG* msg, RAMP_FCB* fcb);
+    Bool (*transactionHandlerFxn)(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
     /* frame memory buffers */
     IPC_ELEM*           txBuf;
     IPC_ELEM*           rxBuf;
@@ -125,12 +125,12 @@ typedef struct _IPCSVR_OBJECT {
 Bool IPC_Server_init(void);
 
 /* Application specific callback handlers */
-Bool IPC_Handle_datagram(IPCMSG* msg, FCB* fcb);
-Bool IPC_Handle_transaction(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb);
+Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
 
 /* IPC server internal use */
-Bool IPC_Message_post(IPCMSG* msg, FCB* fcb, UInt32 timeout);
-Bool IPC_Message_pend(IPCMSG* msg, FCB* fcb, UInt32 timeout);
+Bool IPC_Message_post(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
+Bool IPC_Message_pend(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
 uint8_t IPC_GetTxSeqNum(void);
 
 /* High level functions to send messages */

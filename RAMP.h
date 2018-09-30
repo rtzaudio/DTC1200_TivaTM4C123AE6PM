@@ -168,14 +168,14 @@ typedef struct fcb_t {
     uint8_t     seqnum;             /* frame tx/rx seq#      */
     uint8_t     acknak;             /* frame ACK/NAK seq#    */
     uint8_t     address;            /* tx/rx node address    */
-} FCB;
+} RAMP_FCB;
 
 /*** RAMP Function Prototypes **********************************************/
 
-void RAMP_InitFcb(FCB* fcb);
+void RAMP_InitFcb(RAMP_FCB* fcb);
 
-int RAMP_TxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
-int RAMP_RxFrame(UART_Handle handle, FCB* fcb, void* text, uint16_t textlen);
+int RAMP_TxFrame(UART_Handle handle, RAMP_FCB* fcb, void* text, uint16_t textlen);
+int RAMP_RxFrame(UART_Handle handle, RAMP_FCB* fcb, void* text, uint16_t textlen);
 
 #endif /* __RAMP_H */
 

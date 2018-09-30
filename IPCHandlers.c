@@ -84,7 +84,7 @@ static void DispatchConfig(IPCMSG* msg, IPCMSG* reply);
 // from the peer. No response is required for datagrams.
 //*****************************************************************************
 
-Bool IPC_Handle_datagram(IPCMSG* msg, FCB* fcb)
+Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
 {
     if (msg->type == IPC_TYPE_NOTIFY)
     {
@@ -102,9 +102,9 @@ Bool IPC_Handle_datagram(IPCMSG* msg, FCB* fcb)
 // that require a MSG+ACK response.
 //*****************************************************************************
 
-Bool IPC_Handle_transaction(IPCMSG* msg, FCB* fcb, UInt32 timeout)
+Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 {
-    FCB fcbReply;
+    RAMP_FCB fcbReply;
     IPCMSG msgReply;
 
     /* Copy incoming message to reply as default values */

@@ -9,7 +9,7 @@
 # Directories
 [Dd]ebug/
 [Rr]elease/
-[Ss]rc/**/
+[Ss]rc/
 
 .settings/
 .launches/

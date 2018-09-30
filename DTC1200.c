@@ -858,7 +858,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->sysflags					 = SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER;
 
     p->vel_detect_threshold      = 5;           /* 10 pulses or less = no velocity  */
-    p->reel_offset_gain          = 0.110f;      /* reel torque null offset gain     */
+    p->reel_offset_gain          = 0.100f;      /* reel torque null offset gain     */
     p->play_radius_gain          = 1.000f;	    /* play mode reeling radius gain    */
     p->tension_sensor_gain       = 0.07f;	    /* tension sensor arm gain          */
 
@@ -880,7 +880,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_lib_velocity      = 250;         /* max shuttle lib wind velocity    */
     p->shuttle_autoslow_offset   = 40;          /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 0;           /* reduce shuttle velocity speed to */
-    p->shuttle_backtension_gain  = 0.850f;
+    p->shuttle_backtension_gain  = 0.450f;
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;      /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;      /* shuttle mode servo D-gain        */

@@ -62,3 +62,9 @@ so the DTC and STC locator can communicate and send commands between each
 other efficiently from multiple tasks. Changed DIPSW #1 function to select 
 TTY console between 19,200 or 115,200 baud. Enable SW1 to use high speed 
 115200 baud. DIPSW #4 overrides loading of EPROM config data if enabled.
+
+=== VERSION 2.28 (09/30/2018) ==============================================
+
+This version contains mostly adjustments to the shuttle logic to improve
+the back tension at higher velocities. New default PID parameters have 
+been assigned and it's recommended to use these values as is.

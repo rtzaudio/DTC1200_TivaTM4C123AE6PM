@@ -606,7 +606,7 @@ static void SvcServoFwd(void)
      * gains velocity and free wheels at the target velocity.
      */
 
-    float backtension = g_servo.velocity_supply * g_sys.shuttle_backtension_gain;
+    float backtension = g_servo.velocity * g_sys.shuttle_backtension_gain;
 
     // DEBUG
     g_servo.db_cv    = cv;
@@ -614,7 +614,7 @@ static void SvcServoFwd(void)
     g_servo.db_debug = target_velocity;
 
     /* DECREASE SUPPLY Motor Torque */
-    dac_s = ((float)g_sys.shuttle_supply_tension + backtension + g_servo.tsense - cv) + g_servo.offset_supply;
+    dac_s = (((float)g_sys.shuttle_supply_tension + backtension + g_servo.tsense) - cv) + g_servo.offset_supply;
 
     /* INCREASE TAKEUP Motor Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
@@ -680,7 +680,7 @@ static void SvcServoRew(void)
      * as torque is first applied, but the current drops as the motor
      * gains velocity and free wheels at the target velocity.
      */
-    float backtension = g_servo.velocity_takeup * g_sys.shuttle_backtension_gain;
+    float backtension = g_servo.velocity * g_sys.shuttle_backtension_gain;
 
     // DEBUG
     g_servo.db_cv    = cv;

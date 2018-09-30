@@ -13,10 +13,6 @@
 #define __PID_H__
 
 // Constants
-// Arbitrary numbers - pick appropriate values for
-// the system of interest.
-// INTERVAL = milliseconds for PV to react to CV
-//#define PID_CVmax       255     	// 0 to 255
 //#define PID_INTERVAL    120     	// 120ms between "I&D" updates
 
 // Gentle Shuttle Defaults
@@ -25,9 +21,9 @@
 //#define PID_Kd				0.01f
 
 // Aggressive Shuttle Defaults
-#define PID_Kp				1.350f
-#define PID_Ki				0.190f
-#define PID_Kd				0.025f
+#define PID_Kp				1.325f
+#define PID_Ki				0.275f
+#define PID_Kd				0.050f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */
 

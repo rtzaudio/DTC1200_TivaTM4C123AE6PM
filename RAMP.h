@@ -46,7 +46,7 @@
  *      * Flags: E=ERROR, D=DATAGRAM, P=PRIORITY, A=ACK/NAK response required
  *
  *      * Type: 1 = ACK-only           2 = NAK-only           3 = msg-only
- *              4 = msg+piggyback-ACK  5 = msg+piggyback-NAK
+ *              4 = msg+piggyback-ACK  5 = msg+piggyback-NAK  6 = user defined
  * 
  *      * Address: Specifies the remote slave node address (0-16)
  *
@@ -141,6 +141,7 @@
 #define TYPE_MSG_ONLY   		3			/* message only frame          */
 #define TYPE_MSG_ACK    		4			/* piggyback message plus ACK  */
 #define TYPE_MSG_NAK    		5			/* piggyback message plus NAK  */
+#define TYPE_MSG_USER           6           /* user defined message packet */
 
 #define FRAME_TYPE_MASK    		0x0F		/* type mask is lower 4 bits   */
 

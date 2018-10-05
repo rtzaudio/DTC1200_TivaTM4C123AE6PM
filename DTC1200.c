@@ -703,7 +703,13 @@ Void MainControlTask(UArg a0, UArg a1)
         {
             // Set the new lamp state
             SetLamp(g_lamp_mask);
-
+#if 0
+            msg.type     = IPC_TYPE_NOTIFY;
+            msg.opcode   = OP_NOTIFY_LED;
+            msg.param1.U = g_lamp_mask;
+            msg.param2.U = 0;
+            IPC_Notify(&msg, 0);
+#endif
             // Upate the previous lamp state
             g_lamp_mask_prev = g_lamp_mask;
         }
@@ -859,7 +865,7 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->vel_detect_threshold      = 5;           /* 10 pulses or less = no velocity  */
     p->reel_offset_gain          = 0.100f;      /* reel torque null offset gain     */
-    p->play_radius_gain          = 1.000f;	    /* play mode reeling radius gain    */
+    p->reel_radius_gain          = 1.000f;	    /* reeling radius gain              */
     p->tension_sensor_gain       = 0.07f;	    /* tension sensor arm gain          */
 
     p->debounce                  = 30;		    /* button debounce time             */
@@ -880,7 +886,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_lib_velocity      = 250;         /* max shuttle lib wind velocity    */
     p->shuttle_autoslow_offset   = 40;          /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 0;           /* reduce shuttle velocity speed to */
-    p->shuttle_backtension_gain  = 0.450f;
+    p->shuttle_holdback_gain     = 0.050f;      /* hold back gain during shuttle    */
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;      /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;      /* shuttle mode servo D-gain        */

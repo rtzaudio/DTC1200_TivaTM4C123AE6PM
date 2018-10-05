@@ -12,35 +12,45 @@
 #ifndef __PID_H__
 #define __PID_H__
 
-// Constants
-//#define PID_INTERVAL    120     	// 120ms between "I&D" updates
+#define PID_TYPE    1
 
-// Gentle Shuttle Defaults
-//#define PID_Kp				0.56f
-//#define PID_Ki				0.19f
-//#define PID_Kd				0.01f
-
-// Aggressive Shuttle Defaults
-#define PID_Kp				1.325f
-#define PID_Ki				0.275f
-#define PID_Kd				0.050f
+// Default PID Constants
+#define PID_Kp				1.500f
+#define PID_Ki				0.175f
+#define PID_Kd				0.025f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */
 
 /* Floating Point PID */
+#if (PID_TYPE == 0)
+typedef struct _FPID {
+    float       Kp;         	/* proportional gain */
+    float       Ki;         	/* integral gain */
+    float       Kd;         	/* derivative gain */
+    float       error;          /* last setpoint error */
+    float       esum;    		/* accumulated error */
+    float	    pvprev;         /* saved previous pv value */
+    float	    cvi;			/* integral component of CV */
+    float	    cvd;            /* derivative component of CV */
+    float       cvmax;			/* maximum range for CV value */
+    float	    tolerance;		/* error tolerance */
+} FPID;
+
+#else
 
 typedef struct _FPID {
-    float   Kp;         	/* proportional gain */
-    float   Ki;         	/* integral gain */
-    float   Kd;         	/* derivative gain */
-    float   error;          /* last setpoint error */
-    float   esum;    		/* accumulated error */
-    float	pvprev;         /* saved previous pv value */
-    float	cvi;			/* integral component of CV */
-    float	cvd;            /* derivative component of CV */
-    float   cvmax;			/* maximum range for CV value */
-    float	tolerance;		/* error tolerance */
+    float       error;
+    float       dState;         /* Last position input */
+    float       iState;         /* Integrator state    */
+    // Max/Min allowable integrator state
+    float       iMax;
+    float       iMin;
+    // PDI gain values
+    float       Kp;             /* proportional gain */
+    float       Ki;             /* integral gain */
+    float       Kd;             /* derivative gain */
 } FPID;
+#endif
 
 // PID Function Prototypes
 

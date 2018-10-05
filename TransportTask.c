@@ -383,7 +383,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
         if (Mailbox_pend(g_mailboxController, &msg, 25) == TRUE)
         {
-
             /* Process immediate command messages first */
 
             if (msg.command != CMD_TRANSPORT_MODE)

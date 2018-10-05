@@ -99,48 +99,6 @@ static MENUITEM tension_items[] = {
 		.param2.U = 1024.0f,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_takeup_tension },
 
-#if 0
-{ 10, 6, "", "MIN TORQUE", MI_TEXT,
-		.param1.U = 1,
-		.param2.U = 0,
-		NULL, NULL, 0, 0 },
-
-{ 12, 2, "9", "Stop   ", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = MAX_TENSION,
-		NULL, put_idata, DT_LONG, &g_sys.stop_min_torque },
-
-{ 13, 2, "10", "Shuttle", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = MAX_TENSION,
-		NULL, put_idata, DT_LONG, &g_sys.shuttle_min_torque },
-
-{ 14, 2, "11", "Play   ", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = MAX_TENSION,
-		NULL, put_idata, DT_LONG, &g_sys.play_min_torque },
-
-{ 10, 30, "", "MAX TORQUE", MI_TEXT,
-		.param1.U = 1,
-		.param2.U = 0,
-		NULL, NULL, 0, 0 },
-
-{ 12, 26, "12", "Stop   ", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = DAC_MAX,
-		NULL, put_idata, DT_LONG, &g_sys.stop_max_torque },
-
-{ 13, 26, "13", "Shuttle", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = DAC_MAX,
-		NULL, put_idata, DT_LONG, &g_sys.shuttle_max_torque },
-
-{ 14, 26, "14", "Play   ", MI_NUMERIC,
-		.param1.U = 1,
-		.param2.U = DAC_MAX,
-		NULL, put_idata, DT_LONG, &g_sys.play_max_torque },
-#endif
-
 { 16,  6, "", "SERVO PARAMETERS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
@@ -151,10 +109,10 @@ static MENUITEM tension_items[] = {
 		.param2.F = 1.00f,
 		NULL, put_idata, DT_FLOAT, &g_sys.reel_offset_gain },
 
-{ 19,  2, "16", "Play Radius Gain   ", MI_NUMERIC,
-		.param1.F = 0.025f,
-		.param2.F = 1.00f,
-		NULL, put_idata, DT_FLOAT, &g_sys.play_radius_gain },
+{ 19,  2, "16", "Reel Radius Gain   ", MI_NUMERIC,
+		.param1.F = 0.01f,
+		.param2.F = 0.20f,
+		NULL, put_idata, DT_FLOAT, &g_sys.reel_radius_gain },
 
 { 20,  2, "17", "Tension Sensor Gain", MI_NUMERIC,
 		.param1.F = 0.0f,

@@ -10,14 +10,16 @@
  * ============================================================================ */
 
 #include <limits.h>
+#include <stdint.h>
 #include <math.h>
-
 #include "pid.h"
 #include "DTC1200_TivaTM4C123AE6PMI.h"
 
 /*******************************************************************************
  * FLOATING POINT PID FUNCTIONS
  ******************************************************************************/
+
+#if (PID_TYPE == 0)
 
 /*
  * Function:    fpid_init()
@@ -141,5 +143,73 @@ float fpid_calc(FPID* p, float setpoint, float actual)
 
 	return cv;
 }
+
+#else
+
+void fpid_init(
+    FPID*   p,
+    float   Kp,
+    float   Ki,
+    float   Kd,
+    float   cvmax,
+    float   tolerance
+    )
+{
+    /* maximum CV range allowed (eg, DAC max) */
+    p->iMax = cvmax;
+    p->iMin = 0.0f;
+
+    /* dead-band error tolerance we'll allow */
+    //p->tolerance = tolerance;
+
+    /* initialize PID variables */
+    p->Kp = Kp;     /* proportional gain */
+    p->Ki = Ki;     /* integral gain */
+    p->Kd = Kd;     /* derivative gain */
+
+    /* zero out accumulators */
+    p->error  = 0.0f;
+
+    p->iState = 0.0f;
+    p->dState = 0.0f;
+}
+
+
+float fpid_calc(FPID* p, float setpoint, float actual)
+{
+    float pTerm;
+    float dTerm;
+    float iTerm;
+
+    /* Calculate the setpoint error */
+    p->error = setpoint - actual;
+
+    /* Error is within dead band tolerance? */
+    //if (fabsf(pid->error) < PID_TOLERANCE_F)
+    //    pid->error = 0.0f;
+
+    /* Calculate the proportional term */
+    pTerm = p->Kp * p->error;
+
+    /* Calculate the integral state with appropriate limiting */
+    p->iState += p->error;
+
+    if (p->iState > p->iMax)
+        p->iState = p->iMax;
+    else if (p->iState < p->iMin)
+        p->iState = p->iMin;
+
+    /* Calculate the integral term */
+    iTerm = p->Ki * p->iState;
+
+    /* Calculate the derivative term */
+    dTerm = p->Kd * (setpoint - p->dState);
+
+    p->dState = setpoint;
+
+    return pTerm + iTerm - dTerm;
+}
+
+#endif
 
 /* End-Of-File */

@@ -271,8 +271,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
             /* Calculate the current reeling radius as tape speed divided by
              * the reel speed. Takeup and supply velocity must not be zero!
              */
-       		g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.play_radius_gain;
-       		g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.play_radius_gain;
+       		g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.reel_radius_gain;
+       		g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.reel_radius_gain;
         }
 
         veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;
@@ -394,8 +394,8 @@ static void SvcServoPlay(void)
 {
     float dac_s;
     float dac_t;
-    float cv = 0.0f;
     float target_velocity;
+    float cv = 0.0f;
 
     /* Calculate the "reeling radius" for each reel */
     //float rad_t = g_servo.radius_takeup;
@@ -419,12 +419,10 @@ static void SvcServoPlay(void)
         cv = fpid_calc(
                 &g_servo.pid_play,      /* play boost PID accumulator      */
         		target_velocity,        /* desired velocity for play speed */
-				g_servo.tape_tach       /* current tape roller velocity    */
-                );
+				g_servo.tape_tach);     /* current tape roller velocity    */
 
         /* DECREASE SUPPLY Motor Torque */
         dac_s = (((float)g_servo.play_supply_tension + g_servo.tsense)) + g_servo.offset_supply;
-
         /* INCREASE TAKEUP Motor Torque */
         dac_t = ((float)g_servo.play_takeup_tension + cv) + g_servo.offset_takeup;
 
@@ -433,7 +431,7 @@ static void SvcServoPlay(void)
 
         /* Has tape roller tach reached the correct speed yet? */
         //if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
-        if (cv == 0.0f)
+        if (cv <= 0.0f)
         {
             g_servo.play_boost_count = 0;
 
@@ -560,9 +558,10 @@ static void SvcServoStop(void)
 
 static void SvcServoFwd(void)
 {
-    float cv;
     float dac_s;
     float dac_t;
+
+    static float cv = 0.0f;
 
     /* Auto reduce velocity when nearing end of the
      * reel based on the null offset value.
@@ -593,10 +592,20 @@ static void SvcServoFwd(void)
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
     cv = fpid_calc(
-            &g_servo.pid_shuttle,			/* PID accumulator  */
-			target_velocity,		/* desired velocity */
-            g_servo.velocity   		/* current velocity */
-            );
+        &g_servo.pid_shuttle,	/* PID accumulator  */
+        target_velocity,		/* desired velocity */
+        g_servo.velocity   		/* current velocity */
+        );
+
+    /* If shuttle direction changed and we were over speed,
+     * then don't allow CV to be negative as this would
+     * cause speed to *increase* when direction changed!
+     * So, we force it positive to begin dynamic braking
+     * action instead.
+     */
+
+    if ((g_servo.mode_prev == MODE_REW) && (cv < 0.0f))
+        cv = fabs(cv);
 
     Semaphore_post(g_semaServo);
 
@@ -606,15 +615,16 @@ static void SvcServoFwd(void)
      * gains velocity and free wheels at the target velocity.
      */
 
-    float backtension = g_servo.velocity * g_sys.shuttle_backtension_gain;
+    float holdback = g_servo.velocity * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
 
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.pid_shuttle.error;
     g_servo.db_debug = target_velocity;
+    g_servo.holdback = holdback;
 
     /* DECREASE SUPPLY Motor Torque */
-    dac_s = (((float)g_sys.shuttle_supply_tension + backtension + g_servo.tsense) - cv) + g_servo.offset_supply;
+    dac_s = (((float)g_sys.shuttle_supply_tension + holdback + g_servo.tsense) - cv) + g_servo.offset_supply;
 
     /* INCREASE TAKEUP Motor Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
@@ -635,9 +645,10 @@ static void SvcServoFwd(void)
 
 static void SvcServoRew(void)
 {
-    float cv;
     float dac_s;
     float dac_t;
+
+    static float cv = 0.0f;
 
     /* Auto reduce velocity when nearing end of the
      * reel based on the null offset value.
@@ -668,10 +679,20 @@ static void SvcServoRew(void)
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
     cv = fpid_calc(
-            &g_servo.pid_shuttle,   /* PID accumulator  */
-			target_velocity,		/* desired velocity */
-            g_servo.velocity   		/* current velocity */
-            );
+        &g_servo.pid_shuttle,   /* PID accumulator  */
+        target_velocity,		/* desired velocity */
+        g_servo.velocity   		/* current velocity */
+        );
+
+    /* If shuttle direction changed and we were over speed,
+     * then don't allow CV to be negative as this would
+     * cause speed to *increase* when direction changed!
+     * So, we force it positive to begin dynamic braking
+     * action instead.
+     */
+
+    if ((g_servo.mode_prev == MODE_FWD) && (cv < 0.0f))
+        cv = fabs(cv);
 
     Semaphore_post(g_semaServo);
 
@@ -680,18 +701,20 @@ static void SvcServoRew(void)
      * as torque is first applied, but the current drops as the motor
      * gains velocity and free wheels at the target velocity.
      */
-    float backtension = g_servo.velocity * g_sys.shuttle_backtension_gain;
+
+    float holdback = g_servo.velocity * g_servo.radius_takeup * g_sys.shuttle_holdback_gain;
 
     // DEBUG
     g_servo.db_cv    = cv;
     g_servo.db_error = g_servo.pid_shuttle.error;
     g_servo.db_debug = target_velocity;
+    g_servo.holdback = holdback;
 
     /* INCREASE SUPPLY Motor Torque */
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
     /* DECREASE TAKEUP Motor Torque */
-    dac_t = (((float)g_sys.shuttle_takeup_tension + backtension + g_servo.tsense) - cv) + g_servo.offset_takeup;
+    dac_t = (((float)g_sys.shuttle_takeup_tension + holdback + g_servo.tsense) - cv) + g_servo.offset_takeup;
 
     /* Safety clamp */
     DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);

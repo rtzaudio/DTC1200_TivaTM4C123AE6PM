@@ -52,7 +52,7 @@ extern const char g_escstr[];
 extern const char g_title[];
 
 /*****************************************************************************
- * DIRECT EXECUTE MENU HANDLERS
+ * EXECUTE MENU COMMAND HANDLERS
  *****************************************************************************/
 
 int mc_monitor_mode(MENUITEM *item)
@@ -248,12 +248,14 @@ void show_monitor_screen()
         tty_puts("Target");
         tty_pos(15, 2);
         tty_puts("Velocity");
+        tty_pos(16, 2);
+        tty_puts("Hold Back");
 
-        tty_pos(17, 2);
-        tty_printf("%sTAPE%s", g_ul_on, g_ul_off);
         tty_pos(18, 2);
-        tty_printf("Tape Tach");
+        tty_printf("%sTAPE%s", g_ul_on, g_ul_off);
         tty_pos(19, 2);
+        tty_printf("Tape Tach");
+        tty_pos(20, 2);
         tty_printf("Tension Arm");
 
         tty_pos(12, 35);
@@ -328,11 +330,13 @@ void show_monitor_data()
         tty_printf(": %-12.2f", g_servo.db_debug);
         tty_pos(15, 14);
         tty_printf(": %-12.2f", g_servo.velocity);
+        tty_pos(16, 14);
+        tty_printf(": %-12.2f", g_servo.holdback);
 
         /* TAPE */
-        tty_pos(18, 14);
-        tty_printf(": %-12.2f", g_servo.tape_tach);
         tty_pos(19, 14);
+        tty_printf(": %-12.2f", g_servo.tape_tach);
+        tty_pos(20, 14);
         tty_printf(": %-8.2f", g_servo.tsense);
 
         tty_pos(12, 47);

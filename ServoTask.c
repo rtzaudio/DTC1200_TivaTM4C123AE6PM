@@ -111,26 +111,29 @@ static void SvcServoRew(void);
 
 void ServoSetMode(uint32_t mode)
 {
+    uint32_t prev_mode;
+
     Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
 
     /* Only the mode number bits */
     mode &= MODE_MASK;
 
-    /* Set the new servo mode state */
-	g_servo.mode = mode;
-	
-	/* Set dynamic brake state if STOP mode requested and
-	 * the previous mode was PLAY, FF or REW, otherwise clear it.
-	 */
-	if (mode == MODE_STOP)
-	{
-		g_servo.stop_brake_state = (g_servo.mode_prev != MODE_HALT) ? 1 : 0;
-	}
-	
-	/* Save the previous servo mode state */
-	g_servo.mode_prev = g_servo.mode;
+    /* Get the previous mode */
+    prev_mode = g_servo.mode_prev;
 
-	Semaphore_post(g_semaTransportMode);
+    /* Update for previous mode state */
+    g_servo.mode_prev = g_servo.mode;
+
+    /* Now set the new servo mode state */
+    g_servo.mode = mode;
+
+    /* Set dynamic brake state if STOP mode requested and
+     * the previous mode was PLAY, FF or REW, otherwise clear it.
+     */
+    if (mode == MODE_STOP)
+        g_servo.stop_brake_state = (prev_mode != MODE_HALT) ? 1 : 0;
+
+    Semaphore_post(g_semaTransportMode);
 }
 
 uint32_t ServoGetMode()

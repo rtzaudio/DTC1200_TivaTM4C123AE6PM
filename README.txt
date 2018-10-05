@@ -29,12 +29,31 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
-=== VERSION 2.23 (07/02/2018) ==============================================
+=== VERSION 2.29 (10/05/2018) ==============================================
 
-Version 2.23 is the first official public release of the DTC firmware. This
-includes all changes from recent beta site testing and updates.
+This version fixes a bug when jogging between FWD/REW for braking purposes.
+A problem appeared when the PID output was negative (overshoot) which
+cause the servo loop to accelerate if the opposite direction was requested
+while the servo loop PID was in the overshoot state. Now we force this  
+to the opposite (undershoot) state based on the previous shuttle mode which
+gives the effect of dynamic braking (rather than accelerate).
 
-=== VERSION 2.24 (08/14/2018) ==============================================
+=== VERSION 2.28 (09/30/2018) ==============================================
+
+This version contains mostly adjustments to the shuttle logic to improve
+the back tension at higher velocities. New default PID parameters have 
+been assigned and it's recommended to use these values as is.
+
+=== VERSION 2.27 (09/28/2018) ==============================================
+
+Fixed bugs/issues with jog logic when toggling between shuttle, play and 
+stop during rewind operations. Add IPC logic and communications tasks
+so the DTC and STC locator can communicate and send commands between each
+other efficiently from multiple tasks. Changed DIPSW #1 function to select 
+TTY console between 19,200 or 115,200 baud. Enable SW1 to use high speed 
+115200 baud. DIPSW #4 overrides loading of EPROM config data if enabled.
+
+=== VERSION 2.26 (09/20/2018) ==============================================
 
 Implemented back tension gain for shuttle mode. This helps to keep constant
 tension as the reels gain velocity and motor torque required to maintain 
@@ -47,24 +66,14 @@ Improved play boost performance by changing play boost to use PID
 algorithm instead of counters. New P/I parameters were added to the
 PLAY confuration menu parameters.
 
-=== VERSION 2.26 (09/20/2018) ==============================================
+=== VERSION 2.24 (08/14/2018) ==============================================
 
 Implemented back tension gain for shuttle mode. This helps to keep constant
 tension as the reels gain velocity and motor torque required to maintain 
 velocity decrease. A new back tension gain parameter was added to the
 shuttle mode configuration parameters.
 
-=== VERSION 2.27 (09/28/2018) ==============================================
+=== VERSION 2.23 (07/02/2018) ==============================================
 
-Fixed bugs/issues with jog logic when toggling between shuttle, play and 
-stop during rewind operations. Add IPC logic and communications tasks
-so the DTC and STC locator can communicate and send commands between each
-other efficiently from multiple tasks. Changed DIPSW #1 function to select 
-TTY console between 19,200 or 115,200 baud. Enable SW1 to use high speed 
-115200 baud. DIPSW #4 overrides loading of EPROM config data if enabled.
-
-=== VERSION 2.28 (09/30/2018) ==============================================
-
-This version contains mostly adjustments to the shuttle logic to improve
-the back tension at higher velocities. New default PID parameters have 
-been assigned and it's recommended to use these values as is.
+Version 2.23 is the first official public release of the DTC firmware. This
+includes all changes from recent beta site testing and updates.

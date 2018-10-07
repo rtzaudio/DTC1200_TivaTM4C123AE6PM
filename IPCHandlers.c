@@ -86,11 +86,16 @@ static void DispatchConfig(IPCMSG* msg, IPCMSG* reply);
 
 Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
 {
+    uint8_t bits;
+
     if (msg->type == IPC_TYPE_NOTIFY)
     {
         switch(msg->opcode)
         {
-
+        case OP_NOTIFY_BUTTON:      /* DRC transport button(s) pressed */
+            bits = (uint8_t)msg->param1.U;
+            Mailbox_post(g_mailboxCommander, &bits, 0);
+            break;
         }
     }
 
@@ -120,7 +125,7 @@ Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
         DispatchConfig(msg, &msgReply);
         break;
 
-    case IPC_TYPE_TRANSPORT:
+    case IPC_TYPE_XPORT:
         DispatchTransport(msg, &msgReply);
         break;
 

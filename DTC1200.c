@@ -701,15 +701,26 @@ Void MainControlTask(UArg a0, UArg a1)
 
         if (g_lamp_mask != g_lamp_mask_prev)
         {
+            uint32_t mode;
+
             // Set the new lamp state
             SetLamp(g_lamp_mask);
-#if 0
+
+            /* Get the current servo mode */
+            mode = (uint32_t)g_servo.mode;
+
+            /* Set bit 16 it high speed mode */
+            if (g_high_speed_flag)
+                mode |= 0x8000;
+
+            /* Notify STC of the lamp mask change & current transport mode */
             msg.type     = IPC_TYPE_NOTIFY;
             msg.opcode   = OP_NOTIFY_LED;
-            msg.param1.U = g_lamp_mask;
-            msg.param2.U = 0;
+            msg.param1.U = (uint32_t)g_lamp_mask;
+            msg.param2.U = mode;
+
             IPC_Notify(&msg, 0);
-#endif
+
             // Upate the previous lamp state
             g_lamp_mask_prev = g_lamp_mask;
         }
@@ -762,6 +773,7 @@ Void MainControlTask(UArg a0, UArg a1)
 					/* Send the button press to transport ctrl/cmd task */
 					Mailbox_post(g_mailboxCommander, &bits, 10);
 
+					/* Let STC know button status change */
 					msg.type     = IPC_TYPE_NOTIFY;
 					msg.opcode   = OP_NOTIFY_BUTTON;
 					msg.param1.U = bits;
@@ -796,6 +808,8 @@ Void MainControlTask(UArg a0, UArg a1)
 
                 /* Save the updated DIP switch settings */
                 g_dip_switch = bits & M_DIPSW_MASK;
+
+                g_lamp_mask_prev = 0xFF;
             }
         }
 
@@ -829,11 +843,13 @@ Void MainControlTask(UArg a0, UArg a1)
             Mailbox_post(g_mailboxCommander, &bits, 10);
             eot_count = 0;
             eot_state = 3;
-            /* Let STC know we're at EOT */
+
+            /* Let STC know we're at end of tape (EOT) */
             msg.type     = IPC_TYPE_NOTIFY;
             msg.opcode   = OP_NOTIFY_EOT;
             msg.param1.U = bits;
             msg.param2.U = 0;
+
             IPC_Notify(&msg, 0);
             break;
 

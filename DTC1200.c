@@ -297,284 +297,6 @@ void FlashLEDError(void)
 // The main application initialization, setup and button controler task.
 //*****************************************************************************
 
-#if BUTTON_INTERRUPTS != 0
-
-/**************** INTERRUPT DRIVEN BUTTON EVENTS ******************/
-
-Void MainControlTask(UArg a0, UArg a1)
-{
-	int status;
-    uint8_t blink = 0;
-    uint8_t intcap = 0;
-    uint8_t intflag;
-    uint8_t intmask;
-    uint8_t mask;
-    uint8_t tout_prev;
-    uint8_t mode_prev;
-	uint32_t ticks;
-	uint32_t tdiff;
-    Error_Block eb;
-    Task_Params taskParams;
-
-    System_printf("MainPollTask()\n");
-
-    /* Initialize the default servo and program data values */
-
-    memset(&g_servo, 0, sizeof(SERVODATA));
-    memset(&g_sys, 0, sizeof(SYSPARMS));
-
-    InitPeripherals();
-
-    /* Read the initial mode switch states */
-    GetModeSwitches(&mode_prev);
-    g_high_speed_flag = (mode_prev & M_HISPEED) ? 1 : 0;
-    g_dip_switch      = (mode_prev & M_DIPSW_MASK);
-
-    /* Read the initial transport switch states */
-    GetTransportSwitches(&tout_prev);
-    g_tape_out_flag   = (tout_prev & S_TAPEOUT) ? 1 : 0;
-
-    /* Initialize the default system paramters */
-    InitSysDefaults(&g_sys);
-
-    /* Read the system config parameters from storage */
-    status = SysParamsRead(&g_sys);
-
-    /* Detect tape width from head stack mounted */
-    g_tape_width = (GPIO_read(Board_TAPE_WIDTH) == 0) ? 2 : 1;
-
-    /* Initialize servo loop controller data */
-    g_servo.mode              = MODE_HALT;
-    g_servo.offset_sample_cnt = 0;
-    g_servo.offset_null_sum   = 0.0f;
-    g_servo.dac_halt_takeup   = 0;
-    g_servo.dac_halt_supply   = 0;
-	g_servo.play_boost_count  = 0;
-	g_servo.rpm_takeup        = 0;
-	g_servo.rpm_takeup_sum    = 0;
-	g_servo.rpm_supply        = 0;
-	g_servo.rpm_supply_sum    = 0;
-	g_servo.rpm_sum_cnt       = 0;
-
-    /* Servo's start in halt mode! */
-    SET_SERVO_MODE(MODE_HALT);
-
-    /* Create the transport command/control and terminal tasks.
-     * The three tasks provide the bulk of the system control services.
-     */
-
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = 800;
-    taskParams.priority  = 9;
-    if (Task_create(TransportCommandTask, &taskParams, &eb) == NULL)
-        System_abort("TransportCommandTask()!n");
-
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = 800;
-    taskParams.priority  = 10;
-    if (Task_create(TransportControllerTask, &taskParams, &eb) == NULL)
-        System_abort("TransportControllerTask()!n");
-
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = 1664;
-    taskParams.priority  = 1;
-    if (Task_create(TerminalTask, &taskParams, &eb) == NULL)
-        System_abort("TerminalTask()!\n");
-
-    /* Initialize the tape tach timers and interrupt.
-     * This tach provides the tape speed from the tape
-     * counter roller.
-     */
-
-    Tachometer_initialize();
-
-    /* Start the transport servo loop timer clock running.
-     * We create an auto-reload periodic timer for the servo loop.
-     * Note we are servicing the servo task at 500 Hz.
-     */
-
-    Error_init(&eb);
-    Task_Params_init(&taskParams);
-    taskParams.stackSize = 800;
-    taskParams.priority  = 15;
-
-    if (Task_create(ServoLoopTask, &taskParams, &eb) == NULL)
-        System_abort("ServoLoopTask()!\n");
-
-    /****************************************************************
-     * Enter the main application button processing loop forever.
-     ****************************************************************/
-
-    /* Send initial tape arm out state to transport ctrl/cmd task */
-
-    mask = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
-    Mailbox_post(g_mailboxCommander, &mask, 10);
-
-    /* Blink all lamps if error reading EPROM config data, otherwise
-     * blink each lamp sequentially on success.
-     */
-
-    if (status != 0)
-        FlashLEDError();
-    else
-        FlashLEDSuccess();
-
-    /* Set initial status blink LED mask */
-    g_lamp_blink_mask = L_STAT1;
-
-    /****************************************************************
-     * Enter the main application button processing loop forever.
-     ****************************************************************/
-
-    for(;;)
-    {
-    	/* Wait for ANY I/O expander ISR events to be posted */
-    	UInt events = Event_pend(g_eventSPI, Event_Id_NONE, Event_Id_00 | Event_Id_01, 50);
-
-    	/* U5 (SSI1) : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS */
-
-    	if (events & Event_Id_00)
-    	{
-    		/* Read the interrupt flag register (bit that caused interrupt)
-    		 * and the interrupt capture data register.
-    		 */
-
-    		/* Acquire the semaphore for exclusive access */
-    	    if (Semaphore_pend(g_semaSPI, TIMEOUT_SPI))
-    	    {
-    	    	/* Read the interrupt flag register (bit that caused interrupt) */
-    	    	MCP23S17_read(g_handleSPI1, MCP_INTFA, &intflag);
-
-    	    	/* Read the interrupt capture data register */
-    	    	MCP23S17_read(g_handleSPI1, MCP_INTCAPA, &intcap);
-
-    	    	Semaphore_post(g_semaSPI);
-    	    }
-
-    		/* Clear the GPIO interrupt status from U5 */
-    		GPIO_clearInt(Board_INT1A);
-
-            /* Determine if the tape out arm is active or not
-             * and send any change in the switch state to
-             * the transport control/command task.
-             */
-
-			if (intcap & ~(S_REC))
-			{
-				/* Rising edge interrupt, button pressed */
-				ticks = Clock_getTicks();
-
-				/* Save bit mask that generated the interrupt */
-				intmask = intflag;
-			}
-			else
-			{
-				/* Falling edge interrupt, button released */
-				tdiff = Clock_getTicks() - ticks;
-
-				if (tdiff > g_sys.debounce)
-				{
-					/* First process the tape arm out switch */
-					if (intmask & S_STOP)
-					{
-						mask = S_STOP | (intcap & S_REC);;
-						Mailbox_post(g_mailboxCommander, &mask, 10);
-					}
-					else if (intmask & S_PLAY)
-					{
-						mask = S_PLAY | (intcap & S_REC);
-						Mailbox_post(g_mailboxCommander, &mask, 10);
-					}
-					else if (intmask & S_FWD)
-					{
-						mask = S_FWD;
-						Mailbox_post(g_mailboxCommander, &mask, 10);
-					}
-					else if (intmask & S_REW)
-					{
-						mask = S_REW;
-						Mailbox_post(g_mailboxCommander, &mask, 10);
-					}
-					else if (intmask & S_LDEF)
-					{
-						mask = S_LDEF;
-						Mailbox_post(g_mailboxCommander, &mask, 10);
-					}
-				}
-    		}
-    	}
-
-        /* If no interrupt events, handle tape out arm state & LED's */
-
-    	if (!events)
-    	{
-    		/* Poll the tape out arm switch state */
-
-    		GetTransportSwitches(&mask);
-
-    		mask &= S_TAPEOUT;
-
-    		if (mask != tout_prev)
-        	{
-	            /* Save the new state */
-	            tout_prev = mask;
-
-	            /* Set the tape out arm state */
-	            g_tape_out_flag = (mask & S_TAPEOUT) ? 1 : 0;
-
-	            mask = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
-
-	            /* Send the button press to transport ctrl/cmd task */
-	            Mailbox_post(g_mailboxCommander, &mask, 10);
-        	}
-
-    		/* Poll the tape speed select and DIP switch states */
-
-            GetModeSwitches(&mask);
-
-            if (mask != mode_prev)
-            {
-            	/* We debounced a switch change, reset and process it */
-                mode_prev = mask;
-
-                /* Save the transport speed select setting */
-                g_high_speed_flag = (mask & M_HISPEED) ? 1 : 0;
-
-                /* Save the updated DIP switch settings */
-                g_dip_switch = mask & M_DIPSW_MASK;
-            }
-
-			/* See if its time to blink any LED(s) mask */
-
-			if (++blink >= 10)
-			{
-				blink = 0;
-				g_lamp_mask ^= g_lamp_blink_mask;
-			}
-
-			/* Set any new led/lamp state. We only update the LED
-			 * output port if the lamp mask state changed.
-			 */
-
-			if (g_lamp_mask != g_lamp_mask_prev)
-			{
-				/* Set the new lamp state */
-				SetLamp(g_lamp_mask);
-
-				/* Update the previous lamp state*/
-				g_lamp_mask_prev = g_lamp_mask;
-			}
-    	}
-    }
-}
-
-#else
-
-/**************** POLLED TRANSPORT BUTTON EVENTS ******************/
-
 #define DEBOUNCE	6
 
 Void MainControlTask(UArg a0, UArg a1)
@@ -701,27 +423,31 @@ Void MainControlTask(UArg a0, UArg a1)
 
         if (g_lamp_mask != g_lamp_mask_prev)
         {
-            uint32_t mode;
+            /* Get the current servo mode */
+            uint32_t mode = (uint32_t)g_servo.mode;
 
             // Set the new lamp state
             SetLamp(g_lamp_mask);
-
-            /* Get the current servo mode */
-            mode = (uint32_t)g_servo.mode;
 
             /* Set bit 16 it high speed mode */
             if (g_high_speed_flag)
                 mode |= 0x8000;
 
-            /* Notify STC of the lamp mask change & current transport mode */
-            msg.type     = IPC_TYPE_NOTIFY;
-            msg.opcode   = OP_NOTIFY_LED;
-            msg.param1.U = (uint32_t)g_lamp_mask;
-            msg.param2.U = mode;
+            /* Don't send status 1-3 LED notifications as the STC doesn't
+             * need this and it creates lots of unneeded IPC traffic.
+             */
+            if ((g_lamp_mask_prev & L_LAMP_MASK) != (g_lamp_mask & L_LAMP_MASK))
+            {
+                /* Notify STC of the lamp mask change & current transport mode */
+                msg.type     = IPC_TYPE_NOTIFY;
+                msg.opcode   = OP_NOTIFY_LAMP;
+                msg.param1.U = (uint32_t)g_lamp_mask;
+                msg.param2.U = mode;
 
-            IPC_Notify(&msg, 0);
+                IPC_Notify(&msg, 0);
+            }
 
-            // Upate the previous lamp state
+            // Update the previous lamp state
             g_lamp_mask_prev = g_lamp_mask;
         }
 
@@ -841,16 +567,16 @@ Void MainControlTask(UArg a0, UArg a1)
             /* Send the button press to transport ctrl/cmd task */
             bits = S_STOP;
             Mailbox_post(g_mailboxCommander, &bits, 10);
-            eot_count = 0;
-            eot_state = 3;
 
             /* Let STC know we're at end of tape (EOT) */
             msg.type     = IPC_TYPE_NOTIFY;
             msg.opcode   = OP_NOTIFY_EOT;
             msg.param1.U = bits;
             msg.param2.U = 0;
-
             IPC_Notify(&msg, 0);
+
+            eot_count = 0;
+            eot_state = 3;
             break;
 
         case 3:
@@ -864,8 +590,6 @@ Void MainControlTask(UArg a0, UArg a1)
         Task_sleep(5);
     }
 }
-
-#endif
 
 //*****************************************************************************
 // Set default runtime values

@@ -96,7 +96,14 @@ Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
             bits = (uint8_t)msg->param1.U;
             Mailbox_post(g_mailboxCommander, &bits, 0);
             break;
+
+        default:
+            break;
         }
+    }
+    else if (msg->type == IPC_TYPE_TRANSPORT)
+    {
+        DispatchTransport(msg, NULL);
     }
 
     return TRUE;
@@ -125,7 +132,7 @@ Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
         DispatchConfig(msg, &msgReply);
         break;
 
-    case IPC_TYPE_XPORT:
+    case IPC_TYPE_TRANSPORT:
         DispatchTransport(msg, &msgReply);
         break;
 
@@ -152,6 +159,9 @@ Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 void DispatchTransport(IPCMSG* msg, IPCMSG* reply)
 {
     uint16_t param1 = (uint16_t)msg->param1.U;
+
+    if (IS_SERVO_MODE(MODE_HALT))
+        return;
 
     switch(msg->opcode)
     {

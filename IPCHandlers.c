@@ -165,6 +165,18 @@ void DispatchTransport(IPCMSG* msg, IPCMSG* reply)
 
     switch(msg->opcode)
     {
+    case OP_TRANSPORT_GET_MODE:                     /* return transport mode */
+        reply->param1.U = (uint32_t)g_servo.mode;
+        break;
+
+    case OP_TRANSPORT_GET_VELOCITY:                 /* return reel velocity */
+        reply->param1.F = g_servo.velocity;
+        break;
+
+    case OP_TRANSPORT_GET_TACH:                     /* return tape roller tach */
+        reply->param1.F = g_servo.tape_tach;
+        break;
+
     case OP_MODE_STOP:
         QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
         break;

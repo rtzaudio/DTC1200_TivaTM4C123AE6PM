@@ -549,22 +549,23 @@ Void MainControlTask(UArg a0, UArg a1)
             /* Look for first high edge */
             if ((bits = GPIO_read(Board_TAPE_END)) > 0)
                 eot_state = 1;
+            eot_count = 0;
             break;
 
         case 1:
-            /* Has it gone low yet yet? */
+            /* If it goes low before 25 counts, then it's a glitch */
             if ((bits = GPIO_read(Board_TAPE_END)) == 0)
             {
                 eot_state = 0;
                 break;
             }
-            /* Has signal been high for at least 25 samples */
+            /* Trigger signal been high for at least 25 samples */
             if (++eot_count > 25)
                 eot_state = 2;
             break;
 
         case 2:
-            /* Send the button press to transport ctrl/cmd task */
+            /* Send a STOP button press to transport ctrl/cmd task */
             bits = S_STOP;
             Mailbox_post(g_mailboxCommander, &bits, 10);
 
@@ -575,14 +576,13 @@ Void MainControlTask(UArg a0, UArg a1)
             msg.param2.U = 0;
             IPC_Notify(&msg, 0);
 
-            eot_count = 0;
             eot_state = 3;
             break;
 
         case 3:
-            /* Now wait for button to go low on release */
-            eot_state = 0;
-            eot_count = 0;
+            /* Now wait for trigger to go back low on release */
+            if ((bits = GPIO_read(Board_TAPE_END)) == 0)
+                eot_state = 0;
             break;
         }
 

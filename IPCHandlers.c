@@ -111,7 +111,7 @@ Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
 
 //*****************************************************************************
 // This handler processes application specific transaction based messages
-// that require a MSG+ACK response.
+// received from the STC that require a MSG+ACK response.
 //*****************************************************************************
 
 Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
@@ -153,7 +153,7 @@ Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 }
 
 //*****************************************************************************
-// DISPATCH TRANSPORT MODE CONTROL REQUESTS
+// DISPATCH TRANSPORT MODE CONTROL REQUESTS RECEIVED FROM STC
 //*****************************************************************************
 
 void DispatchTransport(IPCMSG* msg, IPCMSG* reply)

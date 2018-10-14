@@ -98,7 +98,6 @@ Bool IPC_Server_init(void)
     IPC_ELEM* msg;
     Error_Block eb;
     UART_Params uartParams;
-    Task_Params taskParams;
 
     /* Open the UART for binary mode */
 
@@ -201,6 +200,15 @@ Bool IPC_Server_init(void)
     g_ipc.rxLastSeq     = 0;                /* last seq# accepted   */
     g_ipc.rxExpectedSeq = MIN_SEQ_NUM;      /* expected recv seq#   */
 
+    return TRUE;
+}
+
+
+Bool IPC_Server_startup(void)
+{
+    Error_Block eb;
+    Task_Params taskParams;
+
     /*
      * Finally, create the reader, writer and worker tasks
      */
@@ -219,7 +227,7 @@ Bool IPC_Server_init(void)
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1500;
+    taskParams.stackSize = 800;
     taskParams.priority  = 10;
     Task_create((Task_FuncPtr)IPCWorkerTaskFxn, &taskParams, &eb);
 

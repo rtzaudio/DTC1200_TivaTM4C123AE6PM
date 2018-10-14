@@ -41,7 +41,6 @@
  *
  *	RPM = (80,000,000 * 1 * s * 60) / (800,000 * 500 * 4) = 600 rpm
  *	RPM = (100 * s) / 33.33 = 600 rpm
- *
  */
 
 /* The AMS AS5047D quadrature encoder is 2000 step per revolution,

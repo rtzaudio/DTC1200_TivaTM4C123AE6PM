@@ -88,6 +88,9 @@ SYSPARMS g_sys;
 /* Servo & System Data in RAM */
 SERVODATA g_servo;
 
+uint32_t g_notify_mode;
+uint32_t g_notify_mode_prev;
+
 uint8_t g_lamp_mask       = 0;        	/* current led/lamp output mask */
 uint8_t g_lamp_mask_prev  = 0xff;     	/* prev led/lamp output mask    */
 uint8_t g_lamp_blink_mask = 0;

@@ -161,7 +161,7 @@ Int main()
 
     Error_init(&eb);
     Task_Params_init(&taskParams);
-    taskParams.stackSize = 1024;
+    taskParams.stackSize = 1248;
     taskParams.priority  = 13;
 
     if (Task_create(MainControlTask, &taskParams, &eb) == NULL)
@@ -313,7 +313,7 @@ Void MainControlTask(UArg a0, UArg a1)
     uint8_t eot_count = 0;
     uint8_t eot_state = 0;
     int status = 0;
-    IPCMSG msg;
+    IPCMSG ipc;
     Error_Block eb;
     Task_Params taskParams;
 
@@ -338,6 +338,9 @@ Void MainControlTask(UArg a0, UArg a1)
 
     /* Initialize the default system parameters */
     InitSysDefaults(&g_sys);
+
+    /* Initialize the IPC interface to STC-1200 card */
+    IPC_Server_init();
 
     /* Read the system config parameters from storage.
      * If DIP switch 4 is set we only run with defaults
@@ -388,13 +391,12 @@ Void MainControlTask(UArg a0, UArg a1)
      * Enter the main application button processing loop forever.
      ****************************************************************/
 
-    /* Send initial tape arm out state to transport ctrl/cmd task */
+    /* Startup the IPC server threads */
+    IPC_Server_startup();
 
+    /* Send initial tape arm out state to transport ctrl/cmd task */
     temp = (g_tape_out_flag) ? S_TAPEOUT : S_TAPEIN;
     Mailbox_post(g_mailboxCommander, &temp, 10);
-
-    /* Initialize the IPC interface to STC-1200 card */
-    IPC_Server_init();
 
     /* Blink all lamps if error reading EPROM config data, otherwise
      * blink each lamp sequentially on success.
@@ -423,15 +425,8 @@ Void MainControlTask(UArg a0, UArg a1)
 
         if (g_lamp_mask != g_lamp_mask_prev)
         {
-            /* Get the current servo mode */
-            uint32_t mode = (uint32_t)g_servo.mode;
-
-            // Set the new lamp state
+            /* Set the new lamp state */
             SetLamp(g_lamp_mask);
-
-            /* Set bit 16 it high speed mode */
-            if (g_high_speed_flag)
-                mode |= 0x8000;
 
             /* Don't send status 1-3 LED notifications as the STC doesn't
              * need this and it creates lots of unneeded IPC traffic.
@@ -439,16 +434,31 @@ Void MainControlTask(UArg a0, UArg a1)
             if ((g_lamp_mask_prev & L_LAMP_MASK) != (g_lamp_mask & L_LAMP_MASK))
             {
                 /* Notify STC of the lamp mask change & current transport mode */
-                msg.type     = IPC_TYPE_NOTIFY;
-                msg.opcode   = OP_NOTIFY_LAMP;
-                msg.param1.U = (uint32_t)g_lamp_mask;
-                msg.param2.U = mode;
+                ipc.type     = IPC_TYPE_NOTIFY;
+                ipc.opcode   = OP_NOTIFY_LAMP;
+                ipc.param1.U = (uint32_t)g_lamp_mask;
+                ipc.param2.U = (g_high_speed_flag != 0) ? 30 : 15;
 
-                IPC_Notify(&msg, 0);
+                IPC_Notify(&ipc, 0);
             }
 
             // Update the previous lamp state
             g_lamp_mask_prev = g_lamp_mask;
+        }
+
+        /* Notify the STC of any transport mode changes */
+
+        if (g_notify_mode != g_notify_mode_prev)
+        {
+            g_notify_mode_prev = g_notify_mode;
+
+            /* Notify the STC of the new transport mode */
+            ipc.type     = IPC_TYPE_NOTIFY;
+            ipc.opcode   = OP_NOTIFY_TRANSPORT;
+            ipc.param1.U = g_notify_mode;
+            ipc.param2.U = (g_high_speed_flag) ? 30 : 15;
+
+            IPC_Notify(&ipc, 0);
         }
 
         /* Poll the transport switches to see if the tape out arm on the
@@ -500,12 +510,12 @@ Void MainControlTask(UArg a0, UArg a1)
 					Mailbox_post(g_mailboxCommander, &bits, 10);
 
 					/* Let STC know button status change */
-					msg.type     = IPC_TYPE_NOTIFY;
-					msg.opcode   = OP_NOTIFY_BUTTON;
-					msg.param1.U = bits;
-					msg.param2.U = 0;
+					ipc.type     = IPC_TYPE_NOTIFY;
+					ipc.opcode   = OP_NOTIFY_BUTTON;
+					ipc.param1.U = bits;
+					ipc.param2.U = (g_high_speed_flag != 0) ? 30 : 15;
 
-					IPC_Notify(&msg, 0);
+					IPC_Notify(&ipc, 0);
 				}
 			}
         }
@@ -570,11 +580,11 @@ Void MainControlTask(UArg a0, UArg a1)
             Mailbox_post(g_mailboxCommander, &bits, 10);
 
             /* Let STC know we're at end of tape (EOT) */
-            msg.type     = IPC_TYPE_NOTIFY;
-            msg.opcode   = OP_NOTIFY_EOT;
-            msg.param1.U = bits;
-            msg.param2.U = 0;
-            IPC_Notify(&msg, 0);
+            ipc.type     = IPC_TYPE_NOTIFY;
+            ipc.opcode   = OP_NOTIFY_EOT;
+            ipc.param1.U = bits;
+            ipc.param2.U = 0;
+            IPC_Notify(&ipc, 0);
 
             eot_state = 3;
             break;

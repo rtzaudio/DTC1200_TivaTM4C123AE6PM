@@ -49,8 +49,11 @@
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Semaphore.h>
+#include <ti/sysbios/knl/Event.h>
 #include <ti/sysbios/knl/Mailbox.h>
 #include <ti/sysbios/knl/Task.h>
+#include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Queue.h>
 
 /* TI-RTOS Driver files */
 #include <ti/drivers/GPIO.h>
@@ -74,6 +77,7 @@
 #include "TransportTask.h"
 #include "IOExpander.h"
 #include "TapeTach.h"
+#include "IPCServer.h"
 
 /* Static Function Prototypes */
 static void ResetServoPlay(void);
@@ -198,6 +202,9 @@ void RecordEnable(void)
 
         /* 6) Turn on the record button lamp */
         g_lamp_mask |= L_REC;
+
+        /* This sends the DRC a mode change with record bit set */
+        g_notify_mode |= M_RECORD;
     }
 }
 
@@ -218,6 +225,9 @@ void RecordDisable(void)
 
         /* Turn of the rec indicator LED and lamps */
         g_lamp_mask &= ~(L_REC);
+
+        /* This sends the DRC a mode change with record bit set */
+        g_notify_mode &= ~(M_RECORD);
     }
 }
 
@@ -374,7 +384,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
     uint8_t mode_pending = 0;
     uint32_t stoptimer = 0;
     bool shuttling = FALSE;
-
     CMDMSG msg;
 
     for(;;)
@@ -420,6 +429,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                 g_lamp_mask |= L_STAT2;
             else
                 g_lamp_mask &= ~(L_STAT2 | L_STAT3);
+
+            /* This causes the main task to send a mode change notification
+             * to the STC so it knows the current transport mode at all times.
+             */
+            g_notify_mode = msg.opcode;
 
             /* Process the requested mode change command */
 
@@ -664,12 +678,18 @@ Void TransportControllerTask(UArg a0, UArg a1)
             {
                 if ((stoptimer % 12) == 0)
                 {
-                    if (mode_pending == MODE_PLAY)
-                    {
-                        g_lamp_mask &= ~(L_FWD | L_REW);
-                        g_lamp_mask ^= L_PLAY;
-                    }
-                    else if (last_mode_completed == MODE_REW)
+                    //if (mode_pending == MODE_PLAY)
+                    //{
+                        /* This causes master monitor transfer to blink
+                         * and switches all the channels over when the relay
+                         * blinks. Unfortunately we can do this because
+                         * the goofy remote triggers switching off the
+                         * PLAY and STOP lamps!
+                         */
+                        //g_lamp_mask &= ~(L_FWD | L_REW);
+                        //g_lamp_mask ^= L_PLAY;
+                    //}
+                    if (last_mode_completed == MODE_REW)
                     {
                         g_lamp_mask &= ~(L_PLAY | L_FWD);
                     	g_lamp_mask ^= L_REW;

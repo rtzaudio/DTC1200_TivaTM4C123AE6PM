@@ -123,6 +123,7 @@ typedef struct _IPCSVR_OBJECT {
  * ============================================================================ */
 
 Bool IPC_Server_init(void);
+Bool IPC_Server_startup(void);
 
 /* Application specific callback handlers */
 Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb);

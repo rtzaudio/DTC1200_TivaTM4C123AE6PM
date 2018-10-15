@@ -76,8 +76,10 @@
 #include "TransportTask.h"
 
 /* Static Function Prototypes */
-static void DispatchTransport(IPCMSG* msg, IPCMSG* reply);
-static void DispatchConfig(IPCMSG* msg, IPCMSG* reply);
+
+void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply);
+void DispatchTransportTransaction(IPCMSG* msg, IPCMSG* reply);
+static void DispatchConfigTransaction(IPCMSG* msg, IPCMSG* reply);
 
 //*****************************************************************************
 // This handler processes application specific datagram messages received
@@ -103,60 +105,17 @@ Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
     }
     else if (msg->type == IPC_TYPE_TRANSPORT)
     {
-        DispatchTransport(msg, NULL);
+        DispatchTransportMode(msg, NULL);
     }
 
     return TRUE;
 }
 
 //*****************************************************************************
-// This handler processes application specific transaction based messages
-// received from the STC that require a MSG+ACK response.
-//*****************************************************************************
-
-Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
-{
-    RAMP_FCB fcbReply;
-    IPCMSG msgReply;
-
-    /* Copy incoming message to reply as default values */
-    memcpy(&msgReply, msg, sizeof(IPCMSG));
-
-    /* Execute the transaction for request */
-    //System_printf("Xact(%d) Begin: %d %02x\n", fcb->seqnum, msg->opcode, msg->param1.U);
-    //System_flush();
-
-    switch(msg->type)
-    {
-    case IPC_TYPE_CONFIG:
-        DispatchConfig(msg, &msgReply);
-        break;
-
-    case IPC_TYPE_TRANSPORT:
-        DispatchTransport(msg, &msgReply);
-        break;
-
-    default:
-        msgReply.param1.U = 0;
-        msgReply.param2.U = 0;
-        break;
-    }
-
-    /* Send the response msg+ack with command results returned */
-
-    fcbReply.type    = MAKETYPE(F_ACKNAK, TYPE_MSG_ACK);
-    fcbReply.acknak  = fcb->seqnum;
-    fcbReply.address = fcb->address;
-    fcbReply.seqnum  = IPC_GetTxSeqNum();
-
-    return IPC_Message_post(&msgReply, &fcbReply, timeout);
-}
-
-//*****************************************************************************
 // DISPATCH TRANSPORT MODE CONTROL REQUESTS RECEIVED FROM STC
 //*****************************************************************************
 
-void DispatchTransport(IPCMSG* msg, IPCMSG* reply)
+void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply)
 {
     uint16_t param1 = (uint16_t)msg->param1.U;
 
@@ -165,18 +124,6 @@ void DispatchTransport(IPCMSG* msg, IPCMSG* reply)
 
     switch(msg->opcode)
     {
-    case OP_TRANSPORT_GET_MODE:                     /* return transport mode */
-        reply->param1.U = (uint32_t)g_servo.mode;
-        break;
-
-    case OP_TRANSPORT_GET_VELOCITY:                 /* return reel velocity */
-        reply->param1.F = g_servo.velocity;
-        break;
-
-    case OP_TRANSPORT_GET_TACH:                     /* return tape roller tach */
-        reply->param1.F = g_servo.tape_tach;
-        break;
-
     case OP_MODE_STOP:
         QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
         break;
@@ -211,15 +158,81 @@ void DispatchTransport(IPCMSG* msg, IPCMSG* reply)
 }
 
 //*****************************************************************************
-// DISPATCH CONFIGURATION GET/SET REQUESTS
+// This handler processes application specific transaction based messages
+// received from the STC that require a MSG+ACK response.
 //*****************************************************************************
 
-void DispatchConfig(IPCMSG* msg, IPCMSG* reply)
+Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
+{
+    RAMP_FCB fcbReply;
+    IPCMSG msgReply;
+
+    /* Copy incoming message to reply as default values */
+    memcpy(&msgReply, msg, sizeof(IPCMSG));
+
+    /* Execute the transaction for request */
+    //System_printf("Xact(%d) Begin: %d %02x\n", fcb->seqnum, msg->opcode, msg->param1.U);
+    //System_flush();
+
+    switch(msg->type)
+    {
+    case IPC_TYPE_CONFIG:
+        DispatchConfigTransaction(msg, &msgReply);
+        break;
+
+    case IPC_TYPE_TRANSPORT:
+        DispatchTransportTransaction(msg, &msgReply);
+        break;
+
+    default:
+        msgReply.param1.U = 0;
+        msgReply.param2.U = 0;
+        break;
+    }
+
+    /* Send the response msg+ack with command results returned */
+
+    fcbReply.type    = MAKETYPE(F_ACKNAK, TYPE_MSG_ACK);
+    fcbReply.acknak  = fcb->seqnum;
+    fcbReply.address = fcb->address;
+    fcbReply.seqnum  = IPC_GetTxSeqNum();
+
+    return IPC_Message_post(&msgReply, &fcbReply, timeout);
+}
+
+
+void DispatchTransportTransaction(IPCMSG* msg, IPCMSG* reply)
+{
+    switch(msg->opcode)
+    {
+    case OP_TRANSPORT_GET_MODE:                     /* return transport mode */
+        reply->param1.U = (uint32_t)g_servo.mode;
+        reply->param2.U = (g_high_speed_flag) ? 30 : 15;
+        break;
+
+    case OP_TRANSPORT_GET_VELOCITY:                 /* return reel velocity */
+        reply->param1.F = g_servo.velocity;
+        reply->param2.F = g_servo.tape_tach;
+        break;
+
+    case OP_TRANSPORT_GET_TACH:                     /* return tape roller tach */
+        reply->param1.F = g_servo.tape_tach;
+        reply->param2.F = 0.0f;
+        break;
+    }
+}
+
+//*****************************************************************************
+// DISPATCH CONFIGURATION GET/SET REQUESTS FROM THE STC-1200
+//*****************************************************************************
+
+void DispatchConfigTransaction(IPCMSG* msg, IPCMSG* reply)
 {
     switch(msg->opcode)
     {
     case OP_GET_SHUTTLE_VELOCITY:
-        reply->param1.U = (int16_t)g_sys.shuttle_velocity;
+        reply->param1.U = (uint32_t)g_sys.shuttle_velocity;
+        reply->param2.U = 0;
         break;
 
     case OP_SET_SHUTTLE_VELOCITY:

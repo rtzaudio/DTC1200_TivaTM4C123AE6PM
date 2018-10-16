@@ -265,8 +265,8 @@ Bool SIMP_Message_post(SIMP_MSG* msg, SIMP_FCB* fcb, UInt32 timeout)
         Hwi_restore(key);
 
         /* copy msg to element */
-        //memcpy(&(elem->fcb), fcb, sizeof(RAMP_FCB));
-        //memcpy(&(elem->msg), msg, sizeof(SIMP_MSG));
+        memcpy(elem, fcb, sizeof(SIMP_FCB));
+        memcpy(elem->textbuf, msg, sizeof(SIMP_MSG));
 
         /* put message on txDataQueue */
         if (fcb->type & SIMP_F_PRIORITY)

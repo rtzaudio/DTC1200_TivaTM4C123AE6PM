@@ -173,10 +173,6 @@ Bool SIMP_Service_init(void)
         Queue_enqueue(g_simp.rxFreeQue, (Queue_Elem*)fcb);
     }
 
-    /*
-     * Allocate Message Buffer Memory
-     */
-
     /* Initialize Server Data Items */
 
     g_simp.txErrors      = 0;

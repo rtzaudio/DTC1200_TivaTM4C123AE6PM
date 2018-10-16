@@ -49,8 +49,6 @@
 #include <xdc/runtime/Gate.h>
 #include <xdc/runtime/Memory.h>
 
-#include <ti/sysbios/BIOS.h>
-
 /* BIOS Header files */
 #include <ti/sysbios/BIOS.h>
 #include <ti/sysbios/knl/Task.h>

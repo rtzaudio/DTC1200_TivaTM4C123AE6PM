@@ -70,7 +70,7 @@ typedef struct _IPCMSG {
 
 typedef struct _IPC_ELEM {
 	Queue_Elem	elem;
-	RAMP_FCB			fcb;
+	RAMP_FCB	fcb;
     IPCMSG      msg;
 } IPC_ELEM;
 

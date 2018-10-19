@@ -139,15 +139,18 @@ void ReelQEI_initialize(void)
 
     /* Configure the quadrature encoder to capture edges on both signals and
      * maintain an absolute position by resetting on index pulses. Using a
-     * 360 CPR encoder at four edges per line, there are 1440 pulses per
-     * revolution; therefore set the maximum position to 1439 since the
+     * 500 CPR encoder at four edges per line, there are 2000 pulses per
+     * revolution; therefore set the maximum position to 2000 since the
      * count is zero based.
      */
+
+    uint32_t edgesPerRev = ((g_dip_switch & M_DIPSW3) == 0) ? QE_AS5047P_EDGES : QE_AS5047D_EDGES;
+
     QEIConfigure(QEI_BASE_SUPPLY, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_RESET_IDX |
-                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), QE_EDGES_PER_REV - 1);
+                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), edgesPerRev - 1);
 
     QEIConfigure(QEI_BASE_TAKEUP, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_RESET_IDX |
-                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), QE_EDGES_PER_REV - 1);
+                 QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), edgesPerRev - 1);
 
     /* This function configures the operation of the velocity capture portion
      * of the quadrature encoder. The position increment signal is pre-divided

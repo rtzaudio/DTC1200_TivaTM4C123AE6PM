@@ -50,8 +50,10 @@
 #define QEI_BASE_SUPPLY	    QEI0_BASE   	/* QEI-0 is SUPPLY encoder */
 #define QEI_BASE_TAKEUP	    QEI1_BASE   	/* QEI-1 is TAKEUP encoder */
 
-#define QE_PPR				500				/* encoder pulses per revolution       */
-#define QE_EDGES_PER_REV	(QE_PPR * 4)	/* PPR x 4 for four quad encoder edges */
+#define QE_AS5047D_EDGES    (500 * 4)       /* "D" version is 500 CPR  */
+#define QE_AS5047P_EDGES    (1024 * 4)      /* "P" version is 1024 CPR */
+
+//#define QE_EDGES_PER_REV	(QE_PPR * 4)	/* PPR x 4 for four quad encoder edges */
 #define QE_TIMER_PERIOD		800000			/* period of 800,000 is 10ms at 80MHz  */
 
 /* Calculate RPM from the velocity value */

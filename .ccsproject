@@ -13,4 +13,5 @@
 	<templateProperties value="id=org.eclipse.rtsc.project.templates.EmptyRtscApplication,buildProfile=release,isHybrid=true,"/>
 	<filesToOpen value=""/>
 	<isTargetManual value="true"/>
+	<origin value="C:/Users/bob/workspace_v7/DTC1200_TivaTM4C123AE6PM"/>
 </projectOptions>

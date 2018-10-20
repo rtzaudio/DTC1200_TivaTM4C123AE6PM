@@ -144,7 +144,15 @@ void ReelQEI_initialize(void)
      * count is zero based.
      */
 
-    uint32_t edgesPerRev = ((g_dip_switch & M_DIPSW3) == 0) ? QE_AS5047P_EDGES : QE_AS5047D_EDGES;
+    uint32_t edgesPerRev;
+
+    if (g_dip_switch & M_DIPSW3)
+        edgesPerRev = QE_AS5047P_EDGES;     /* AS5047P is 1024 CPR */
+    else
+        edgesPerRev = QE_AS5047D_EDGES;     /* AS5047D is 500 CPR */
+
+    //System_printf("edges per rev %d\n", edgesPerRev);
+    //System_flush();
 
     QEIConfigure(QEI_BASE_SUPPLY, (QEI_CONFIG_CAPTURE_A_B | QEI_CONFIG_RESET_IDX |
                  QEI_CONFIG_QUADRATURE | QEI_CONFIG_NO_SWAP), edgesPerRev - 1);
@@ -187,7 +195,7 @@ void ReelQEI_initialize(void)
         System_abort("Couldn't construct DMA error hwi");
     }
 
-    QEIIntEnable(QEI_BASE_SUPPLY, QEI_INTERROR|QEI_INTTIMER);
+    QEIIntEnable(QEI_BASE_SUPPLY, QEI_INTERROR);
     QEIIntEnable(QEI_BASE_TAKEUP, QEI_INTERROR);
 }
 

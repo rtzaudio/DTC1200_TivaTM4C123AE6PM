@@ -283,7 +283,7 @@ void TapeTach_reset(void)
 
 static uint32_t g_prevCount = 0xFFFFFFFF;
 static uint32_t g_thisPeriod;
-static uint32_t g_frequencyRawHz = 0;
+//static uint32_t g_frequencyRawHz = 0;
 
 
 void TapeTach_initialize(void)
@@ -382,8 +382,8 @@ Void WTimer1AIntHandler(void)
      * while avoiding divide by zero!
      */
 
-    if (g_thisPeriod)
-    	g_frequencyRawHz = g_systemClock / g_thisPeriod;
+    //if (g_thisPeriod)
+    //	g_frequencyRawHz = g_systemClock / g_thisPeriod;
 
 	/* EXIT - Critical Section */
     Hwi_restore(key);
@@ -406,7 +406,7 @@ Void WTimer1BIntHandler(void)
 
     g_prevCount = 0;
     g_thisPeriod = 0;
-    g_frequencyRawHz = 0;
+    //g_frequencyRawHz = 0;
 
     Hwi_restore(key);
 }
@@ -443,7 +443,7 @@ void TapeTach_reset(void)
     uint32_t key;
 
     key = Hwi_disable();
-    g_frequencyRawHz = 0;
+    //g_frequencyRawHz = 0;
     g_thisPeriod = 0;
     Hwi_restore(key);
 }

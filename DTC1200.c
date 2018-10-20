@@ -200,11 +200,11 @@ void InitPeripherals(void)
      * Open the SPI ports for peripherals we need to communicate with.
      */
 
-    /* Initialize the SPI-0 to the reel motor DAC's */
-    MotorDAC_initialize();
-
     /* Initialize the SPI-1 & SPI-2 to the I/O expanders */
     IOExpander_initialize();
+
+    /* Initialize the SPI-0 to the reel motor DAC's */
+    MotorDAC_initialize();
 
     /* Read the serial number into memory */
     ReadSerialNumber(g_handleI2C1, g_ui8SerialNumber);

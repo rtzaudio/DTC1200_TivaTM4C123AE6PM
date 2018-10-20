@@ -569,9 +569,11 @@ Bool IPC_Notify(IPCMSG* msg, UInt32 timeout)
 //
 //*****************************************************************************
 
-Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
+Bool IPC_Transaction(IPCMSG* msgTx, IPCMSG* msgRx, UInt32 timeout)
 {
     RAMP_FCB fcb;
+
+    memset(msgRx, 0, sizeof(IPCMSG));
 
     fcb.type    = MAKETYPE(F_ACKNAK, TYPE_MSG_ONLY);
     fcb.acknak  = 0;
@@ -592,7 +594,7 @@ Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
      * reader task.
      */
 
-    if (!IPC_Message_post(msg, &fcb, timeout))
+    if (!IPC_Message_post(msgTx, &fcb, timeout))
     {
         g_ipc.ackBuf[index].flags = 0x00;       /* ACK no longer pending */
         return FALSE;
@@ -606,10 +608,13 @@ Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout)
         g_ipc.ackBuf[index].flags = 0x00;       /* ACK no longer pending */
 
         /* Return reply in the callers buffer */
-        msg->type   = g_ipc.ackBuf[index].msg.type;
-        msg->opcode = g_ipc.ackBuf[index].msg.opcode;
-        msg->param1 = g_ipc.ackBuf[index].msg.param1;
-        msg->param2 = g_ipc.ackBuf[index].msg.param2;
+        if (msgRx)
+        {
+            msgRx->type   = g_ipc.ackBuf[index].msg.type;
+            msgRx->opcode = g_ipc.ackBuf[index].msg.opcode;
+            msgRx->param1 = g_ipc.ackBuf[index].msg.param1;
+            msgRx->param2 = g_ipc.ackBuf[index].msg.param2;
+        }
 
         return TRUE;
     }

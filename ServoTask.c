@@ -174,7 +174,9 @@ int32_t IsServoMotion()
  *
  *****************************************************************************/
 
-#define RADIUS_F(ts, rs)  ( ts / rs )
+#define RADIUS_F(ts, rs)    ( ts / rs )
+
+#define CPR_DIV_2           (1.0f / 2.048f)
 
 Void ServoLoopTask(UArg a0, UArg a1)
 {
@@ -218,8 +220,18 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.tape_tach = TapeTach_read();
 
         /* Read the takeup and supply reel motor velocity values */
-        g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
-        g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
+        if (g_dip_switch & M_DIPSW3)
+        {
+            /* For newer 1024 encoders */
+            g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY) * CPR_DIV_2;
+            g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP) * CPR_DIV_2;
+        }
+        else
+        {
+            /* for older 500 CPR encoders */
+            g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
+            g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
+        }
 
         /* Calculate the current total reel velocity. */
         g_servo.velocity = g_servo.velocity_supply + g_servo.velocity_takeup;

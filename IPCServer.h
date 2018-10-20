@@ -136,6 +136,6 @@ uint8_t IPC_GetTxSeqNum(void);
 
 /* High level functions to send messages */
 Bool IPC_Notify(IPCMSG* msg, UInt32 timeout);
-Bool IPC_Transaction(IPCMSG* msg, UInt32 timeout);
+Bool IPC_Transaction(IPCMSG* msgTx, IPCMSG* msgRx, UInt32 timeout);
 
 #endif /* _IPCTASK_H_ */

@@ -101,6 +101,8 @@
 #ifndef __RAMP_H
 #define __RAMP_H
 
+#include "CRC16.h"
+
 /*** RAMP Constants and Defines ********************************************/
 
 #define PREAMBLE_MSB			0x89		/* first byte of preamble SOF  */

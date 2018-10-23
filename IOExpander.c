@@ -135,6 +135,18 @@ static IOExpander_Handle IOExpander_open(uint32_t index);
 static void gpioExpanderSSI1AHwi(unsigned int index);
 #endif
 
+static bool MCP23S17_write(
+    IOExpander_Handle   handle,
+    uint8_t             ucRegAddr,
+    uint8_t             ucData
+    );
+
+static bool MCP23S17_read(
+    IOExpander_Handle   handle,
+    uint8_t             ucRegAddr,
+    uint8_t*            pucData
+    );
+
 /*****************************************************************************
  * Initialize the MCP23017 I/O Expander Chips
  *****************************************************************************/

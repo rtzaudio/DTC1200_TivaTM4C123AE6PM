@@ -64,18 +64,6 @@ typedef IOExpander_Object *IOExpander_Handle;
 
 void IOExpander_initialize(void);
 
-bool MCP23S17_write(
-	IOExpander_Handle	handle,
-    uint8_t   			ucRegAddr,
-    uint8_t   			ucData
-    );
-
-bool MCP23S17_read(
-	IOExpander_Handle	handle,
-    uint8_t				ucRegAddr,
-    uint8_t*			pucData
-    );
-
 /* These functions access the I/O Expanders */
 
 uint32_t GetTransportSwitches(uint8_t* pucMask);

@@ -97,30 +97,6 @@ Bool IPC_Server_init(void)
     Int i;
     IPC_ELEM* msg;
     Error_Block eb;
-    UART_Params uartParams;
-
-    /* Open the UART for binary mode */
-
-    UART_Params_init(&uartParams);
-
-    uartParams.readMode       = UART_MODE_BLOCKING;
-    uartParams.writeMode      = UART_MODE_BLOCKING;
-    uartParams.readTimeout    = 2000;                   // 1 second read timeout
-    uartParams.writeTimeout   = BIOS_WAIT_FOREVER;
-    uartParams.readCallback   = NULL;
-    uartParams.writeCallback  = NULL;
-    uartParams.readReturnMode = UART_RETURN_FULL;
-    uartParams.writeDataMode  = UART_DATA_BINARY;
-    uartParams.readDataMode   = UART_DATA_BINARY;
-    uartParams.readEcho       = UART_ECHO_OFF;
-    uartParams.baudRate       = 250000;
-    uartParams.stopBits       = UART_STOP_ONE;
-    uartParams.parityType     = UART_PAR_NONE;
-
-    g_ipc.uartHandle = UART_open(Board_UART_IPC, &uartParams);
-
-    if (g_ipc.uartHandle == NULL)
-        System_abort("Error initializing UART\n");
 
     /* Create the queues needed */
     g_ipc.txFreeQue = Queue_create(NULL, NULL);
@@ -203,11 +179,38 @@ Bool IPC_Server_init(void)
     return TRUE;
 }
 
+//*****************************************************************************
+// This function initializes the serial port and starts up the IPC workers.
+//*****************************************************************************
 
 Bool IPC_Server_startup(void)
 {
     Error_Block eb;
     Task_Params taskParams;
+    UART_Params uartParams;
+
+    /* Open the UART for binary mode */
+
+    UART_Params_init(&uartParams);
+
+    uartParams.readMode       = UART_MODE_BLOCKING;
+    uartParams.writeMode      = UART_MODE_BLOCKING;
+    uartParams.readTimeout    = 2000;                   // 1 second read timeout
+    uartParams.writeTimeout   = BIOS_WAIT_FOREVER;
+    uartParams.readCallback   = NULL;
+    uartParams.writeCallback  = NULL;
+    uartParams.readReturnMode = UART_RETURN_FULL;
+    uartParams.writeDataMode  = UART_DATA_BINARY;
+    uartParams.readDataMode   = UART_DATA_BINARY;
+    uartParams.readEcho       = UART_ECHO_OFF;
+    uartParams.baudRate       = 250000;
+    uartParams.stopBits       = UART_STOP_ONE;
+    uartParams.parityType     = UART_PAR_NONE;
+
+    g_ipc.uartHandle = UART_open(Board_UART_IPC, &uartParams);
+
+    if (g_ipc.uartHandle == NULL)
+        System_abort("Error initializing UART\n");
 
     /*
      * Finally, create the reader, writer and worker tasks

@@ -86,7 +86,7 @@ static void DispatchConfigTransaction(IPCMSG* msg, IPCMSG* reply);
 // from the peer. No response is required for datagrams.
 //*****************************************************************************
 
-Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb)
+Bool IPC_Handle_datagram(IPCMSG* msg, IPC_FCB* fcb)
 {
     uint8_t bits;
 
@@ -162,9 +162,9 @@ void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply)
 // received from the STC that require a MSG+ACK response.
 //*****************************************************************************
 
-Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
+Bool IPC_Handle_transaction(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
 {
-    RAMP_FCB fcbReply;
+    IPC_FCB fcbReply;
     IPCMSG msgReply;
 
     /* Copy incoming message to reply as default values */
@@ -192,7 +192,7 @@ Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout)
 
     /* Send the response msg+ack with command results returned */
 
-    fcbReply.type    = MAKETYPE(F_ACKNAK, TYPE_MSG_ACK);
+    fcbReply.type    = IPC_MAKETYPE(IPC_F_ACKNAK, IPC_MSG_ACK);
     fcbReply.acknak  = fcb->seqnum;
     fcbReply.address = fcb->address;
     fcbReply.seqnum  = IPC_GetTxSeqNum();

@@ -1,76 +1,194 @@
-/* ============================================================================
+/*
+ * IPC - Serial InterProcess Message Protocol
  *
- * DTC-1200 & STC-1200 Digital Transport Controllers for
- * Ampex MM-1200 Tape Machines
- *
- * Copyright (C) 2016-2018, RTZ Professional Audio, LLC
- * All Rights Reserved
+ * Copyright (C) 2016-2018, RTZ Professional Audio, LLC. ALL RIGHTS RESERVED.
  *
  * RTZ is registered trademark of RTZ Professional Audio, LLC
  *
- * ============================================================================
+ *              *** IPC Protocol Message Frame Structure ***
  *
- * Copyright (c) 2014, Texas Instruments Incorporated
- * All rights reserved.
+ *                    +------------------------------+   Byte
+ *                +-- |    SOF PREAMBLE (MSB=0x79)   |    0
+ *                |   +------------------------------+
+ *                |   |    SOF PREAMBLE (LSB=0xBA)   |    1
+ *     Preamble --+   +------------------------------+
+ *                |   |      FRAME LENGTH (MSB)      |    2
+ *                |   +------------------------------+
+ *                +-- |      FRAME LENGTH (LSB)      |    3
+ *                    +---+---+---+---+--------------+
+ *                +-- | E | D | P | A |    TYPE      |    4
+ *                |   +---+---+---+---+--------------+
+ *       Header --+   |          SEQUENCE#           |    5
+ *                |   +------------------------------+
+ *                +-- |       ACK/NAK SEQUENCE#      |    6
+ *                    +------------------------------+
+ *                +-- |       TEXT LENGTH (MSB)      |    7
+ *                |   +------------------------------+
+ *                |   |       TEXT LENGTH (LSB)      |    8
+ *                |   +------------------------------+
+ *         Text --+   |              .               |    .
+ *                |   |              .               |    .
+ *                |   |          TEXT DATA           |    .
+ *                |   |              .               |    .
+ *                +-- |              .               |    .
+ *                    +------------------------------+
+ *                +-- |          CRC (MSB)           |    9 + textlen
+ *          CRC --+   +------------------------------+
+ *                +-- |          CRC (LSB)           |   10 + textlen
+ *                    +------------------------------+
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
  *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *    IPC Frame Contents Description:
  *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
+ *      * SOF: start of frame preamble 0x79BA identifier.
  *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
+ *      * Frame length: Total length less preamble (includes CRC bytes)
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * ============================================================================ */
+ *      * Flags: E=ERROR, D=DATAGRAM, P=PRIORITY, A=ACK/NAK response required
+ *
+ *      * Type: 1 = ACK-only           2 = NAK-only           3 = msg-only
+ *              4 = msg+piggyback-ACK  5 = msg+piggyback-NAK  6 = user defined
+ *
+ *      * Sequence#: Transmit frame sequence number (1-24)
+ *
+ *      * ACK/NAK Seq#: Receive piggyback ACK/NAK sequence# (0 if none)
+ *
+ *      * Text Length: length of text data segment (0-1024)
+ *
+ *      * Text Data: Segment text bytes (if text-length nonzero)
+ *
+ *      * CRC value: CRC-16 value calculated from offset 2 to end of text data
+ *
+ *
+ *                  *** IPC ACK/NAK Frame Structure ***
+ *
+ *                    +------------------------------+   byte
+ *                +-- |    SOF PREAMBLE (MSB=0x79)   |    0
+ *                |   +------------------------------+
+ *                |   |    SOF PREAMBLE (LSB=0xBA)   |    1
+ *     Preamble --+   +------------------------------+
+ *                |   |     FRAME LENGTH (MSB=0)     |    2
+ *                |   +------------------------------+
+ *                +-- |     FRAME LENGTH (LSB=4)     |    3
+ *                    +---+---+---+---+--------------+
+ *                +-- | 0 | 0 | 0 | 1 |     TYPE     |    4
+ *       Header --+   +---+---+---+---+--------------+
+ *                +-- |      ACK/NAK SEQUENCE#       |    5
+ *                    +------------------------------+
+ *                +-- |          CRC (MSB)           |    6
+ *          CRC --+   +------------------------------+
+ *                +-- |          CRC (LSB)           |    7
+ *                    +------------------------------+
+ *
+ *    ACK/NAK Frame Content Description:
+ *
+ *      * SOF: start of frame preamble 0x79BA identifier.
+ *
+ *      * Frame length: Length in bytes (always 5 for ACK/NAK only)
+ *
+ *      * Type: frame type 1=ACK/2=NAK (always 11H or 12H)
+ *
+ *      * ACK/NAK Sequence: ACK/NAK frame sequence#
+ *
+ *      * CRC value: CRC-16 value calculated from offset 2 to 6
+ */
 
 #ifndef _IPCTASK_H_
 #define _IPCTASK_H_
 
-#include "RAMP.h"
+#include "CRC16.h"
 #include "IPCMessage.h"
 
-/* ============================================================================
- * IPC Message Structure
- * ============================================================================ */
+/*** IPC Constants and Defines *********************************************/
+
+#define IPC_PREAMBLE_MSB        0x79        /* first byte of preamble SOF  */
+#define IPC_PREAMBLE_LSB        0xBA        /* second byte of preamble SOF */
+
+#define IPC_MAX_WINDOW          8           /* maximum window size         */
+
+#define IPC_PREAMBLE_OVERHEAD   4           /* preamble overhead (SOF+LEN) */
+#define IPC_HEADER_OVERHEAD     3           /* frame header overhead       */
+#define IPC_TEXT_OVERHEAD       2           /* text length overhead        */
+#define IPC_CRC_OVERHEAD        2           /* 16-bit CRC overhead         */
+#define IPC_FRAME_OVERHEAD      ( IPC_PREAMBLE_OVERHEAD + IPC_HEADER_OVERHEAD + \
+                                  IPC_TEXT_OVERHEAD + IPC_CRC_OVERHEAD )
+
+#define IPC_CRC_SEED_BYTE       0xAB
+
+#define IPC_MIN_SEQ             1           /* min/max frame sequence num   */
+#define IPC_MAX_SEQ             ( 3 * IPC_MAX_WINDOW )
+#define IPC_NULL_SEQ            ( (uint8_t)0 )
+
+#define IPC_ACK_FRAME_LEN       4
+#define IPC_MAX_TEXT_LEN        512
+#define IPC_MIN_FRAME_LEN       ( IPC_FRAME_OVERHEAD - IPC_PREAMBLE_OVERHEAD )
+#define IPC_MAX_FRAME_LEN       ( IPC_MIN_FRAME_LEN + IPC_MAX_TEXT_LEN )
+
+#define IPC_INC_SEQ(n)          ( (uint8_t)((n >= IPC_MAX_SEQ) ? IPC_MIN_SEQ : n+1) )
+
+/* Frame Type Flag Bits (upper nibble) */
+#define IPC_F_ACKNAK            0x10        /* frame is ACK/NAK only frame */
+#define IPC_F_PRIORITY          0x20        /* high priority message frame */
+#define IPC_F_DATAGRAM          0x40        /* no ACK/NAK required         */
+#define IPC_F_ERROR             0x80        /* frame error flag bit        */
+
+#define IPC_FLAG_MASK           0xF0        /* flag mask is upper 4 bits   */
+
+/* Frame Type Code (lower nibble) */
+#define IPC_ACK_ONLY            1           /* ACK message frame only      */
+#define IPC_NAK_ONLY            2           /* NAK message frame only      */
+#define IPC_MSG_ONLY            3           /* message only frame          */
+#define IPC_MSG_ACK             4           /* piggyback message plus ACK  */
+#define IPC_MSG_NAK             5           /* piggyback message plus NAK  */
+#define IPC_MSG_USER            6           /* user defined message packet */
+
+#define IPC_TYPE_MASK           0x0F        /* type mask is lower 4 bits   */
+
+#define IPC_MAKETYPE(f, t)      ( (uint8_t)((f & 0xF0) | (t & 0x0F)) )
+
+/* Error Code Constants */
+#define IPC_ERR_SUCCESS         0
+#define IPC_ERR_TIMEOUT         1           /* comm port timeout     */
+#define IPC_ERR_SYNC            2           /* SOF frame sync error  */
+#define IPC_ERR_SHORT_FRAME     3           /* short rx-frame error  */
+#define IPC_ERR_RX_OVERFLOW     4           /* rx buffer overflow    */
+#define IPC_ERR_SEQ_NUM         5           /* bad sequence number   */
+#define IPC_ERR_FRAME_TYPE      6           /* invalid frame type    */
+#define IPC_ERR_FRAME_LEN       7           /* bad rx-frame length   */
+#define IPC_ERR_ACK_LEN         8           /* bad ACK/NAK frame len */
+#define IPC_ERR_TEXT_LEN        9           /* bad rx-text length    */
+#define IPC_ERR_ACKNAK_LEN      10          /* bad rx-text length    */
+#define IPC_ERR_CRC             11          /* rx-frame checksum bad */
+
+/*** IPC MESSAGE STRUCTURE *************************************************/
 
 typedef struct _IPCMSG {
     uint16_t        type;           /* the IPC message type code   */
     uint16_t        opcode;         /* application defined op code */
     union {
+        int32_t     I;
         uint32_t    U;
         float       F;
     } param1;                       /* unsigned or float param1 */
     union {
+        int32_t     I;
         uint32_t    U;
         float       F;
     }  param2;                      /* unsigned or float param2 */
 } IPCMSG;
 
-/* ============================================================================
- * IPC Tx/Rx Message List Element Structure
- * ============================================================================ */
+/*** IPC TX/RX MESSAGE LIST ELEMENT STRUCTURE ******************************/
+
+typedef struct _IPC_FCB {
+    uint8_t     type;               /* frame type bits       */
+    uint8_t     seqnum;             /* frame tx/rx seq#      */
+    uint8_t     acknak;             /* frame ACK/NAK seq#    */
+    uint8_t     address;            /* tx/rx node address    */
+} IPC_FCB;
 
 typedef struct _IPC_ELEM {
-	Queue_Elem	elem;
-	RAMP_FCB	fcb;
+	Queue_Elem  elem;
+	IPC_FCB     fcb;
     IPCMSG      msg;
 } IPC_ELEM;
 
@@ -82,9 +200,7 @@ typedef struct _IPC_ACK {
     IPCMSG      msg;
 } IPC_ACK;
 
-/* ============================================================================
- * IPC Message Server Object
- * ============================================================================ */
+/*** IPC MESSAGE SERVER OBJECT *********************************************/
 
 typedef struct _IPCSVR_OBJECT {
 	UART_Handle         uartHandle;
@@ -110,29 +226,31 @@ typedef struct _IPCSVR_OBJECT {
     uint8_t             rxExpectedSeq;		/* expected recv seq#   */
     uint8_t             rxLastSeq;       	/* last seq# accepted   */
     /* callback handlers */
-    Bool (*datagramHandlerFxn)(IPCMSG* msg, RAMP_FCB* fcb);
-    Bool (*transactionHandlerFxn)(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
+    //Bool (*datagramHandlerFxn)(IPCMSG* msg, IPC_FCB* fcb);
+    //Bool (*transactionHandlerFxn)(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
     /* frame memory buffers */
     IPC_ELEM*           txBuf;
     IPC_ELEM*           rxBuf;
     IPC_ACK*            ackBuf;
 } IPCSVR_OBJECT;
 
-/* ============================================================================
- * IPC Function Prototypes
- * ============================================================================ */
+/*** IPC FUNCTION PROTOTYPES ***********************************************/
 
 Bool IPC_Server_init(void);
 Bool IPC_Server_startup(void);
 
+uint8_t IPC_GetTxSeqNum(void);
+
+int IPC_TxFrame(UART_Handle handle, IPC_FCB* fcb, void* txtbuf, uint16_t txtlen);
+int IPC_RxFrame(UART_Handle handle, IPC_FCB* fcb, void* txtbuf, uint16_t txtlen);
+
 /* Application specific callback handlers */
-Bool IPC_Handle_datagram(IPCMSG* msg, RAMP_FCB* fcb);
-Bool IPC_Handle_transaction(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
+Bool IPC_Handle_datagram(IPCMSG* msg, IPC_FCB* fcb);
+Bool IPC_Handle_transaction(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
 
 /* IPC server internal use */
-Bool IPC_Message_post(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
-Bool IPC_Message_pend(IPCMSG* msg, RAMP_FCB* fcb, UInt32 timeout);
-uint8_t IPC_GetTxSeqNum(void);
+Bool IPC_Message_post(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
+Bool IPC_Message_pend(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
 
 /* High level functions to send messages */
 Bool IPC_Notify(IPCMSG* msg, UInt32 timeout);

@@ -313,7 +313,7 @@ Void MainControlTask(UArg a0, UArg a1)
     uint8_t eot_count = 0;
     uint8_t eot_state = 0;
     int status = 0;
-    IPCMSG ipc;
+    IPC_MSG ipc;
     Error_Block eb;
     Task_Params taskParams;
 

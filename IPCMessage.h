@@ -13,7 +13,7 @@
 #define _IPCMESSAGE_H_
 
 /* ============================================================================
- * Message class types for IPCMSG.type
+ * Message class types for IPC_MSG.type
  * ============================================================================ */
 
 #define IPC_TYPE_NOTIFY				10      /* Notifications from DTC to STC  */

@@ -578,7 +578,7 @@ int IPC_RxFrame(UART_Handle handle, IPC_FCB* fcb, void* txtbuf, uint16_t txtlen)
 // period specified.
 //*****************************************************************************
 
-Bool IPC_Message_pend(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
+Bool IPC_Message_pend(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout)
 {
     UInt key;
     IPC_ELEM* elem;
@@ -601,7 +601,7 @@ Bool IPC_Message_pend(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
         Hwi_restore(key);
 
         /* return message and fcb data to caller */
-        memcpy(msg, &(elem->msg), sizeof(IPCMSG));
+        memcpy(msg, &(elem->msg), sizeof(IPC_MSG));
         memcpy(fcb, &(elem->fcb), sizeof(IPC_FCB));
 
         /* post the semaphore */
@@ -619,7 +619,7 @@ Bool IPC_Message_pend(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
 // transmission within the timeout period specified.
 //*****************************************************************************
 
-Bool IPC_Message_post(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
+Bool IPC_Message_post(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout)
 {
     UInt key;
     IPC_ELEM* elem;
@@ -647,7 +647,7 @@ Bool IPC_Message_post(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
         Hwi_restore(key);
 
         /* copy msg to element */
-        memcpy(&(elem->msg), msg, sizeof(IPCMSG));
+        memcpy(&(elem->msg), msg, sizeof(IPC_MSG));
         memcpy(&(elem->fcb), fcb, sizeof(IPC_FCB));
 
         /* put message on txDataQueue */
@@ -686,7 +686,7 @@ Void IPCWriterTaskFxn(UArg arg0, UArg arg1)
         elem = Queue_get(g_ipc.txDataQue);
 
         /* Transmit the packet! */
-        IPC_TxFrame(g_ipc.uartHandle, &(elem->fcb), &(elem->msg), sizeof(IPCMSG));
+        IPC_TxFrame(g_ipc.uartHandle, &(elem->fcb), &(elem->msg), sizeof(IPC_MSG));
 
         /* Perform the enqueue and increment numFreeMsgs atomically */
         key = Hwi_disable();
@@ -759,7 +759,7 @@ Void IPCReaderTaskFxn(UArg arg0, UArg arg1)
         {
             /* Attempt to read a frame from the peer */
 
-            rc = IPC_RxFrame(g_ipc.uartHandle, &(elem->fcb), &(elem->msg), sizeof(IPCMSG));
+            rc = IPC_RxFrame(g_ipc.uartHandle, &(elem->fcb), &(elem->msg), sizeof(IPC_MSG));
 
             /* Zero means packet received successfully */
             if (rc == 0)
@@ -798,7 +798,7 @@ Void IPCReaderTaskFxn(UArg arg0, UArg arg1)
 Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
 {
     IPC_FCB fcb;
-    IPCMSG msg;
+    IPC_MSG msg;
 
     while (1)
     {
@@ -851,7 +851,7 @@ Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
             size_t index = (size_t)((acknak - 1) % IPC_MAX_WINDOW);
 
             /* Save the reply MSG+ACK in the ACK buffer */
-            memcpy(&g_ipc.ackBuf[index].msg, &msg, sizeof(IPCMSG));
+            memcpy(&g_ipc.ackBuf[index].msg, &msg, sizeof(IPC_MSG));
 
             /* Notify any pending transactions blocked that a MSG+ACK was received */
 
@@ -866,7 +866,7 @@ Void IPCWorkerTaskFxn(UArg arg0, UArg arg1)
 //
 //*****************************************************************************
 
-Bool IPC_Notify(IPCMSG* msg, UInt32 timeout)
+Bool IPC_Notify(IPC_MSG* msg, UInt32 timeout)
 {
     IPC_FCB fcb;
 
@@ -882,11 +882,11 @@ Bool IPC_Notify(IPCMSG* msg, UInt32 timeout)
 //
 //*****************************************************************************
 
-Bool IPC_Transaction(IPCMSG* msgTx, IPCMSG* msgRx, UInt32 timeout)
+Bool IPC_Transaction(IPC_MSG* msgTx, IPC_MSG* msgRx, UInt32 timeout)
 {
     IPC_FCB fcb;
 
-    memset(msgRx, 0, sizeof(IPCMSG));
+    memset(msgRx, 0, sizeof(IPC_MSG));
 
     fcb.type    = IPC_MAKETYPE(IPC_F_ACKNAK, IPC_MSG_ONLY);
     fcb.acknak  = 0;

@@ -77,16 +77,16 @@
 
 /* Static Function Prototypes */
 
-void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply);
-void DispatchTransportTransaction(IPCMSG* msg, IPCMSG* reply);
-static void DispatchConfigTransaction(IPCMSG* msg, IPCMSG* reply);
+void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply);
+void DispatchTransportTransaction(IPC_MSG* msg, IPC_MSG* reply);
+static void DispatchConfigTransaction(IPC_MSG* msg, IPC_MSG* reply);
 
 //*****************************************************************************
 // This handler processes application specific datagram messages received
 // from the peer. No response is required for datagrams.
 //*****************************************************************************
 
-Bool IPC_Handle_datagram(IPCMSG* msg, IPC_FCB* fcb)
+Bool IPC_Handle_datagram(IPC_MSG* msg, IPC_FCB* fcb)
 {
     uint8_t bits;
 
@@ -115,7 +115,7 @@ Bool IPC_Handle_datagram(IPCMSG* msg, IPC_FCB* fcb)
 // DISPATCH TRANSPORT MODE CONTROL REQUESTS RECEIVED FROM STC
 //*****************************************************************************
 
-void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply)
+void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply)
 {
     uint16_t param1 = (uint16_t)msg->param1.U;
 
@@ -162,13 +162,13 @@ void DispatchTransportMode(IPCMSG* msg, IPCMSG* reply)
 // received from the STC that require a MSG+ACK response.
 //*****************************************************************************
 
-Bool IPC_Handle_transaction(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
+Bool IPC_Handle_transaction(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout)
 {
     IPC_FCB fcbReply;
-    IPCMSG msgReply;
+    IPC_MSG msgReply;
 
     /* Copy incoming message to reply as default values */
-    memcpy(&msgReply, msg, sizeof(IPCMSG));
+    memcpy(&msgReply, msg, sizeof(IPC_MSG));
 
     /* Execute the transaction for request */
     //System_printf("Xact(%d) Begin: %d %02x\n", fcb->seqnum, msg->opcode, msg->param1.U);
@@ -201,7 +201,7 @@ Bool IPC_Handle_transaction(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout)
 }
 
 
-void DispatchTransportTransaction(IPCMSG* msg, IPCMSG* reply)
+void DispatchTransportTransaction(IPC_MSG* msg, IPC_MSG* reply)
 {
     switch(msg->opcode)
     {
@@ -226,7 +226,7 @@ void DispatchTransportTransaction(IPCMSG* msg, IPCMSG* reply)
 // DISPATCH CONFIGURATION GET/SET REQUESTS FROM THE STC-1200
 //*****************************************************************************
 
-void DispatchConfigTransaction(IPCMSG* msg, IPCMSG* reply)
+void DispatchConfigTransaction(IPC_MSG* msg, IPC_MSG* reply)
 {
     switch(msg->opcode)
     {

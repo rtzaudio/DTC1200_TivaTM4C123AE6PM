@@ -162,7 +162,7 @@
 
 /*** IPC MESSAGE STRUCTURE *************************************************/
 
-typedef struct _IPCMSG {
+typedef struct _IPC_MSG {
     uint16_t        type;           /* the IPC message type code   */
     uint16_t        opcode;         /* application defined op code */
     union {
@@ -175,7 +175,7 @@ typedef struct _IPCMSG {
         uint32_t    U;
         float       F;
     }  param2;                      /* unsigned or float param2 */
-} IPCMSG;
+} IPC_MSG;
 
 /*** IPC TX/RX MESSAGE LIST ELEMENT STRUCTURE ******************************/
 
@@ -189,7 +189,7 @@ typedef struct _IPC_FCB {
 typedef struct _IPC_ELEM {
 	Queue_Elem  elem;
 	IPC_FCB     fcb;
-    IPCMSG      msg;
+    IPC_MSG     msg;
 } IPC_ELEM;
 
 typedef struct _IPC_ACK {
@@ -197,7 +197,7 @@ typedef struct _IPC_ACK {
     uint8_t     acknak;
     uint8_t     retry;
     uint8_t     type;
-    IPCMSG      msg;
+    IPC_MSG     msg;
 } IPC_ACK;
 
 /*** IPC MESSAGE SERVER OBJECT *********************************************/
@@ -226,8 +226,8 @@ typedef struct _IPCSVR_OBJECT {
     uint8_t             rxExpectedSeq;		/* expected recv seq#   */
     uint8_t             rxLastSeq;       	/* last seq# accepted   */
     /* callback handlers */
-    //Bool (*datagramHandlerFxn)(IPCMSG* msg, IPC_FCB* fcb);
-    //Bool (*transactionHandlerFxn)(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
+    //Bool (*datagramHandlerFxn)(IPC_MSG* msg, IPC_FCB* fcb);
+    //Bool (*transactionHandlerFxn)(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout);
     /* frame memory buffers */
     IPC_ELEM*           txBuf;
     IPC_ELEM*           rxBuf;
@@ -245,15 +245,15 @@ int IPC_TxFrame(UART_Handle handle, IPC_FCB* fcb, void* txtbuf, uint16_t txtlen)
 int IPC_RxFrame(UART_Handle handle, IPC_FCB* fcb, void* txtbuf, uint16_t txtlen);
 
 /* Application specific callback handlers */
-Bool IPC_Handle_datagram(IPCMSG* msg, IPC_FCB* fcb);
-Bool IPC_Handle_transaction(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
+Bool IPC_Handle_datagram(IPC_MSG* msg, IPC_FCB* fcb);
+Bool IPC_Handle_transaction(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout);
 
 /* IPC server internal use */
-Bool IPC_Message_post(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
-Bool IPC_Message_pend(IPCMSG* msg, IPC_FCB* fcb, UInt32 timeout);
+Bool IPC_Message_post(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout);
+Bool IPC_Message_pend(IPC_MSG* msg, IPC_FCB* fcb, UInt32 timeout);
 
 /* High level functions to send messages */
-Bool IPC_Notify(IPCMSG* msg, UInt32 timeout);
-Bool IPC_Transaction(IPCMSG* msgTx, IPCMSG* msgRx, UInt32 timeout);
+Bool IPC_Notify(IPC_MSG* msg, UInt32 timeout);
+Bool IPC_Transaction(IPC_MSG* msgTx, IPC_MSG* msgRx, UInt32 timeout);
 
 #endif /* _IPCTASK_H_ */

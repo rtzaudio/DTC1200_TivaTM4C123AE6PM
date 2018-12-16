@@ -91,9 +91,6 @@
 #define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
 #define TENSION_F(adc)			( (2047.0f - (float)adc) )
 
-#define OFFSET_SCALE_F        	500.0f
-#define OFFSET_CALC_PERIOD  	500
-
 /* External Global Data */
 extern Semaphore_Handle g_semaServo;
 extern Semaphore_Handle g_semaTransportMode;
@@ -178,6 +175,9 @@ int32_t IsServoMotion()
 
 #define CPR_DIV_2           (1.0f / 2.048f)
 
+#define OFFSET_CALC_PERIOD      500
+#define OFFSET_SCALE_F          500.0f      // was 500 for 500 cpr encoders
+
 Void ServoLoopTask(UArg a0, UArg a1)
 {
     static void (*jmptab[5])(void) = {
@@ -220,21 +220,11 @@ Void ServoLoopTask(UArg a0, UArg a1)
         g_servo.tape_tach = TapeTach_read();
 
         /* Read the takeup and supply reel motor velocity values */
-        if (g_dip_switch & M_DIPSW3)
-        {
-            /* For newer 1024 encoders */
-            g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY) * CPR_DIV_2;
-            g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP) * CPR_DIV_2;
-        }
-        else
-        {
-            /* for older 500 CPR encoders */
-            g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
-            g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
-        }
+        g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
+        g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
 
-        /* Calculate the current total reel velocity. */
-        g_servo.velocity = g_servo.velocity_supply + g_servo.velocity_takeup;
+        /* Sum the two for current total reel velocity */
+        g_servo.velocity = (g_servo.velocity_supply + g_servo.velocity_takeup);
 
         /* Set the motion active status flag */
         g_servo.motion = (g_servo.velocity > g_sys.vel_detect_threshold) ? 1 : 0;
@@ -246,7 +236,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
         int32_t sdir = QEIDirectionGet(QEI_BASE_SUPPLY);
         int32_t tdir = QEIDirectionGet(QEI_BASE_TAKEUP);
 
-        if ((sdir == tdir) && (g_servo.velocity > g_sys.vel_detect_threshold))
+        if ((sdir == tdir) && g_servo.motion)
             g_servo.direction = sdir;
         else
         	g_servo.direction = 0;
@@ -279,96 +269,88 @@ Void ServoLoopTask(UArg a0, UArg a1)
          */
 
         float delta = 0.0f;
-        float veldetect = 40.0f;
-
-        if (g_servo.velocity > veldetect)
-   		{
-            /* Calculate the current reeling radius as tape speed divided by
-             * the reel speed. Takeup and supply velocity must not be zero!
-             */
-       		g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.reel_radius_gain;
-       		g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.reel_radius_gain;
-        }
-
-        veldetect = (g_high_speed_flag) ? 10.0f : 5.0f;
+        float veldetect = (g_high_speed_flag) ? 40.0f : 20.0f;
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
         {
-            /* Calculate the difference in velocity of the two reels */
+            /* Calculate the current reeling radius as tape speed divided by
+             * the reel speed. Takeup and supply velocity must not be zero!
+             */
+            g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.reel_radius_gain;
+            g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.reel_radius_gain;
+
+            /* Calculate the delta factor between the two reel motor tach's */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
-                delta = ((g_servo.velocity_takeup * OFFSET_SCALE_F) / g_servo.velocity_supply) - OFFSET_SCALE_F;
-            else if (g_servo.velocity_supply > g_servo.velocity_takeup)
-                delta = ((g_servo.velocity_supply * OFFSET_SCALE_F) / g_servo.velocity_takeup) - OFFSET_SCALE_F;
-            else
-                delta = 0.0f;
-
-            if (delta < 0.0f)
-                delta = 0.0f;
-
-            if (delta > 1000.0f)
             {
-            	System_printf("Delta Overflow %f!\n", g_servo.offset_null);
+                delta = ((g_servo.velocity_takeup * OFFSET_SCALE_F) / g_servo.velocity_supply) - OFFSET_SCALE_F;
+            }
+            else if (g_servo.velocity_supply > g_servo.velocity_takeup)
+            {
+                delta = ((g_servo.velocity_supply * OFFSET_SCALE_F) / g_servo.velocity_takeup) - OFFSET_SCALE_F;
+            }
+            else
+            {
+                delta = 0.0f;
             }
 
-            /* Accumulate the null offset value for averaging */
+            if (delta > 1000.0f)
+                delta = 1000.0f;
+
+            /* Accumulate the delta for averaging over 1 second */
             g_servo.offset_null_sum += delta;
 
             ++g_servo.offset_sample_cnt;
 
             if (g_servo.offset_sample_cnt >= OFFSET_CALC_PERIOD)
             {
-            	float offset = g_servo.offset_null_sum / (float)OFFSET_CALC_PERIOD;
+                float offset = g_servo.offset_null_sum / (float)OFFSET_CALC_PERIOD;
 
                 /* Calculate the averaged null offset value */
                 g_servo.offset_null = offset * g_sys.reel_offset_gain;
-
-                if (g_servo.offset_null > 100)
-                {
-                	System_printf("Offset Overflow %f!\n", g_servo.offset_null);
-                }
 
                 /* Reset the accumulator and sample counter */
                 g_servo.offset_null_sum   = 0.0f;
                 g_servo.offset_sample_cnt = 0;
             }
-        }
 
-        /* Calculate and scale the null offset for each reel servo with a
-         * gain factor. These values are used to adjust the torque on each
-         * reel based on the reel velocity to compensate for the constantly
-         * changing reel hub radius.
-         */
+            /* Now store the calculated offset for each reel motor that is added
+             * or subtracted to compensate the torque applied for the current
+             * reel radius offset. These values are used to adjust the torque on
+             * each reel based on the reel velocity to compensate for the constantly
+             * changing reel hub radius.
+             */
 
-        if (g_sys.reel_offset_gain <= 0.0f)
-        {
-            /* for debugging & aligning system */
-            g_servo.offset_supply = 0.0f;
-            g_servo.offset_takeup = 0.0f;
-        }
-        else if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
-        {
-            if (g_servo.velocity_takeup > g_servo.velocity_supply)
+            if (g_sys.reel_offset_gain <= 0.0f)
             {
-                /* TAKEUP reel is turning faster than the SUPPLY reel!
-                 * ADD to the TAKEUP reel torque.
-                 * SUBTRACT from the SUPPLLY reel torque.
-                 */
-                g_servo.offset_supply =  (g_servo.offset_null);
-                g_servo.offset_takeup = -(g_servo.offset_null);
-            }
-            else if (g_servo.velocity_supply > g_servo.velocity_takeup)
-            {
-                /* SUPPLY reel is turning faster than the TAKE-UP reel!
-                 * ADD to the SUPPLY reel torque.
-                 * SUBTRACT from the TAKEUP reel torque.
-                 */
-                g_servo.offset_supply = -(g_servo.offset_null);
-                g_servo.offset_takeup =  (g_servo.offset_null);
+                /* for debugging & aligning system */
+                g_servo.offset_supply = 0.0f;
+                g_servo.offset_takeup = 0.0f;
             }
             else
             {
-                g_servo.offset_supply = 0.0f;
-                g_servo.offset_takeup = 0.0f;
+                if (g_servo.velocity_takeup > g_servo.velocity_supply)
+                {
+                    /* TAKEUP reel is turning faster than the SUPPLY reel!
+                     * ADD to the TAKEUP reel torque.
+                     * SUBTRACT from the SUPPLLY reel torque.
+                     */
+                    g_servo.offset_supply =  (g_servo.offset_null);
+                    g_servo.offset_takeup = -(g_servo.offset_null);
+                }
+                else if (g_servo.velocity_supply > g_servo.velocity_takeup)
+                {
+                    /* SUPPLY reel is turning faster than the TAKE-UP reel!
+                     * ADD to the SUPPLY reel torque.
+                     * SUBTRACT from the TAKEUP reel torque.
+                     */
+                    g_servo.offset_supply = -(g_servo.offset_null);
+                    g_servo.offset_takeup =  (g_servo.offset_null);
+                }
+                else
+                {
+                    g_servo.offset_supply = 0.0f;
+                    g_servo.offset_takeup = 0.0f;
+                }
             }
         }
 
@@ -445,11 +427,10 @@ static void SvcServoPlay(void)
         	g_lamp_mask &= ~(L_STAT3);
 
         /* Has tape roller tach reached the correct speed yet? */
-        //if (g_servo.tape_tach >= (float)g_servo.play_boost_end)
         if (cv <= 0.0f)
         {
+            /* End play boost mode */
             g_servo.play_boost_count = 0;
-
             /* Turn off boost status LED */
             g_lamp_mask &= ~(L_STAT3);
         }
@@ -511,9 +492,9 @@ static void SvcServoStop(void)
 	    {
     		/* Calculate dynamic braking torque from current velocity */
 	    	if (g_servo.stop_brake_state > 1)
-	    		braketorque = (g_servo.velocity * 10.0f);
+	    		braketorque = (g_servo.velocity * 5.0f);
 	    	else
-	    		braketorque = ((float)g_sys.stop_brake_torque - g_servo.velocity);
+	    		braketorque = (float)g_sys.stop_brake_torque - (g_servo.velocity * CPR_DIV_2);
 
 	        /* Check for brake torque limit overflow */
 	        if (braketorque < 0.0f)

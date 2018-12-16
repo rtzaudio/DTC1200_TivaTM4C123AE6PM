@@ -72,6 +72,11 @@ static MENUITEM stop_items[] = {
 		.param2.U = SF_BRAKES_AT_STOP,
         NULL, NULL, DT_LONG, &g_sys.sysflags },
 
+{ 11, 2, "4", "Auto STOP at Tape End    ", MI_BITFLAG,
+        .param1.U = SF_STOP_AT_TAPE_END,
+        .param2.U = SF_STOP_AT_TAPE_END,
+        NULL, NULL, DT_LONG, &g_sys.sysflags },
+
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT,
 		.param1.U = 0,
 		.param2.U = 0,

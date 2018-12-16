@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        30        	/* firmware revision */
+#define FIRMWARE_REV        31        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -198,6 +198,7 @@ typedef struct _SYSPARMS
 #define SF_BRAKES_AT_STOP			0x0002	/* leave brakes engaged at stop */
 #define SF_BRAKES_STOP_PLAY			0x0004	/* use brakes to stop play mode */
 #define SF_ENGAGE_PINCH_ROLLER		0x0008	/* engage pinch roller at play  */
+#define SF_STOP_AT_TAPE_END         0x0010  /* stop @tape end leader detect */
 
 /*** SERVO & PID LOOP DATA *************************************************/
 

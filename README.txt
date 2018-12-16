@@ -29,14 +29,15 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
-=== VERSION 2.30 (10/13/2018) ==============================================
+=== VERSION 2.30 (11/05/2018) ==============================================
 
-This version fixes includes additions for the IPC layer to support 
-the STC timer/cue card. Additionally, the QEI interface has been changed
+This version includes additions for the IPC layer to support the STC 
+timer/cue card. Additionally, the QEI interface has been changed
 to support the AS5047P encoders for the reel motors with higher resolution.
 The older AS5047D only provides 500 CPR resolution, but the newer AS5047P
-provides 1024 CPR. The reel servo logic has been modified and re-scaled
-to support the new encoders.
+provides 1024 CPR. DIP SWITCH #3 MUST BE ON TO USE THE NEW HIGHER 
+RESOLUTION ENCODERS. Future versions will have support for the older
+500 CPR encoders removed.
 
 === VERSION 2.29 (10/05/2018) ==============================================
 

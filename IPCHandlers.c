@@ -129,7 +129,7 @@ void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply)
         break;
 
     case OP_MODE_PLAY:
-        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY, 0);
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY | (param1 & M_RECORD), 0);
         break;
 
     case OP_MODE_FWD:

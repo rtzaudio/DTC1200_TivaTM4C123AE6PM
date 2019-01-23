@@ -78,18 +78,18 @@ static MENUITEM shuttle_items[] = {
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_holdback_gain },
 
 { 13, 2, "6",  "Shuttle Mode Velocity", MI_NUMERIC,
-		.param1.U = 50,
-		.param2.U = 550,
+		.param1.U = 100,
+		.param2.U = 1100,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_velocity },
 
 { 14, 2, "7",  "Library Wind Velocity", MI_NUMERIC,
 		.param1.U = 50,
-		.param2.U = 400,
+		.param2.U = 500,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_lib_velocity },
 
 { 15, 2, "8",  "Auto Slow Velocity   ", MI_NUMERIC,
 		.param1.U = 0,
-		.param2.U = 250,
+		.param2.U = 500,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_autoslow_velocity },
 
 { 16, 2, "9",  "Auto Slow at offset  ", MI_NUMERIC,

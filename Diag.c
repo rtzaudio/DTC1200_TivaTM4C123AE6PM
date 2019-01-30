@@ -93,13 +93,6 @@ static const BITTAB s_lamp[] = {
     { L_REC,    	"rec ", },
 };
 
-static const BITTAB s_trans[] = {
-    { T_SERVO,  	"servo    ", },
-    { T_BRAKE,	    "brake off", },
-    { T_TLIFT,  	"lifter   ", },
-    { T_PROL,   	"roller   ", },
-};
-
 static const char s_crlf[]     = { "\r\n" };
 static const char s_startstr[] = { "%s - <ESC> aborts\r\n\n" };
 static const char s_waitstr[]  = { "\r\nAny key continues..." };
@@ -148,7 +141,7 @@ static bool check_halt()
  * on the takeup and supply reel motors.
  */
  
-int diag_dacadjust(MENUITEM* mp)
+int diag_dac_adjust(MENUITEM* mp)
 {
 	int ch;
 
@@ -209,7 +202,7 @@ int diag_dacadjust(MENUITEM* mp)
  * This ramps the DAC's on the takeup and supply reel motors.
  */
  
-int diag_dacramp(MENUITEM* mp)
+int diag_dac_ramp(MENUITEM* mp)
 {
 	int ch;
 	long dac = DAC_MIN;
@@ -275,64 +268,13 @@ int diag_dacramp(MENUITEM* mp)
 }
 
 /*
- * This routine test the transport solenoids etc.
- */
- 
-int diag_transport(MENUITEM* mp)
-{
-    int i, ch;
-    int loop = 1;
-
-    tty_cls();
-    tty_printf(s_startstr, mp->menutext);
-
-    if (check_halt())
-    {
-        /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
-
-        SetTransportMask(0, 0xFF);
-
-        while(loop)
-        {
-            for (i=0; i < sizeof(s_trans)/sizeof(BITTAB); i++)
-            {
-                tty_printf("\rtransport: %s", s_trans[i].name);
-        
-                SetTransportMask(s_trans[i].bit, 0);
-                Task_sleep(1000);
-                SetTransportMask(0, s_trans[i].bit);
-
-                if (tty_getc(&ch))
-                {
-                	if ((ch == ESC) || (toupper(ch) == 'X'))
-                	{
-                        loop = 0;
-                		break;
-                	}
-                }
-            }
-
-            //tty_puts(s_crlf);
-        }
-
-        /* Transport back to halt mode */
-    	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
-    }
-
-    wait4continue();
-
-    return 1;
-}
-
-/*
- * This routine test the transport solenoids etc.
+ * This routine tests the transport pinch roller solenoid
  */
 
 int diag_pinch_roller(MENUITEM* mp)
 {
 	int ch;
-	int state;
+	int state = 0;
 
     tty_cls();
     tty_printf(s_startstr, mp->menutext);
@@ -342,23 +284,18 @@ int diag_pinch_roller(MENUITEM* mp)
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
 
-        /* Engage pinch roller */
-
-        state = 0;
+        /* Release pinch roller */
         SetTransportMask(0, T_PROL);
 
         while (1)
         {
-            tty_printf("Toggle Pinch Roller: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
+            tty_printf("Pinch Roller: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
 
         	/* Wait for a keystroke */
             while (tty_getc(&ch) == 0);
 
            	if ((ch == ESC) || (toupper(ch) == 'X'))
            		break;
-
-        	/* Release pinch roller */
-        	SetTransportMask(0, T_PROL);
 
         	state ^= 1;
 
@@ -370,8 +307,160 @@ int diag_pinch_roller(MENUITEM* mp)
 
         }
 
+        /* Release pinch roller */
+        SetTransportMask(0, T_PROL);
+
         /* Transport back to halt mode */
     	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+    }
+
+    return 1;
+}
+
+/*
+ * This routine tests the transport brakes solenoid
+ */
+
+int diag_brakes(MENUITEM* mp)
+{
+    int ch;
+    int state = 1;
+
+    tty_cls();
+    tty_printf(s_startstr, mp->menutext);
+
+    if (check_halt())
+    {
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+
+        /* Engage brakes */
+        SetTransportMask(T_BRAKE, 0);
+
+        while (1)
+        {
+            tty_printf("Reel Motor Brakes: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
+
+            /* Wait for a keystroke */
+            while (tty_getc(&ch) == 0);
+
+            if ((ch == ESC) || (toupper(ch) == 'X'))
+                break;
+
+            state ^= 1;
+
+            /* Set new brake state */
+            if (state)
+                SetTransportMask(T_BRAKE, 0);
+            else
+                SetTransportMask(0, T_BRAKE);
+
+        }
+
+        /* Engage brakes */
+        SetTransportMask(T_BRAKE, 0);
+
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+    }
+
+    return 1;
+}
+
+/*
+ * This routine tests the transport tape lifters solenoid
+ */
+
+int diag_lifters(MENUITEM* mp)
+{
+    int ch;
+    int state = 0;
+
+    tty_cls();
+    tty_printf(s_startstr, mp->menutext);
+
+    if (check_halt())
+    {
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+
+        /* Release lifters */
+        SetTransportMask(0, T_TLIFT);
+
+        while (1)
+        {
+            tty_printf("Tape Lifters: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
+
+            /* Wait for a keystroke */
+            while (tty_getc(&ch) == 0);
+
+            if ((ch == ESC) || (toupper(ch) == 'X'))
+                break;
+
+            state ^= 1;
+
+            /* Set pinch roller state */
+            if (state)
+                SetTransportMask(T_TLIFT, 0);
+            else
+                SetTransportMask(0, T_TLIFT);
+        }
+
+        /* Release Lifters */
+        SetTransportMask(0, T_TLIFT);
+
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+    }
+
+    return 1;
+}
+
+/*
+ * This routine tests the transport tape lifters solenoid
+ */
+
+int diag_servo(MENUITEM* mp)
+{
+    int ch;
+    int state = 0;
+
+    tty_cls();
+    tty_printf(s_startstr, mp->menutext);
+
+    if (check_halt())
+    {
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+
+        /* Capstan servo off */
+        SetTransportMask(0, T_SERVO);
+
+        while (1)
+        {
+            tty_printf("Capstan Servo Motor: %s (<ESC> exit, SPACE=toggle)\r\n", state ? "ON " : "OFF");
+
+            /* Wait for a keystroke */
+            while (tty_getc(&ch) == 0);
+
+            if ((ch == ESC) || (toupper(ch) == 'X'))
+                break;
+
+            state ^= 1;
+
+            /* toggle capstan servo motor */
+            if (state)
+                SetTransportMask(T_SERVO, 0);
+            else
+                SetTransportMask(0, T_SERVO);
+
+        }
+
+        /* Capstan servo off */
+        SetTransportMask(0, T_SERVO);
+
+        /* Transport back to halt mode */
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
     }
 
     return 1;

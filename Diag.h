@@ -42,10 +42,12 @@
 
 int diag_lamp(MENUITEM* mp);
 int diag_tach(MENUITEM* mp);
-int diag_transport(MENUITEM* mp);
 int diag_pinch_roller(MENUITEM* mp);
-int diag_dacramp(MENUITEM* mp);
-int diag_dacadjust(MENUITEM* mp);
+int diag_brakes(MENUITEM* mp);
+int diag_lifters(MENUITEM* mp);
+int diag_servo(MENUITEM* mp);
+int diag_dac_ramp(MENUITEM* mp);
+int diag_dac_adjust(MENUITEM* mp);
 int diag_dump_capture(MENUITEM* mp);
 
 /* end-of-file */

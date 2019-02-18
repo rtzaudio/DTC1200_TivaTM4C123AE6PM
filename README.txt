@@ -29,6 +29,12 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 2.31 (02/11/2019) ==============================================
+
+Modified to use new AS5047P high resolution reel motor encoders. Note
+this version only work with new 1024 CPR resolution encoders. Support for
+the older 500 CPR encoders has been removed.
+
 === VERSION 2.30 (11/05/2018) ==============================================
 
 This version includes additions for the IPC layer to support the STC 

@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        31        	/* firmware revision */
+#define FIRMWARE_REV        32        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -136,43 +136,41 @@ typedef struct _SYSPARMS
     /*** GLOBAL PARAMETERS ***/
 
     int32_t debug;                     	/* debug level */
-    int32_t vel_detect_threshold;       /* vel detect threshold (10) 	     */
-    int32_t reserved1;
-    float   reel_radius_gain;			/* reeling radius play gain factor   */
-    float   reel_offset_gain;			/* reeling radius offset gain factor */
-    float   tension_sensor_gain;		/* tension sensor gain divisor       */
-    int32_t shuttle_autoslow_velocity;  /* velocity to reduce speed to       */
-    int32_t shuttle_autoslow_offset;    /* null offset to reduce velocity at */
     int32_t pinch_settle_time;		   	/* delay before engaging play mode   */
     int32_t lifter_settle_time;	  	    /* lifter settling time in ms        */
     int32_t brake_settle_time;  		/* break settling time after STOP    */
     int32_t play_settle_time;			/* play after shuttle settling time  */
     int32_t rechold_settle_time;		/* record pulse length time          */
     int32_t record_pulse_time;			/* record pulse length time          */
+    int32_t vel_detect_threshold;       /* vel detect threshold (10)         */
     uint32_t debounce;					/* debounce transport buttons time   */
     uint32_t sysflags;					/* global system bit flags           */
+
+    /*** SOFTWARE GAIN PARAMETERS ***/
+
+    float   reel_radius_gain;           /* reeling radius play gain factor   */
+    float   reel_offset_gain;           /* reeling radius offset gain factor */
+    float   tension_sensor_gain;        /* tension sensor gain divisor       */
 
     /*** STOP SERVO PARAMETERS ***/
 
     int32_t stop_supply_tension;       	/* supply tension level (0-DAC_MAX)  */
     int32_t stop_takeup_tension;       	/* takeup tension level (0-DAC_MAX)  */
     int32_t stop_brake_torque;   		/* stop brake torque in shuttle mode */
-    int32_t reserved3;
-    int32_t reserved4;
 
     /*** SHUTTLE SERVO PARAMETERS ***/
 
     int32_t shuttle_supply_tension;    	/* play supply tension (0-DAC_MAX)   */
     int32_t shuttle_takeup_tension;    	/* play takeup tension               */
     int32_t shuttle_velocity;          	/* target speed for shuttle mode     */
-    int32_t shuttle_lib_velocity;		/* library wind mode velocity        */
+    int32_t shuttle_lib_velocity;       /* library wind mode velocity        */
+    int32_t shuttle_autoslow_velocity;  /* velocity to reduce speed to       */
+    int32_t shuttle_autoslow_offset;    /* null offset to reduce velocity at */
     float   shuttle_holdback_gain;	    /* velocity tension gain factor      */
     /* reel servo PID values */
     float   shuttle_servo_pgain;       	/* P-gain */
     float   shuttle_servo_igain;       	/* I-gain */
     float   shuttle_servo_dgain;       	/* D-gain */
-    /* tension sensor PID values */
-    int32_t reserved6;
 
     /*** PLAY SERVO PARAMETERS ***/
 
@@ -188,8 +186,6 @@ typedef struct _SYSPARMS
     int32_t play_lo_boost_end;
     float   play_lo_boost_pgain;   		/* P-gain */
     float   play_lo_boost_igain;   		/* I-gain */
-
-    int32_t reserved10;
 } SYSPARMS;
 
 /* System Bit Flags for SYSPARAMS.sysflags */

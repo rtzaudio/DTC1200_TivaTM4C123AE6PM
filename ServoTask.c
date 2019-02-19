@@ -570,7 +570,7 @@ static void SvcServoFwd(void)
         if (fabsf(g_servo.offset_takeup) >= (float)g_sys.shuttle_autoslow_offset)
         {
         	/* Shuttling towards tail of reel? */
-        	if ((g_servo.velocity_supply > g_servo.velocity_takeup) && (g_servo.velocity >= (g_sys.shuttle_velocity - 10.0f)))
+        	if ((g_servo.velocity_supply > g_servo.velocity_takeup) && (g_servo.velocity_supply >= 550))
         	{
 				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
 
@@ -657,11 +657,11 @@ static void SvcServoRew(void)
         if (fabsf(g_servo.offset_supply) >= (float)g_sys.shuttle_autoslow_offset)
         {
         	/* Shuttling towards head of reel? */
-        	if ((g_servo.velocity_supply < g_servo.velocity_takeup) && (g_servo.velocity >= (g_sys.shuttle_velocity - 10.0f)))
+            if ((g_servo.velocity_takeup > g_servo.velocity_supply) && (g_servo.velocity_takeup >= 550))
         	{
 				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
 
-				if (g_servo.velocity >= slow_velocity)
+				if ((g_servo.velocity >= slow_velocity) && (g_servo.velocity > 300.0f))
 				{
 					target_velocity = slow_velocity;
 					g_servo.shuttle_velocity = target_velocity;

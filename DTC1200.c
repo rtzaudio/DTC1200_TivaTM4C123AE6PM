@@ -635,11 +635,11 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->shuttle_supply_tension    = 360;         /* shuttle supply reel tension      */
     p->shuttle_takeup_tension    = 385;         /* shuttle takeup reel tension      */
-    p->shuttle_velocity          = 1000;        /* max shuttle velocity             */
+    p->shuttle_velocity          = 950;         /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 500;         /* max shuttle lib wind velocity    */
-    p->shuttle_autoslow_offset   = 40;          /* offset to reduce velocity at     */
-    p->shuttle_autoslow_velocity = 0;           /* reduce shuttle velocity speed to */
-    p->shuttle_holdback_gain     = 0.080f;      /* hold back gain during shuttle    */
+    p->shuttle_autoslow_offset   = 75;          /* offset to reduce velocity at     */
+    p->shuttle_autoslow_velocity = 300;         /* reduce shuttle velocity speed to */
+    p->shuttle_holdback_gain     = 0.075f;      /* hold back gain during shuttle    */
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;      /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;      /* shuttle mode servo D-gain        */
@@ -648,16 +648,13 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_lo_supply_tension    = 350;         /* supply tension level             */
     p->play_lo_boost_pgain       = 1.300f;      /* P-gain */
     p->play_lo_boost_igain       = 0.300f;      /* I-gain */
-    p->play_lo_boost_end         = 28;          /* target play velocity */
+    p->play_lo_boost_end         = 25;          /* target play velocity */
 
     p->play_hi_takeup_tension    = 375;         /* takeup tension level             */
     p->play_hi_supply_tension    = 350;         /* supply tension level             */
     p->play_hi_boost_pgain       = 1.350f;      /* P-gain */
     p->play_hi_boost_igain       = 0.250f;      /* I-gain */
     p->play_hi_boost_end         = 118;         /* target play velocity */
-
-    p->reserved3                 = 0;           /* reserved */
-    p->reserved4                 = 0;           /* reserved */
 
     /* If running 1" tape width headstack, overwrite any members
      * that require different default values. Mainly we load the

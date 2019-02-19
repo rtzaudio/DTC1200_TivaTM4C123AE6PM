@@ -15,8 +15,8 @@
 #define PID_TYPE    1
 
 // Default PID Constants
-#define PID_Kp				1.500f
-#define PID_Ki				0.175f
+#define PID_Kp				3.000f
+#define PID_Ki				0.300f
 #define PID_Kd				0.025f
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */

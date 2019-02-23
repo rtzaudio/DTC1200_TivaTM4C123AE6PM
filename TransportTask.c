@@ -82,6 +82,7 @@
 /* Static Function Prototypes */
 static void ResetServoPlay(void);
 static void ResetServoPID(void);
+static void HandleAutoSlow(void);
 static void HandleImmediateCommand(CMDMSG *p);
 
 extern Semaphore_Handle g_semaServo;
@@ -641,6 +642,12 @@ Void TransportControllerTask(UArg a0, UArg a1)
         }
         else
         {
+            /*
+             * Perform shuttle mode auto-slow logic if enabled
+             */
+
+            HandleAutoSlow();
+
             /* The message queue has timed out while waiting for a command. We use this
              * as a timer mechanism and check to see if we're currently waiting for the
              * transport to stop all motion before completing any previous stop/play command.
@@ -867,6 +874,66 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     //System_flush();
                 	mode_pending = 0;
                     break;
+            }
+        }
+    }
+}
+
+//*****************************************************************************
+// Perform auto-slow logic if enabled
+//*****************************************************************************
+
+void HandleAutoSlow(void)
+{
+    if (!g_sys.shuttle_autoslow_velocity)
+        return;
+
+    if (g_servo.velocity < 100.0f)
+        return;
+
+    if (g_servo.offset_null < (float)g_sys.shuttle_autoslow_offset)
+        return;
+
+    float trigger_vel = 500.0f;
+
+    /* Are we in forward shuttle mode? */
+    if (IS_SERVO_MODE(MODE_FWD))
+    {
+        /* SUPPLY must be spinning forward and faster than TAKEUP reel */
+        if (g_servo.direction ==  TAPE_DIR_FWD)
+        {
+            if (g_servo.velocity_supply > g_servo.velocity_takeup)
+            {
+                /* We're shuttling forward, is the supply reel spinning fast? */
+                if (g_servo.velocity_supply >= trigger_vel)
+                {
+                    if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
+                    {
+                        SET_SERVO_MODE(MODE_FWD);
+
+                        g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+                    }
+                }
+            }
+        }
+    }
+    else if (IS_SERVO_MODE(MODE_REW))
+    {
+        /* TAKEKUP reel must be spinning rewind and faster than SUPPLY reel */
+        if (g_servo.direction ==  TAPE_DIR_REW)
+        {
+            if (g_servo.velocity_takeup > g_servo.velocity_supply)
+            {
+                /* We're shuttling forward, is the supply reel spinning fast? */
+                if (g_servo.velocity_takeup >= trigger_vel)
+                {
+                    if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
+                    {
+                        SET_SERVO_MODE(MODE_REW);
+
+                        g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+                    }
+                }
             }
         }
     }

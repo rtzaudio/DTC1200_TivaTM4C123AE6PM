@@ -559,33 +559,11 @@ static void SvcServoFwd(void)
 
     static float cv = 0.0f;
 
-    /* Auto reduce velocity when nearing end of the
-     * reel based on the null offset value.
-     */
-
-    float target_velocity = (float)g_servo.shuttle_velocity;
-
-    if (g_sys.shuttle_autoslow_velocity)
-    {
-        if (fabsf(g_servo.offset_takeup) >= (float)g_sys.shuttle_autoslow_offset)
-        {
-        	/* Shuttling towards tail of reel? */
-        	if ((g_servo.velocity_supply > g_servo.velocity_takeup) && (g_servo.velocity_supply >= 550))
-        	{
-				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
-
-				if ((g_servo.velocity >= slow_velocity) && (g_servo.velocity > 300.0f))
-				{
-					target_velocity = slow_velocity;
-					g_servo.shuttle_velocity = target_velocity;
-				}
-        	}
-        }
-    }
-
     /* Get the PID current CV value based on the velocity */
 
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+    float target_velocity = (float)g_servo.shuttle_velocity;
 
     cv = fpid_calc(
         &g_servo.pid_shuttle,	/* PID accumulator  */
@@ -646,33 +624,11 @@ static void SvcServoRew(void)
 
     static float cv = 0.0f;
 
-    /* Auto reduce velocity when nearing end of the
-     * reel based on the null offset value.
-     */
-
-    float target_velocity = (float)g_servo.shuttle_velocity;
-
-    if (g_sys.shuttle_autoslow_velocity)
-    {
-        if (fabsf(g_servo.offset_supply) >= (float)g_sys.shuttle_autoslow_offset)
-        {
-        	/* Shuttling towards head of reel? */
-            if ((g_servo.velocity_takeup > g_servo.velocity_supply) && (g_servo.velocity_takeup >= 550))
-        	{
-				float slow_velocity = (float)g_sys.shuttle_autoslow_velocity;
-
-				if ((g_servo.velocity >= slow_velocity) && (g_servo.velocity > 300.0f))
-				{
-					target_velocity = slow_velocity;
-					g_servo.shuttle_velocity = target_velocity;
-				}
-        	}
-        }
-    }
-
     /* Get the PID current CV value based on the velocity */
 
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
+
+    float target_velocity = (float)g_servo.shuttle_velocity;
 
     cv = fpid_calc(
         &g_servo.pid_shuttle,   /* PID accumulator  */

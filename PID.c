@@ -185,8 +185,8 @@ float fpid_calc(FPID* p, float setpoint, float actual)
     p->error = setpoint - actual;
 
     /* Error is within dead band tolerance? */
-    //if (fabsf(pid->error) < PID_TOLERANCE_F)
-    //    pid->error = 0.0f;
+    //if (fabsf(p->error) < p->tolerance)
+    //    p->error = 0.0f;
 
     /* Calculate the proportional term */
     pTerm = p->Kp * p->error;

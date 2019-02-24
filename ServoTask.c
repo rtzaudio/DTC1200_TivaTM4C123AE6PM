@@ -170,10 +170,10 @@ int32_t IsServoMotion()
  * Each transport mode of operation requires a different servo loop.
  *
  *****************************************************************************/
+/* reeling radius = tape-speed / reel-speed */
+#define RADIUS_F(ts, rs)        ( (ts * 10.0f) / rs )
 
-#define RADIUS_F(ts, rs)    ( ts / rs )
-
-#define CPR_DIV_2           (1.0f / 2.048f)
+#define CPR_DIV_2               (1.0f / 2.048f)
 
 #define OFFSET_CALC_PERIOD      500
 #define OFFSET_SCALE_F          500.0f      // was 500 for 500 cpr encoders
@@ -189,12 +189,18 @@ Void ServoLoopTask(UArg a0, UArg a1)
     };
 
     /* Initialize servo loop controller data */
-    g_servo.mode              = MODE_HALT;
-    g_servo.offset_sample_cnt = 0;
-    g_servo.offset_null_sum   = 0.0f;
-    g_servo.dac_halt_takeup   = 0;
-    g_servo.dac_halt_supply   = 0;
-	g_servo.play_boost_count  = 0;
+    g_servo.mode                = MODE_HALT;
+    g_servo.offset_sample_cnt   = 0;
+    g_servo.offset_null_accum   = 0.0f;
+    g_servo.offset_takeup       = 0.0f;
+    g_servo.offset_supply       = 0.0f;
+    g_servo.radius_takeup       = 0.0f;
+    g_servo.radius_takeup_accum = 0.0f;
+    g_servo.radius_supply       = 0.0f;
+    g_servo.radius_supply_accum = 0.0f;
+    g_servo.dac_halt_takeup     = 0;
+    g_servo.dac_halt_supply     = 0;
+	g_servo.play_boost_count    = 0;
 
     /* Servo's start in halt mode! */
     SET_SERVO_MODE(MODE_HALT);
@@ -250,7 +256,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          */
         Board_readADC(g_servo.adc);
 
-        /* Calculate the CPU temp since we read it here anyway */
+        /* Save the CPU temp since we read it here anyway */
         g_servo.cpu_temp = (float)g_servo.adc[4];
 
         /* calculate the tension sensor value */
@@ -269,6 +275,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          */
 
         float delta = 0.0f;
+
         float veldetect = (g_high_speed_flag) ? 40.0f : 20.0f;
 
         if ((g_servo.velocity_takeup > veldetect) && (g_servo.velocity_supply > veldetect))
@@ -276,8 +283,9 @@ Void ServoLoopTask(UArg a0, UArg a1)
             /* Calculate the current reeling radius as tape speed divided by
              * the reel speed. Takeup and supply velocity must not be zero!
              */
-            g_servo.radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup) * g_sys.reel_radius_gain;
-            g_servo.radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply) * g_sys.reel_radius_gain;
+
+            float radius_takeup = RADIUS_F(g_servo.tape_tach, g_servo.velocity_takeup);
+            float radius_supply = RADIUS_F(g_servo.tape_tach, g_servo.velocity_supply);
 
             /* Calculate the delta factor between the two reel motor tach's */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
@@ -297,19 +305,35 @@ Void ServoLoopTask(UArg a0, UArg a1)
                 delta = 1000.0f;
 
             /* Accumulate the delta for averaging over 1 second */
-            g_servo.offset_null_sum += delta;
+            g_servo.offset_null_accum += delta;
+
+            g_servo.radius_takeup_accum += radius_takeup;
+            g_servo.radius_supply_accum += radius_supply;
 
             ++g_servo.offset_sample_cnt;
 
             if (g_servo.offset_sample_cnt >= OFFSET_CALC_PERIOD)
             {
-                float offset = g_servo.offset_null_sum / (float)OFFSET_CALC_PERIOD;
+                /* Calculate the averaged offset */
+                float offset = g_servo.offset_null_accum * (1.0f / (float)OFFSET_CALC_PERIOD);
 
                 /* Calculate the averaged null offset value */
                 g_servo.offset_null = offset * g_sys.reel_offset_gain;
 
-                /* Reset the accumulator and sample counter */
-                g_servo.offset_null_sum   = 0.0f;
+                /* Reset the accumulator */
+                g_servo.offset_null_accum = 0.0f;
+
+                /* Calculate the averaged reeling radius */
+                radius_takeup = g_servo.radius_takeup_accum * (1.0f / (float)OFFSET_CALC_PERIOD);
+                radius_supply = g_servo.radius_supply_accum * (1.0f / (float)OFFSET_CALC_PERIOD);
+
+                g_servo.radius_takeup = radius_takeup * g_sys.reel_radius_gain;
+                g_servo.radius_supply = radius_supply * g_sys.reel_radius_gain;
+
+                /* Reset the accumulators */
+                g_servo.radius_takeup_accum = g_servo.radius_supply_accum = 0.0f;
+
+                /* Reset the sample counter */
                 g_servo.offset_sample_cnt = 0;
             }
 
@@ -420,6 +444,7 @@ static void SvcServoPlay(void)
 
         /* DECREASE SUPPLY Motor Torque */
         dac_s = (((float)g_servo.play_supply_tension + g_servo.tsense)) + g_servo.offset_supply;
+
         /* INCREASE TAKEUP Motor Torque */
         dac_t = ((float)g_servo.play_takeup_tension + cv) + g_servo.offset_takeup;
 
@@ -519,6 +544,7 @@ static void SvcServoStop(void)
     {
         /* FORWARD DIR MOTION - increase supply torque */
         dac_s = ((((float)g_sys.stop_supply_tension + g_servo.tsense) + braketorque) + g_servo.offset_supply);
+
         /* decrease takeup torque */
         dac_t = ((((float)g_sys.stop_takeup_tension + g_servo.tsense) - braketorque) + g_servo.offset_takeup);
     }
@@ -526,6 +552,7 @@ static void SvcServoStop(void)
     {
         /* REWIND DIR MOTION - decrease supply torque */
         dac_s = ((((float)g_sys.stop_supply_tension + g_servo.tsense) - braketorque) + g_servo.offset_supply);
+
         /* increase takeup torque */
         dac_t = ((((float)g_sys.stop_takeup_tension + g_servo.tsense) + braketorque) + g_servo.offset_takeup);
     }
@@ -589,7 +616,14 @@ static void SvcServoFwd(void)
      * gains velocity and free wheels at the target velocity.
      */
 
-    float holdback = g_servo.velocity * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity_takeup * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity_takeup * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
+
+    float holdback = g_servo.velocity_supply * g_servo.offset_supply * g_sys.shuttle_holdback_gain;
+
+    if (holdback < 0.0f)
+        holdback = 0.0f;
 
     // DEBUG
     g_servo.db_cv    = cv;
@@ -598,7 +632,7 @@ static void SvcServoFwd(void)
     g_servo.holdback = holdback;
 
     /* DECREASE SUPPLY Motor Torque */
-    dac_s = (((float)g_sys.shuttle_supply_tension + holdback + g_servo.tsense) - cv) + g_servo.offset_supply;
+    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense + holdback) - cv) + g_servo.offset_supply;
 
     /* INCREASE TAKEUP Motor Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
@@ -649,12 +683,19 @@ static void SvcServoRew(void)
     Semaphore_post(g_semaServo);
 
     /* Back tension compensates for decreasing motor torque as the motors
-     * gain velocity and free wheel. Initially the motor current is high
-     * as torque is first applied, but the current drops as the motor
+     * gains velocity and free wheels. Initially the motor current is high
+     * as torque is first applied, but the current/torque drops as the motor
      * gains velocity and free wheels at the target velocity.
      */
 
-    float holdback = g_servo.velocity * g_servo.radius_takeup * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity * g_servo.radius_takeup * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity_supply * g_sys.shuttle_holdback_gain;
+    //float holdback = g_servo.velocity_supply * g_servo.radius_takeup * g_sys.shuttle_holdback_gain;
+
+    float holdback = g_servo.velocity_takeup * g_servo.offset_takeup * g_sys.shuttle_holdback_gain;
+
+    if (holdback < 0.0f)
+        holdback = 0.0f;
 
     // DEBUG
     g_servo.db_cv    = cv;
@@ -666,7 +707,7 @@ static void SvcServoRew(void)
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
     /* DECREASE TAKEUP Motor Torque */
-    dac_t = (((float)g_sys.shuttle_takeup_tension + holdback + g_servo.tsense) - cv) + g_servo.offset_takeup;
+    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense + holdback) - cv) + g_servo.offset_takeup;
 
     /* Safety clamp */
     DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);

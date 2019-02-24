@@ -618,7 +618,7 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->vel_detect_threshold      = 10;          /* 10 pulses or less = no velocity  */
     p->reel_offset_gain          = 0.150f;      /* reel torque null offset gain     */
-    p->reel_radius_gain          = 2.000f;	    /* reeling radius gain              */
+    p->reel_radius_gain          = 1.000f;	    /* reeling radius gain              */
     p->tension_sensor_gain       = 0.07f;	    /* tension sensor arm gain          */
 
     p->debounce                  = 30;		    /* button debounce time             */
@@ -635,11 +635,11 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->shuttle_supply_tension    = 360;         /* shuttle supply reel tension      */
     p->shuttle_takeup_tension    = 385;         /* shuttle takeup reel tension      */
-    p->shuttle_velocity          = 950;         /* max shuttle velocity             */
+    p->shuttle_velocity          = 1000;        /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 500;         /* max shuttle lib wind velocity    */
-    p->shuttle_autoslow_offset   = 75;          /* offset to reduce velocity at     */
+    p->shuttle_autoslow_offset   = 60;          /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 300;         /* reduce shuttle velocity speed to */
-    p->shuttle_holdback_gain     = 0.075f;      /* hold back gain during shuttle    */
+    p->shuttle_holdback_gain     = 0.028f;      /* hold back gain during shuttle    */
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;      /* shuttle mode servo I-gain        */
     p->shuttle_servo_dgain       = PID_Kd;      /* shuttle mode servo D-gain        */

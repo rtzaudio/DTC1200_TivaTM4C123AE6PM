@@ -885,7 +885,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 void HandleAutoSlow(void)
 {
-    if (!g_sys.shuttle_autoslow_velocity)
+    if (!g_sys.shuttle_autoslow_velocity || !g_sys.shuttle_autoslow_offset)
         return;
 
     if (g_servo.velocity < 100.0f)

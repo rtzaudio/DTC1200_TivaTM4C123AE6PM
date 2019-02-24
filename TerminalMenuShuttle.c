@@ -73,8 +73,8 @@ static MENUITEM shuttle_items[] = {
 		NULL, NULL, 0, 0 },
 
 { 12, 2, "5",  "Holdback Tension Gain", MI_NUMERIC,
-		.param1.F = 0.01f,
-		.param2.F = 0.25f,
+		.param1.F = 0.005f,
+		.param2.F = 0.250f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_holdback_gain },
 
 { 13, 2, "6",  "Shuttle Mode Velocity", MI_NUMERIC,

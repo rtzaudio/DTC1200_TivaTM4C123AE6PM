@@ -81,7 +81,7 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        33        	/* firmware revision */
+#define FIRMWARE_REV        34        	/* firmware revision */
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -213,13 +213,15 @@ typedef struct _SERVODATA
 	float 		velocity_takeup;    	/* takeup tach count per sample  */
 	float		tape_tach;				/* tape roller tachometer        */
 	float		radius_takeup;			/* takeup reel reeling radius    */
+    float       radius_takeup_accum;    /* takeup radius accumulator     */
 	float		radius_supply;			/* supply reel reeling radius    */
+    float       radius_supply_accum;    /* supply radius accumulator     */
 	float		stop_torque_supply;		/* stop mode supply null         */
 	float		stop_torque_takeup;		/* stop mode takeup null         */
 	int32_t		stop_brake_state;		/* stop servo dynamic brake state*/
-	int32_t		offset_sample_cnt;
+	uint32_t	offset_sample_cnt;
 	float		offset_null;       		/* takeup/supply tach difference */
-	float		offset_null_sum;
+	float		offset_null_accum;
 	float 		offset_takeup;			/* takeup null offset value      */
 	float		offset_supply;			/* supply null offset value      */
 	uint32_t	play_boost_count;

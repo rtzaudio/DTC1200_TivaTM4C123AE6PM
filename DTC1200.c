@@ -637,7 +637,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_takeup_tension    = 385;         /* shuttle takeup reel tension      */
     p->shuttle_velocity          = 1000;        /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 500;         /* max shuttle lib wind velocity    */
-    p->shuttle_autoslow_offset   = 60;          /* offset to reduce velocity at     */
+    p->shuttle_autoslow_offset   = 50;          /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 300;         /* reduce shuttle velocity speed to */
     p->shuttle_holdback_gain     = 0.028f;      /* hold back gain during shuttle    */
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */

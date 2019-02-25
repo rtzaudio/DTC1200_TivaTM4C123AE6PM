@@ -82,7 +82,7 @@
 /* Static Function Prototypes */
 static void ResetServoPlay(void);
 static void ResetServoPID(void);
-static void HandleAutoSlow(void);
+static bool HandleAutoSlow(void);
 static void HandleImmediateCommand(CMDMSG *p);
 
 extern Semaphore_Handle g_semaServo;
@@ -385,6 +385,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
     uint8_t mode_pending = 0;
     uint32_t stoptimer = 0;
     bool shuttling = FALSE;
+    bool autoslow = FALSE;
     CMDMSG msg;
 
     for(;;)
@@ -545,6 +546,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     shuttling = TRUE;
 
+                    autoslow = (msg.opcode & M_NOSLOW) ? 0 : 1;
+
                     /* Disable record if active! */
                     RecordDisable();
 
@@ -592,6 +595,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         break;
 
                     shuttling = TRUE;
+
+                    autoslow = (msg.opcode & M_NOSLOW) ? 0 : 1;
 
                     /* Disable record if active! */
                     RecordDisable();
@@ -646,7 +651,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
              * Perform shuttle mode auto-slow logic if enabled
              */
 
-            HandleAutoSlow();
+            if (autoslow)
+            {
+                if (HandleAutoSlow())
+                    autoslow = false;
+            }
 
             /* The message queue has timed out while waiting for a command. We use this
              * as a timer mechanism and check to see if we're currently waiting for the
@@ -883,18 +892,18 @@ Void TransportControllerTask(UArg a0, UArg a1)
 // Perform auto-slow logic if enabled
 //*****************************************************************************
 
-void HandleAutoSlow(void)
+bool HandleAutoSlow(void)
 {
     if (!g_sys.shuttle_autoslow_velocity || !g_sys.shuttle_autoslow_offset)
-        return;
+        return false;
 
     if (g_servo.velocity < 100.0f)
-        return;
+        return false;
 
     if (g_servo.offset_null < (float)g_sys.shuttle_autoslow_offset)
-        return;
+        return false;
 
-    float trigger_vel = 500.0f;
+    float trigger_vel = 600.0f;
 
     /* Are we in forward shuttle mode? */
     if (IS_SERVO_MODE(MODE_FWD))
@@ -912,6 +921,8 @@ void HandleAutoSlow(void)
                         SET_SERVO_MODE(MODE_FWD);
 
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+
+                        return true;
                     }
                 }
             }
@@ -932,11 +943,15 @@ void HandleAutoSlow(void)
                         SET_SERVO_MODE(MODE_REW);
 
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+
+                        return true;
                     }
                 }
             }
         }
     }
+
+    return false;
 }
 
 //*****************************************************************************
@@ -946,7 +961,7 @@ void HandleAutoSlow(void)
 
 void HandleImmediateCommand(CMDMSG *p)
 {
-	int32_t mode = ServoGetMode();
+	uint32_t mode = ServoGetMode();
 
     switch(p->command)
     {

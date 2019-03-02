@@ -81,8 +81,10 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        35        	/* firmware revision */
-#define FIRMWARE_BUILD      1
+#define FIRMWARE_REV        36        	/* firmware revision */
+#define FIRMWARE_BUILD      2
+
+#define FIRMWARE_MIN_BUILD  1
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -133,6 +135,7 @@ typedef struct _SYSPARMS
 {
 	uint32_t magic;
 	uint32_t version;
+	uint32_t build;
 
     /*** GLOBAL PARAMETERS ***/
 

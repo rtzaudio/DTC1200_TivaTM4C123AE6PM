@@ -80,8 +80,8 @@
 #include "IPCServer.h"
 
 /* Static Function Prototypes */
-static void ResetServoPlay(void);
-static void ResetServoPID(void);
+static void ResetPlayPID(void);
+static void ResetShuttlePID(void);
 static bool HandleAutoSlow(void);
 static void HandleImmediateCommand(CMDMSG *p);
 
@@ -94,7 +94,7 @@ extern Semaphore_Handle g_semaServo;
 // begins in the servo task.
 //*****************************************************************************
 
-void ResetServoPlay(void)
+void ResetPlayPID(void)
 {
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
@@ -132,6 +132,7 @@ void ResetServoPlay(void)
                  g_sys.play_hi_boost_igain,   	// I-gain
                  0.0f,     						// D-gain
                  DAC_MAX_F,
+                 -(DAC_MAX_F),
                  1.0f);              			// PID deadband
     }
     else
@@ -146,6 +147,7 @@ void ResetServoPlay(void)
                  g_sys.play_lo_boost_igain,   	// I-gain
                  0.0f,     						// D-gain
                  DAC_MAX_F,
+                 -(DAC_MAX_F),
                  1.0f);              			// PID deadband
     }
 
@@ -159,7 +161,7 @@ void ResetServoPlay(void)
 // to the transport controller entering shuttle mode.
 //*****************************************************************************
 
-void ResetServoPID(void)
+void ResetShuttlePID(void)
 {
     Semaphore_pend(g_semaServo, BIOS_WAIT_FOREVER);
 
@@ -168,6 +170,7 @@ void ResetServoPID(void)
              g_sys.shuttle_servo_igain,     // I-gain
              g_sys.shuttle_servo_dgain,     // D-gain
              DAC_MAX_F,
+             -(DAC_MAX_F),
              PID_TOLERANCE_F);              // PID deadband
 
     Semaphore_post(g_semaServo);
@@ -570,7 +573,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
 
                     /* Initialize shuttle mode PID values */
-                    ResetServoPID();
+                    ResetShuttlePID();
 
                     /* Set the servo velocity parameter */
                     if (msg.param1)
@@ -620,7 +623,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     SetTransportMask(T_TLIFT, T_SERVO | T_PROL | T_RECH | T_BRAKE);
 
                      /* Initialize the shuttle tension sensor and velocity PID data */
-                    ResetServoPID();
+                    ResetShuttlePID();
 
                     /* Set the servo velocity parameter */
                     if (msg.param1)
@@ -654,7 +657,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
             if (autoslow)
             {
                 if (HandleAutoSlow())
+                {
+                    /* Disable auto-slow if it triggered and set a new velocity */
                     autoslow = false;
+
+                    /* STAT_2 LED indicates auto-slow triggered */
+                    g_lamp_mask |= L_STAT2;
+                }
             }
 
             /* The message queue has timed out while waiting for a command. We use this
@@ -858,7 +867,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     }
 
                     /* Set the play mode velocity */
-                    ResetServoPlay();
+                    ResetPlayPID();
 
                     /* [3] Now start the capstan servo motor */
                     SetTransportMask(T_SERVO, 0);
@@ -918,8 +927,6 @@ bool HandleAutoSlow(void)
                 {
                     if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
                     {
-                        Servo_SetMode(MODE_FWD);
-
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 
                         return true;
@@ -940,7 +947,7 @@ bool HandleAutoSlow(void)
                 {
                     if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
                     {
-                        Servo_SetMode(MODE_REW);
+                        g_lamp_mask |= L_STAT2;
 
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 

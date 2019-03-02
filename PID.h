@@ -21,20 +21,21 @@
 
 /* Floating Point PID */
 typedef struct _FPID {
-    float       error;          /* current error state  */
-    float       dState;         /* Last position input  */
-    float       iState;         /* Integrator state     */
-    float       iMax;           /* max integrator state */
-    float       iMin;           /* min integrator state */
+    float       error;          /* current error state   */
+    float       dState;         /* Last position input   */
+    float       iState;         /* Integrator state      */
+    float       tolerance;      /* max tolerance allowed */
+    float       iMax;           /* max integrator state  */
+    float       iMin;           /* min integrator state  */
     /* PID gain values */
-    float       Kp;             /* Proportional gain    */
-    float       Ki;             /* Integral gain        */
-    float       Kd;             /* Derivative gain      */
+    float       Kp;             /* Proportional gain     */
+    float       Ki;             /* Integral gain         */
+    float       Kd;             /* Derivative gain       */
 } FPID;
 
 /* PID Function Prototypes */
 
-void fpid_init(FPID* p, float Kp, float Ki, float Kd, float cvmax, float tolerance);
+void fpid_init(FPID* p, float Kp, float Ki, float Kd, float cvmax, float cvmin, float tolerance);
 float fpid_calc(FPID* p, float setpoint, float actual);
 
 #endif /* __PID_H__ */

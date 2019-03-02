@@ -43,15 +43,16 @@ void fpid_init(
     float   Ki,
     float   Kd,
     float   cvmax,
+    float   cvmin,
     float   tolerance
     )
 {
     /* maximum CV range allowed (eg, DAC max) */
     p->iMax = cvmax;
-    p->iMin = 0.0f;
+    p->iMin = cvmin;
 
     /* dead-band error tolerance we'll allow */
-    //p->tolerance = tolerance;
+    p->tolerance = tolerance;
 
     /* initialize PID variables */
     p->Kp = Kp;     /* proportional gain */
@@ -127,8 +128,8 @@ float fpid_calc(FPID* p, float setpoint, float actual)
     cv = pTerm + iTerm - dTerm;
 
     /* Clamp CV to allowed range if necessary */
-    if (cv < 0.0f)
-        cv = 0.0f;
+    if (cv < p->iMin)
+        cv = p->iMin;
     else if (cv > p->iMax)
         cv = p->iMax;
 

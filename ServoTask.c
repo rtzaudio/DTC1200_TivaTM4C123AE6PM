@@ -647,7 +647,7 @@ static void Service_FwdMode(void)
     g_servo.holdback = holdback;
 
     /* DECREASE SUPPLY Motor Torque */
-    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense + holdback) - cv) + g_servo.offset_supply;
+    dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense + holdback) - (cv * 0.5f)) + g_servo.offset_supply;
 
     /* INCREASE TAKEUP Motor Torque */
     dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense) + cv) + g_servo.offset_takeup;
@@ -722,7 +722,7 @@ static void Service_RewMode(void)
     dac_s = (((float)g_sys.shuttle_supply_tension + g_servo.tsense) + cv) + g_servo.offset_supply;
 
     /* DECREASE TAKEUP Motor Torque */
-    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense + holdback) - cv) + g_servo.offset_takeup;
+    dac_t = (((float)g_sys.shuttle_takeup_tension + g_servo.tsense + holdback) - (cv * 0.5f)) + g_servo.offset_takeup;
 
     /* Safety clamp */
     DAC_CLAMP(dac_s, 0.0f, DAC_MAX_F);

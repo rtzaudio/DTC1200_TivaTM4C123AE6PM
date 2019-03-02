@@ -612,6 +612,7 @@ void InitSysDefaults(SYSPARMS* p)
 {
     /* default servo parameters */
     p->version                   = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
+    p->build                     = FIRMWARE_BUILD;
     p->debug                     = 0;           /* debug mode 0=off                 */
 
     p->sysflags					 = SF_BRAKES_STOP_PLAY | SF_ENGAGE_PINCH_ROLLER | SF_STOP_AT_TAPE_END;
@@ -637,10 +638,10 @@ void InitSysDefaults(SYSPARMS* p)
     p->shuttle_takeup_tension    = 385;         /* shuttle takeup reel tension      */
     p->shuttle_velocity          = 1000;        /* max shuttle velocity             */
     p->shuttle_lib_velocity      = 500;         /* max shuttle lib wind velocity    */
-    p->shuttle_autoslow_offset   = 50;          /* offset to reduce velocity at     */
+    p->shuttle_autoslow_offset   = 75;          /* offset to reduce velocity at     */
     p->shuttle_autoslow_velocity = 300;         /* reduce shuttle velocity speed to */
-    p->shuttle_fwd_holdback_gain = 0.028f;      /* hold back gain for rew shuttle   */
-    p->shuttle_rew_holdback_gain = 0.028f;      /* hold back gain for fwd shuttle   */
+    p->shuttle_fwd_holdback_gain = 0.020f;      /* hold back gain for rew shuttle   */
+    p->shuttle_rew_holdback_gain = 0.022f;      /* hold back gain for fwd shuttle   */
 
     p->shuttle_servo_pgain       = PID_Kp;      /* shuttle mode servo P-gain        */
     p->shuttle_servo_igain       = PID_Ki;      /* shuttle mode servo I-gain        */
@@ -697,6 +698,7 @@ int32_t SysParamsWrite(SYSPARMS* sp)
     uAddress = (g_tape_width == 1) ? 0: sizeof(SYSPARMS);
 
     sp->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
+    sp->build   = FIRMWARE_BUILD;
     sp->magic   = MAGIC;
 
     rc = EEPROMProgram((uint32_t *)sp, uAddress, sizeof(SYSPARMS));
@@ -727,7 +729,7 @@ int32_t SysParamsRead(SYSPARMS* sp)
 
     if (sp->magic != MAGIC)
     {
-        System_printf("ERROR Reading System Parameters - Using Defaults...\n");
+        System_printf("ERROR Reading System Parameters - Resetting Defaults...\n");
         System_flush();
 
         InitSysDefaults(sp);
@@ -739,7 +741,19 @@ int32_t SysParamsRead(SYSPARMS* sp)
 
     if (sp->version != MAKEREV(FIRMWARE_VER, FIRMWARE_REV))
     {
-        System_printf("WARNING New Firmware Version - Using Defaults...\n");
+        System_printf("WARNING New Firmware Version - Resetting Defaults...\n");
+        System_flush();
+
+        InitSysDefaults(sp);
+
+        SysParamsWrite(sp);
+
+        return -1;
+    }
+
+    if (sp->build < FIRMWARE_MIN_BUILD)
+    {
+        System_printf("WARNING New Firmware BUILD - Resetting Defaults...\n");
         System_flush();
 
         InitSysDefaults(sp);

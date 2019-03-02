@@ -54,17 +54,17 @@ static MENUITEM shuttle_items[] = {
 
 { 5, 2, "1", "P-Gain", MI_NUMERIC,
 		.param1.F = 0.0f,
-		.param2.F = 5.0f,
+		.param2.F = 10.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_servo_pgain },
 
 { 6, 2, "2", "I-Gain", MI_NUMERIC,
 		.param1.F = 0.0f,
-		.param2.F = 2.0f,
+		.param2.F = 5.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_servo_igain },
 
 { 7, 2, "3", "D-Gain", MI_NUMERIC,
 		.param1.F = 0.0f,
-		.param2.F = 1.0f,
+		.param2.F = 5.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.shuttle_servo_dgain },
 
 { 10, 6, NULL, "SHUTTLE SETTINGS", MI_TEXT,

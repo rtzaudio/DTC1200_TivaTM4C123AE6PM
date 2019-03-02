@@ -106,12 +106,12 @@ static MENUITEM tension_items[] = {
 
 { 18,  2, "15", "Reel Offset Gain   ", MI_NUMERIC,
 		.param1.F = 0.05f,
-		.param2.F = 0.50f,
+		.param2.F = 1.00f,
 		NULL, put_idata, DT_FLOAT, &g_sys.reel_offset_gain },
 
 { 19,  2, "16", "Reel Radius Gain   ", MI_NUMERIC,
 		.param1.F = 0.01f,
-		.param2.F = 0.50f,
+		.param2.F = 1.00f,
 		NULL, put_idata, DT_FLOAT, &g_sys.reel_radius_gain },
 
 { 20,  2, "17", "Tension Sensor Gain", MI_NUMERIC,

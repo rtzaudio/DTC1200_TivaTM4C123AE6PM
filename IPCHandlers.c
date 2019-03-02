@@ -120,7 +120,7 @@ void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply)
     uint16_t param1 = (uint16_t)msg->param1.U;
     uint16_t param2 = (uint16_t)msg->param2.U;
 
-    if (IS_SERVO_MODE(MODE_HALT))
+    if (Servo_IsMode(MODE_HALT))
         return;
 
     switch(msg->opcode)

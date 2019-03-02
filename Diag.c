@@ -122,7 +122,7 @@ static int wait4continue(void)
 
 static bool check_halt()
 {
-	if ((!IS_SERVO_MODE(MODE_HALT)) || (IS_SERVO_MOTION()))
+	if ((!Servo_IsMode(MODE_HALT)) || (Servo_IsMotion()))
 	{
 		tty_printf("%sWARNING%s - Transport must be in HALT mode with no tape/reels mounted!!\r\n",
 				   VT100_UL_ON, VT100_UL_OFF);

@@ -81,7 +81,8 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        34        	/* firmware revision */
+#define FIRMWARE_REV        35        	/* firmware revision */
+#define FIRMWARE_BUILD      1
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))
@@ -166,7 +167,8 @@ typedef struct _SYSPARMS
     int32_t shuttle_lib_velocity;       /* library wind mode velocity        */
     int32_t shuttle_autoslow_velocity;  /* velocity to reduce speed to       */
     int32_t shuttle_autoslow_offset;    /* null offset to reduce velocity at */
-    float   shuttle_holdback_gain;	    /* velocity tension gain factor      */
+    float   shuttle_fwd_holdback_gain;  /* velocity tension gain factor      */
+    float   shuttle_rew_holdback_gain;  /* velocity tension gain factor      */
     /* reel servo PID values */
     float   shuttle_servo_pgain;       	/* P-gain */
     float   shuttle_servo_igain;       	/* I-gain */

@@ -96,17 +96,17 @@ extern Semaphore_Handle g_semaServo;
 extern Semaphore_Handle g_semaTransportMode;
 
 /* Static Function Prototypes */
-static void SvcServoHalt(void);
-static void SvcServoStop(void);
-static void SvcServoPlay(void);
-static void SvcServoFwd(void);
-static void SvcServoRew(void);
+static void Service_HaltMode(void);
+static void Service_StopMode(void);
+static void Service_PlayMode(void);
+static void Service_RewMode(void);
+static void Service_FwdMode(void);
 
 /*****************************************************************************
  * SERVO MODE CONTROL INTERFACE FUNCTIONS (thread safe)
  *****************************************************************************/
 
-void ServoSetMode(uint32_t mode)
+void Servo_SetMode(uint32_t mode)
 {
     uint32_t prev_mode;
 
@@ -133,31 +133,49 @@ void ServoSetMode(uint32_t mode)
     Semaphore_post(g_semaTransportMode);
 }
 
-uint32_t ServoGetMode()
+//*****************************************************************************
+// SERVO - Get current servo loop operation mode
+//*****************************************************************************
+
+uint32_t Servo_GetMode(void)
 {
-	uint32_t mode;
-	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
-	mode = g_servo.mode & MODE_MASK;
-	Semaphore_post(g_semaTransportMode);
-	return mode;
+    uint32_t mode;
+    Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+    mode = g_servo.mode & MODE_MASK;
+    Semaphore_post(g_semaTransportMode);
+    return mode;
 }
 
-int32_t IsServoMode(uint32_t mode)
+int32_t Servo_IsMode(uint32_t mode)
 {
-	int32_t flag;
-	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
-	flag = ((g_servo.mode & MODE_MASK) == (mode & MODE_MASK)) ? 1 : 0;
-	Semaphore_post(g_semaTransportMode);
-	return flag;
+    int32_t flag;
+    Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+    flag = ((g_servo.mode & MODE_MASK) == (mode & MODE_MASK)) ? 1 : 0;
+    Semaphore_post(g_semaTransportMode);
+    return flag;
 }
 
-int32_t IsServoMotion()
+int32_t Servo_IsMotion(void)
 {
-	int32_t motion;
-	Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
-	motion = (g_servo.motion) ? 1 : 0;
-	Semaphore_post(g_semaTransportMode);
-	return motion;
+    int32_t motion;
+    Semaphore_pend(g_semaTransportMode, BIOS_WAIT_FOREVER);
+    motion = (g_servo.motion) ? 1 : 0;
+    Semaphore_post(g_semaTransportMode);
+    return motion;
+}
+
+//*****************************************************************************
+// SERVO - Get/Set target velocity shuttle mode
+//*****************************************************************************
+
+uint32_t Servo_GetShuttleVelocity(void)
+{
+    return g_servo.shuttle_velocity;
+}
+
+void Servo_SetShuttleVelocity(uint32_t target_velocity)
+{
+    g_servo.shuttle_velocity = target_velocity;
 }
 
 /*****************************************************************************
@@ -170,6 +188,7 @@ int32_t IsServoMotion()
  * Each transport mode of operation requires a different servo loop.
  *
  *****************************************************************************/
+
 /* reeling radius = tape-speed / reel-speed */
 #define RADIUS_F(ts, rs)        ( (ts * 10.0f) / rs )
 
@@ -181,11 +200,11 @@ int32_t IsServoMotion()
 Void ServoLoopTask(UArg a0, UArg a1)
 {
     static void (*jmptab[5])(void) = {
-        SvcServoHalt,     /* MODE_HALT */
-        SvcServoStop,     /* MODE_STOP */
-        SvcServoPlay,     /* MODE_PLAY */
-        SvcServoFwd,      /* MODE_FWD  */
-        SvcServoRew       /* MODE_REW  */
+        Service_HaltMode,  /* MODE_HALT */
+        Service_StopMode,  /* MODE_STOP */
+        Service_PlayMode,  /* MODE_PLAY */
+        Service_FwdMode,   /* MODE_FWD  */
+        Service_RewMode    /* MODE_REW  */
     };
 
     /* Initialize servo loop controller data */
@@ -203,7 +222,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 	g_servo.play_boost_count    = 0;
 
     /* Servo's start in halt mode! */
-    SET_SERVO_MODE(MODE_HALT);
+    Servo_SetMode(MODE_HALT);
 
     /* Initialize the QEI interface and interrupts */
     ReelQEI_initialize();
@@ -382,7 +401,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
          * DISPATCH TO THE CURRENT SERVO MODE HANDLER
          **********************************************/
 
-        (*jmptab[ServoGetMode()])();
+        (*jmptab[Servo_GetMode()])();
 
         /* Toggle I/O pin for debug timing measurement*/
         GPIO_write(DTC1200_EXPANSION_PF3, PIN_LOW);
@@ -400,7 +419,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 // diagnostic mode where they are used to ramp the DAC outputs.
 //*****************************************************************************
 
-static void SvcServoHalt(void)
+static void Service_HaltMode(void)
 {
     MotorDAC_write((float)g_servo.dac_halt_supply, (float)g_servo.dac_halt_takeup);
 }
@@ -411,7 +430,7 @@ static void SvcServoHalt(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-static void SvcServoPlay(void)
+static void Service_PlayMode(void)
 {
     float dac_s;
     float dac_t;
@@ -494,7 +513,7 @@ static void SvcServoPlay(void)
 // configuration parameter.
 //*****************************************************************************
 
-static void SvcServoStop(void)
+static void Service_StopMode(void)
 {
     float dac_s;
     float dac_t;
@@ -579,7 +598,7 @@ static void SvcServoStop(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-static void SvcServoFwd(void)
+static void Service_FwdMode(void)
 {
     float dac_s;
     float dac_t;
@@ -616,11 +635,7 @@ static void SvcServoFwd(void)
      * gains velocity and free wheels at the target velocity.
      */
 
-    //float holdback = g_servo.velocity * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
-    //float holdback = g_servo.velocity_takeup * g_sys.shuttle_holdback_gain;
-    //float holdback = g_servo.velocity_takeup * g_servo.radius_supply * g_sys.shuttle_holdback_gain;
-
-    float holdback = g_servo.velocity_supply * g_servo.offset_supply * g_sys.shuttle_holdback_gain;
+    float holdback = g_servo.velocity_supply * g_servo.offset_supply * g_sys.shuttle_fwd_holdback_gain;
 
     if (holdback < 0.0f)
         holdback = 0.0f;
@@ -651,7 +666,7 @@ static void SvcServoFwd(void)
 // by the timer interrupt.
 //*****************************************************************************
 
-static void SvcServoRew(void)
+static void Service_RewMode(void)
 {
     float dac_s;
     float dac_t;
@@ -692,7 +707,7 @@ static void SvcServoRew(void)
     //float holdback = g_servo.velocity_supply * g_sys.shuttle_holdback_gain;
     //float holdback = g_servo.velocity_supply * g_servo.radius_takeup * g_sys.shuttle_holdback_gain;
 
-    float holdback = g_servo.velocity_takeup * g_servo.offset_takeup * g_sys.shuttle_holdback_gain;
+    float holdback = g_servo.velocity_takeup * g_servo.offset_takeup * g_sys.shuttle_rew_holdback_gain;
 
     if (holdback < 0.0f)
         holdback = 0.0f;

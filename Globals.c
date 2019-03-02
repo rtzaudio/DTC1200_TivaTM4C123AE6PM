@@ -69,6 +69,7 @@
 #include "Board.h"
 #include "DTC1200.h"
 #include "Globals.h"
+#include "ServoTask.h"
 
 /*** GLOBAL DATA ITEMS *****************************************************/
 

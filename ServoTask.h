@@ -65,16 +65,14 @@
 
 /*** Function Prototypes ***************************************************/
 
-/* Servo Mode Functions */
-void ServoSetMode(uint32_t mode);
-uint32_t ServoGetMode(void);
-int32_t IsServoMode(uint32_t mode);
-int32_t IsServoMotion(void);
+/* Servo Operation Functions */
 
-#define SET_SERVO_MODE(m)		ServoSetMode(m)
-#define GET_SERVO_MODE()		ServoGetMode()
-#define IS_SERVO_MODE(m)		IsServoMode(m)
-#define IS_SERVO_MOTION()		IsServoMotion()
+void Servo_SetShuttleVelocity(uint32_t target_velocity);
+uint32_t Servo_GetShuttleVelocity(void);
+void Servo_SetMode(uint32_t mode);
+uint32_t Servo_GetMode(void);
+int32_t Servo_IsMode(uint32_t mode);
+int32_t Servo_IsMotion(void);
 
 Void ServoLoopTask(UArg a0, UArg a1);
 

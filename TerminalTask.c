@@ -118,7 +118,7 @@ const char g_ul_off[]  = VT100_UL_OFF;
 const char g_inv_on[]  = VT100_INV_ON;
 const char g_inv_off[] = VT100_INV_OFF;
 const char g_escstr[]  = "<ESC> or 'X' to exit...";
-const char g_title[]   = "DTC-1200 Transport Controller v%u.%-2.2u";
+const char g_title[]   = "DTC-1200 Transport Controller v%u.%-2.2u.%-3.3u";
 
 /*****************************************************************************
  * STATIC FUNCTION PROTOTYPES
@@ -301,7 +301,7 @@ void show_menu(void)
     /* Clear the screen and show title */
     tty_cls();
     tty_pos(1, 2);
-    tty_printf(g_title, FIRMWARE_VER, FIRMWARE_REV);
+    tty_printf(g_title, FIRMWARE_VER, FIRMWARE_REV, FIRMWARE_BUILD);
 
     /* Show the tape speed if main menu */
 

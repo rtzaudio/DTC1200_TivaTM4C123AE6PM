@@ -201,7 +201,7 @@ void show_monitor_screen()
 
     /* Show the menu title */
     tty_pos(1, 2);
-    tty_printf(g_title, FIRMWARE_VER, FIRMWARE_REV);
+    tty_printf(g_title, FIRMWARE_VER, FIRMWARE_REV, FIRMWARE_BUILD);
 
     if (g_sys.debug == 1)
     {

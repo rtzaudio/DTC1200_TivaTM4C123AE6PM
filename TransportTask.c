@@ -273,7 +273,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    if (mbutton & S_TAPEOUT)
 		    {
 		        /* If transport was NOT in HALT mode, set HALT mode */
-		        if (!IS_SERVO_MODE(MODE_HALT) || firststate)
+		        if (!Servo_IsMode(MODE_HALT) || firststate)
 		        {
 		        	firststate = 0;
 		        	QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
@@ -283,7 +283,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    else if (mbutton & S_TAPEIN)
 		    {
 		        /* If transport was in HALT mode (out of tape), set STOP mode */
-		        if (IS_SERVO_MODE(MODE_HALT) || firststate)
+		        if (Servo_IsMode(MODE_HALT) || firststate)
 		        {
 		        	firststate = 0;
 		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
@@ -299,7 +299,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 
 		    /* Ignore transport control buttons in halt mode */
 
-		    if (IS_SERVO_MODE(MODE_HALT))
+		    if (Servo_IsMode(MODE_HALT))
 		        continue;
 
 		    /* Mask out the tape out indicator bits */
@@ -335,14 +335,14 @@ Void TransportCommandTask(UArg a0, UArg a1)
             }
 		    else if (mbutton == (S_STOP | S_REC))   /* stop & record button? */
 		    {
-		    	if (IS_SERVO_MODE(MODE_PLAY))       /* punch out */
+		    	if (Servo_IsMode(MODE_PLAY))       /* punch out */
 		    		QueueTransportCommand(CMD_STROBE_RECORD, 0, 0);
 		    }
 		    else if ((mbutton & (S_PLAY | S_REC)) == (S_PLAY | S_REC))
 		    {
 	            /* play+rec buttons pressed? */
 		        /* Already in play mode? */
-		        if (IS_SERVO_MODE(MODE_PLAY))
+		        if (Servo_IsMode(MODE_PLAY))
 		        {
 		        	/* Is transport already in record mode? */
 		        	if (GetTransportMask() & T_RECH)
@@ -350,7 +350,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		        	else
 		        		QueueTransportCommand(CMD_STROBE_RECORD, 1, 0);	/* punch in */
 		        }
-		        else if (IS_SERVO_MODE(MODE_STOP))
+		        else if (Servo_IsMode(MODE_STOP))
 		        {
 		        	/* Startup PLAY in REC mode */
 		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_PLAY|M_RECORD, 0);
@@ -456,7 +456,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     SetTransportMask(T_BRAKE, 0xFF);
 
                     /* Set servo mode to HALT */
-                    SET_SERVO_MODE(MODE_HALT);
+                    Servo_SetMode(MODE_HALT);
 
                     last_mode_completed = MODE_HALT;
                     mode_pending = 0;
@@ -471,7 +471,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     //  break;
 
                     /* Ignore if already in stop mode */
-                    //if (IS_SERVO_MODE(MODE_STOP))
+                    //if (IsServoMode(MODE_STOP))
                     //  break;
 
                     /* Set the lamps to indicate the stop mode */
@@ -497,18 +497,18 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     SetTransportMask(0, T_PROL | T_SERVO | T_RECH);
 
                     /* Set the reel servos for stop mode */
-                    SET_SERVO_MODE(MODE_STOP);
+                    Servo_SetMode(MODE_STOP);
 
                     mode_pending = MODE_STOP;
                     break;
 
                 case MODE_PLAY:
 
-                    if (IS_SERVO_MODE(MODE_HALT))
+                    if (Servo_IsMode(MODE_HALT))
                         break;
 
                     /* Ignore if already in play mode */
-                    if (IS_SERVO_MODE(MODE_PLAY))
+                    if (Servo_IsMode(MODE_PLAY))
                         break;
 
                     if ((prev_mode_requested == MODE_FWD) || (prev_mode_requested == MODE_REW))
@@ -517,7 +517,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         record = (msg.opcode & M_RECORD) ? 1 : 0;
 
                         /* Set the reel servos to stop mode initially */
-                        SET_SERVO_MODE(MODE_STOP);
+                        Servo_SetMode(MODE_STOP);
 
                         mode_pending = MODE_PLAY;
                         break;
@@ -534,14 +534,14 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     record = (msg.opcode & M_RECORD) ? 1 : 0;
 
                     /* Set the reel servos to stop mode initially */
-                    SET_SERVO_MODE(MODE_STOP);
+                    Servo_SetMode(MODE_STOP);
 
                     mode_pending = MODE_PLAY;
                     break;
 
                 case MODE_REW:
 
-                    if (IS_SERVO_MODE(MODE_HALT))
+                    if (Servo_IsMode(MODE_HALT))
                         break;
 
                     shuttling = TRUE;
@@ -552,7 +552,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     RecordDisable();
 
                     /* Ignore if already in rew mode */
-                    if (IS_SERVO_MODE(MODE_REW))
+                    if (Servo_IsMode(MODE_REW))
                     {
                         /* Allow change in velocity if same command received */
                         if (msg.param1)
@@ -579,11 +579,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
 
                     // 500 ms delay for tape lifter settling time
-                    if (!IS_SERVO_MOTION())
+                    if (!Servo_IsMotion())
                         Task_sleep(g_sys.lifter_settle_time);
 
                     /* Set servos to REW mode */
-                    SET_SERVO_MODE(MODE_REW);
+                    Servo_SetMode(MODE_REW);
 
                     last_mode_completed = MODE_REW;
                     mode_pending = 0;
@@ -591,7 +591,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                 case MODE_FWD:
 
-                    if (IS_SERVO_MODE(MODE_HALT))
+                    if (Servo_IsMode(MODE_HALT))
                         break;
 
                     shuttling = TRUE;
@@ -602,7 +602,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     RecordDisable();
 
                     /* Ignore if already in ffwd mode */
-                    if (IS_SERVO_MODE(MODE_FWD))
+                    if (Servo_IsMode(MODE_FWD))
                     {
                         /* Allow change in velocity if same command received */
                         if (msg.param1)
@@ -629,11 +629,11 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         g_servo.shuttle_velocity = (msg.opcode & M_LIBWIND) ? g_sys.shuttle_lib_velocity : g_sys.shuttle_velocity;
 
                     // 500 ms delay for tape lifter settling time
-                    if (!IS_SERVO_MOTION())
+                    if (!Servo_IsMotion())
                         Task_sleep(g_sys.lifter_settle_time);
 
                     /* Set servos to FWD mode */
-                    SET_SERVO_MODE(MODE_FWD);
+                    Servo_SetMode(MODE_FWD);
 
                     last_mode_completed = MODE_FWD;
                     mode_pending = 0;
@@ -679,7 +679,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                 g_lamp_mask = (g_lamp_mask & L_LED_MASK) | L_STOP | L_STAT3;
 
                 /* Set reel servos to stop */
-                SET_SERVO_MODE(MODE_STOP);
+                Servo_SetMode(MODE_STOP);
 
                 /* error, the motion didn't stop within timeout period */
                 mode_pending = record = stoptimer = 0;
@@ -731,7 +731,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Has all motion stopped yet? */
                     if (last_mode_completed != MODE_PLAY)
                     {
-                        if (IS_SERVO_MOTION())
+                        if (Servo_IsMotion())
                             break;
                     }
 
@@ -810,7 +810,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                 case MODE_PLAY:
 
                     /* Has all motion stopped yet? */
-                    if (IS_SERVO_MOTION())
+                    if (Servo_IsMotion())
                         break;
 
                     /* All motion has stopped, allow 1 second settling
@@ -864,7 +864,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     SetTransportMask(T_SERVO, 0);
 
                     /* [2] Start the reel servos in PLAY mode */
-                    SET_SERVO_MODE(MODE_PLAY);
+                    Servo_SetMode(MODE_PLAY);
 
                     /* [4] Enable record if record flag was set */
                     if (record)
@@ -906,7 +906,7 @@ bool HandleAutoSlow(void)
     float trigger_vel = 600.0f;
 
     /* Are we in forward shuttle mode? */
-    if (IS_SERVO_MODE(MODE_FWD))
+    if (Servo_IsMode(MODE_FWD))
     {
         /* SUPPLY must be spinning forward and faster than TAKEUP reel */
         if (g_servo.direction ==  TAPE_DIR_FWD)
@@ -918,7 +918,7 @@ bool HandleAutoSlow(void)
                 {
                     if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
                     {
-                        SET_SERVO_MODE(MODE_FWD);
+                        Servo_SetMode(MODE_FWD);
 
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 
@@ -928,7 +928,7 @@ bool HandleAutoSlow(void)
             }
         }
     }
-    else if (IS_SERVO_MODE(MODE_REW))
+    else if (Servo_IsMode(MODE_REW))
     {
         /* TAKEKUP reel must be spinning rewind and faster than SUPPLY reel */
         if (g_servo.direction ==  TAPE_DIR_REW)
@@ -940,7 +940,7 @@ bool HandleAutoSlow(void)
                 {
                     if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
                     {
-                        SET_SERVO_MODE(MODE_REW);
+                        Servo_SetMode(MODE_REW);
 
                         g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 
@@ -961,7 +961,7 @@ bool HandleAutoSlow(void)
 
 void HandleImmediateCommand(CMDMSG *p)
 {
-	uint32_t mode = ServoGetMode();
+	uint32_t mode = Servo_GetMode();
 
     switch(p->command)
     {

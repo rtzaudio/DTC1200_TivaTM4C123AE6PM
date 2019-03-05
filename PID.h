@@ -19,6 +19,9 @@
 
 #define PID_TOLERANCE_F		3.0f	/* error tolerance */
 
+#define PID_CV_MAX_F        (DAC_MAX_F)
+#define PID_CV_MIN_F        (-400.0f)
+
 /* Floating Point PID */
 typedef struct _FPID {
     float       error;          /* current error state   */

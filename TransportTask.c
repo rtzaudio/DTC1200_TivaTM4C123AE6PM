@@ -131,8 +131,8 @@ void ResetPlayPID(void)
                  g_sys.play_hi_boost_pgain,   	// P-gain
                  g_sys.play_hi_boost_igain,   	// I-gain
                  0.0f,     						// D-gain
-                 DAC_MAX_F,
-                 -(DAC_MAX_F),
+                 PID_CV_MAX_F,
+                 PID_CV_MIN_F,
                  1.0f);              			// PID deadband
     }
     else
@@ -146,8 +146,8 @@ void ResetPlayPID(void)
                  g_sys.play_lo_boost_pgain,   	// P-gain
                  g_sys.play_lo_boost_igain,   	// I-gain
                  0.0f,     						// D-gain
-                 DAC_MAX_F,
-                 -(DAC_MAX_F),
+                 PID_CV_MAX_F,
+                 PID_CV_MIN_F,
                  1.0f);              			// PID deadband
     }
 
@@ -169,8 +169,8 @@ void ResetShuttlePID(void)
              g_sys.shuttle_servo_pgain,     // P-gain
              g_sys.shuttle_servo_igain,     // I-gain
              g_sys.shuttle_servo_dgain,     // D-gain
-             DAC_MAX_F,
-             -(DAC_MAX_F),
+             PID_CV_MAX_F,
+             PID_CV_MIN_F,
              PID_TOLERANCE_F);              // PID deadband
 
     Semaphore_post(g_semaServo);

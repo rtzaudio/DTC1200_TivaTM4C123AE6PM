@@ -12,8 +12,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <math.h>
-#include "pid.h"
 #include "DTC1200_TivaTM4C123AE6PMI.h"
+#include "pid.h"
 
 /*******************************************************************************
  * FLOATING POINT PID FUNCTIONS

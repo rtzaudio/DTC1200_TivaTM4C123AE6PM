@@ -82,9 +82,9 @@
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
 #define FIRMWARE_REV        36        	/* firmware revision */
-#define FIRMWARE_BUILD      2
+#define FIRMWARE_BUILD      3
 
-#define FIRMWARE_MIN_BUILD  1
+#define FIRMWARE_MIN_BUILD  3
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))

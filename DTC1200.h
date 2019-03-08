@@ -81,8 +81,8 @@
 
 /* version info */
 #define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        36        	/* firmware revision */
-#define FIRMWARE_BUILD      3
+#define FIRMWARE_REV        32        	/* firmware revision */
+#define FIRMWARE_BUILD      1
 
 #define FIRMWARE_MIN_BUILD  3
 
@@ -169,7 +169,8 @@ typedef struct _SYSPARMS
     int32_t shuttle_velocity;          	/* target speed for shuttle mode     */
     int32_t shuttle_lib_velocity;       /* library wind mode velocity        */
     int32_t shuttle_autoslow_velocity;  /* velocity to reduce speed to       */
-    int32_t shuttle_autoslow_offset;    /* null offset to reduce velocity at */
+    int32_t autoslow_at_offset;         /* auto-slow trigger at offset       */
+    int32_t autoslow_at_velocity;       /* auto-slow trigger at velocity     */
     float   shuttle_fwd_holdback_gain;  /* velocity tension gain factor      */
     float   shuttle_rew_holdback_gain;  /* velocity tension gain factor      */
     /* reel servo PID values */

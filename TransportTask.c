@@ -903,34 +903,41 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
 bool HandleAutoSlow(void)
 {
-    if (!g_sys.shuttle_autoslow_velocity || !g_sys.shuttle_autoslow_offset)
-        return false;
-
     if (g_servo.velocity < 100.0f)
         return false;
 
-    if (g_servo.offset_null < (float)g_sys.shuttle_autoslow_offset)
+    if (g_sys.shuttle_autoslow_velocity == 0)
         return false;
 
-    float trigger_vel = 600.0f;
+    if ((g_sys.autoslow_at_offset == 0) && (g_sys.autoslow_at_velocity == 0))
+        return false;
+
+    /* If auto-slow at offset specified, check to see if we've reached offset yet */
+    if (g_sys.autoslow_at_offset)
+    {
+        if (g_servo.offset_null < (float)g_sys.autoslow_at_offset)
+            return false;
+    }
+
+    /* Tape must be traveling at least as fast as trigger velocity */
+    if (g_servo.velocity < (float)g_sys.shuttle_autoslow_velocity)
+        return false;
 
     /* Are we in forward shuttle mode? */
     if (Servo_IsMode(MODE_FWD))
     {
         /* SUPPLY must be spinning forward and faster than TAKEUP reel */
-        if (g_servo.direction ==  TAPE_DIR_FWD)
+        if (g_servo.direction == TAPE_DIR_FWD)
         {
+            /* Supply reel must be spinning faster than takeup reel */
             if (g_servo.velocity_supply > g_servo.velocity_takeup)
             {
                 /* We're shuttling forward, is the supply reel spinning fast? */
-                if (g_servo.velocity_supply >= trigger_vel)
+                if (g_servo.velocity_supply >= (float)g_sys.autoslow_at_velocity)
                 {
-                    if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
-                    {
-                        g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+                    g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 
-                        return true;
-                    }
+                    return true;
                 }
             }
         }
@@ -938,21 +945,19 @@ bool HandleAutoSlow(void)
     else if (Servo_IsMode(MODE_REW))
     {
         /* TAKEKUP reel must be spinning rewind and faster than SUPPLY reel */
-        if (g_servo.direction ==  TAPE_DIR_REW)
+        if (g_servo.direction == TAPE_DIR_REW)
         {
+            /* Takeup reel must be spinning faster than supply reel */
             if (g_servo.velocity_takeup > g_servo.velocity_supply)
             {
                 /* We're shuttling forward, is the supply reel spinning fast? */
-                if (g_servo.velocity_takeup >= trigger_vel)
+                if (g_servo.velocity_takeup >= (float)g_sys.autoslow_at_velocity)
                 {
-                    if (g_servo.velocity >= (float)g_sys.shuttle_autoslow_velocity)
-                    {
-                        g_lamp_mask |= L_STAT2;
+                    g_lamp_mask |= L_STAT2;
 
-                        g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
+                    g_servo.shuttle_velocity = (uint32_t)g_sys.shuttle_autoslow_velocity;
 
-                        return true;
-                    }
+                    return true;
                 }
             }
         }

@@ -67,13 +67,25 @@
 
 /* Servo Operation Functions */
 
-void Servo_SetShuttleVelocity(uint32_t target_velocity);
-uint32_t Servo_GetShuttleVelocity(void);
+//void Servo_SetShuttleVelocity(uint32_t target_velocity);
+//uint32_t Servo_GetShuttleVelocity(void);
 void Servo_SetMode(uint32_t mode);
 uint32_t Servo_GetMode(void);
 int32_t Servo_IsMode(uint32_t mode);
 int32_t Servo_IsMotion(void);
 
 Void ServoLoopTask(UArg a0, UArg a1);
+
+/*** Inline Prototypes *****************************************************/
+
+inline uint32_t Servo_GetShuttleVelocity(void)
+{
+    return g_servo.shuttle_velocity;
+}
+
+inline void Servo_SetShuttleVelocity(uint32_t target_velocity)
+{
+    g_servo.shuttle_velocity = target_velocity;
+}
 
 #endif /* _SERVOTASK_H_ */

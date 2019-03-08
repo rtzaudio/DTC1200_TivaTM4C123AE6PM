@@ -92,17 +92,22 @@ static MENUITEM shuttle_items[] = {
 		.param2.U = 500,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_lib_velocity },
 
-{ 16, 2, "9",  "Auto Slow Velocity   ", MI_NUMERIC,
+{ 16, 2, "9",  "Auto-Slow Velocity   ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 500,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_autoslow_velocity },
 
-{ 17, 2, "10",  "Auto Slow at offset  ", MI_NUMERIC,
-		.param1.U = 30,
+{ 17, 2, "10",  "Auto-Slow at offset  ", MI_NUMERIC,
+		.param1.U = 0,
 		.param2.U = 100,
-		NULL, put_idata, DT_LONG, &g_sys.shuttle_autoslow_offset },
+		NULL, put_idata, DT_LONG, &g_sys.autoslow_at_offset },
 
-{ 18, 2, "11", "Lifter Settle Time   ", MI_NUMERIC,
+{ 18, 2, "11",  "Auto-Slow at velocity", MI_NUMERIC,
+        .param1.U = 0,
+        .param2.U = 800,
+        NULL, put_idata, DT_LONG, &g_sys.autoslow_at_velocity },
+
+{ 19, 2, "12", "Lifter Settle Time   ", MI_NUMERIC,
 		.param1.U = 0,
 		.param2.U = 2000,
 		NULL, put_idata, DT_LONG, &g_sys.lifter_settle_time },

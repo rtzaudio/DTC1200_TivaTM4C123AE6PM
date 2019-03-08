@@ -164,20 +164,6 @@ int32_t Servo_IsMotion(void)
     return motion;
 }
 
-//*****************************************************************************
-// SERVO - Get/Set target velocity shuttle mode
-//*****************************************************************************
-
-uint32_t Servo_GetShuttleVelocity(void)
-{
-    return g_servo.shuttle_velocity;
-}
-
-void Servo_SetShuttleVelocity(uint32_t target_velocity)
-{
-    g_servo.shuttle_velocity = target_velocity;
-}
-
 /*****************************************************************************
  * MAIN SERVO LOOP CONTROLLER TASK
  *

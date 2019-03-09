@@ -84,7 +84,18 @@
 #define FIRMWARE_REV        32        	/* firmware revision */
 #define FIRMWARE_BUILD      1
 
-#define FIRMWARE_MIN_BUILD  3
+/* Minimum build required to NOT force default reset of config parameters
+ * at run time. For instance, if the config loads build 5 and the minimum
+ * is set to 3, then it will reset config for anything less than build 3.
+ * Then, versions 3 or higher would load and use the config values from
+ * eprom as normal. This provides a means to force run time config defaults,
+ * reset or not, for specific older versions.
+ */
+#define FIRMWARE_MIN_BUILD  1
+
+#if (FIRMWARE_MIN_BUILD > FIRMWARE_BUILD)
+#error "DTC build option FIRMWARE_MIN_BUILD set incorrectly"
+#endif
 
 #define MAGIC               0xCEB0FACE  /* magic number for EEPROM data */
 #define MAKEREV(v, r)       ((v << 16) | (r & 0xFFFF))

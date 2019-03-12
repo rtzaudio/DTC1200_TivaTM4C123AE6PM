@@ -258,8 +258,10 @@ void show_monitor_screen()
         tty_pos(20, 2);
         tty_printf("Tension Arm");
 
+        tty_pos(11, 35);
+        tty_printf("%sSYSTEM%s", g_ul_on, g_ul_off);
         tty_pos(12, 35);
-        tty_puts("CPU Temp F");
+        tty_puts("CPU Temp(F)");
 
         tty_pos(23, 2);
         tty_puts(g_escstr);
@@ -339,8 +341,11 @@ void show_monitor_data()
         tty_pos(20, 14);
         tty_printf(": %-8.2f", g_servo.tsense);
 
-        tty_pos(12, 47);
-        tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(ADC_TO_CELCIUS(g_servo.cpu_temp)));
+        if (g_servo.cpu_temp != 0.0f)
+        {
+            tty_pos(12, 47);
+            tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(ADC_TO_CELCIUS(g_servo.cpu_temp)));
+        }
     }
 }
 

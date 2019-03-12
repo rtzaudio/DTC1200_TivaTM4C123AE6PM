@@ -87,9 +87,9 @@
 /* Minimum build required to NOT force default reset of config parameters
  * at run time. For instance, if the config loads build 5 and the minimum
  * is set to 3, then it will reset config for anything less than build 3.
- * Then, versions 3 or higher would load and use the config values from
- * eprom as normal. This provides a means to force run time config defaults,
- * reset or not, for specific older versions.
+ * Likewise, versions 3 or higher would load and use the config values from
+ * eprom as normal. This provides a means to force run time config defaults
+ * to be reset or not.
  */
 #define FIRMWARE_MIN_BUILD  1
 
@@ -223,7 +223,6 @@ typedef struct _SERVODATA
 	uint32_t	mode_prev;				/* previous servo mode           */
 	int32_t		motion;					/* servo motion flag             */
 	int32_t 	direction;				/* 1 = fwd or -1 = reverse       */
-	int32_t     direction_state;        /* last shuttle direction state  */
     float       holdback;               /* back tension during shuttle   */
 	float		velocity;		    	/* sum of both reel velocities   */
 	float		velocity_supply;		/* supply tach count per sample  */
@@ -251,6 +250,8 @@ typedef struct _SERVODATA
     uint32_t	adc[8];					/* ADC values (tension, etc)     */
     float		tsense;					/* tension sensor value 		 */
     float		cpu_temp;				/* CPU temp included in ADC read */
+    float       cpu_temp_accum;         /* CPU temp accumulator for avg  */
+    uint32_t    cpu_temp_cnt;
     float		dac_takeup;				/* current takeup DAC level      */
     float		dac_supply;				/* current supply DAC level      */
     uint32_t 	dac_halt_supply;		/* halt mode DAC level           */

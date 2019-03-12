@@ -180,8 +180,10 @@ int32_t Servo_IsMotion(void)
 
 #define CPR_DIV_2               (1.0f / 2.048f)
 
-#define OFFSET_CALC_PERIOD      500
+#define OFFSET_CALC_PERIOD      500         // 500 ticks = 1 second
 #define OFFSET_SCALE_F          500.0f      // was 500 for 500 cpr encoders
+
+#define TEMP_AVG_COUNT          (500 * 10)  // Average over 10 seconds
 
 Void ServoLoopTask(UArg a0, UArg a1)
 {
@@ -206,6 +208,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
     g_servo.dac_halt_takeup     = 0;
     g_servo.dac_halt_supply     = 0;
 	g_servo.play_boost_count    = 0;
+	g_servo.cpu_temp_accum      = 0.0f;
+    g_servo.cpu_temp_cnt        = 0;
 
     /* Servo's start in halt mode! */
     Servo_SetMode(MODE_HALT);
@@ -261,8 +265,21 @@ Void ServoLoopTask(UArg a0, UArg a1)
          */
         Board_readADC(g_servo.adc);
 
-        /* Save the CPU temp since we read it here anyway */
-        g_servo.cpu_temp = (float)g_servo.adc[4];
+        /* Accumulate the CPU temperature */
+
+        g_servo.cpu_temp_accum += (float)g_servo.adc[4];
+
+        ++g_servo.cpu_temp_cnt;
+
+        if (g_servo.cpu_temp_cnt >= TEMP_AVG_COUNT)
+        {
+            /* divide accumulator and store avg temp value */
+            g_servo.cpu_temp = g_servo.cpu_temp_accum * (1.0f/(float)TEMP_AVG_COUNT);
+
+            /* reset accumulator and count */
+            g_servo.cpu_temp_accum = 0.0f;
+            g_servo.cpu_temp_cnt = 0;
+        }
 
         /* calculate the tension sensor value */
         g_servo.tsense = TENSION_F(g_servo.adc[0]) * g_sys.tension_sensor_gain;
@@ -610,7 +627,7 @@ static void Service_FwdMode(void)
      * action instead.
      */
 
-    if ((g_servo.mode_prev == MODE_REW) && (cv < 0.0f))
+    if ((g_servo.direction == TAPE_DIR_REW) && (cv < 0.0f))
         cv = fabs(cv);
 
     Semaphore_post(g_semaServo);
@@ -678,7 +695,7 @@ static void Service_RewMode(void)
      * action instead.
      */
 
-    if ((g_servo.mode_prev == MODE_FWD) && (cv < 0.0f))
+    if ((g_servo.direction == TAPE_DIR_FWD) && (cv < 0.0f))
         cv = fabs(cv);
 
     Semaphore_post(g_semaServo);

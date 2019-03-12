@@ -29,6 +29,21 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 2.32 (03/09/2019) ==============================================
+
+Lots of chanages,fixes and improvements to servo loop shuttle modes. Also 
+fixed auto-slow features for shuttling so the controller slows the tape
+automatically near the ends of the reels in shuttle modes. The auto-slow
+config parameters specifies the velocity to slow to. The slow-at velocity
+contig parameters specifies the velocity the emptying reel must reach
+before auto-slow can trigger. Likewise the slow-at offset parameter
+specifies the offset the reels must be at to trigger auto-slow. Normally
+both of these conditions must be met to trigger auto-slow during
+high speed shuttle. However, either slow-at parameter can be set to 
+zero to disable the test condition. For instance, slow-at offset could
+be set to zero and the auto-slow would trigger any time the reel reached
+the minimum auto-slow trigger velocity config parameter.
+
 === VERSION 2.31 (02/11/2019) ==============================================
 
 Modified to use new AS5047P high resolution reel motor encoders. Note

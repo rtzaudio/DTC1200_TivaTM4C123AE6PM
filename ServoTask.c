@@ -115,12 +115,6 @@ void Servo_SetMode(uint32_t mode)
     /* Only the mode number bits */
     mode &= MODE_MASK;
 
-    /* Get the previous mode */
-    prev_mode = g_servo.mode_prev;
-
-    /* Update for previous mode state */
-    g_servo.mode_prev = g_servo.mode;
-
     /* Now set the new servo mode state */
     g_servo.mode = mode;
 

@@ -115,6 +115,12 @@ void Servo_SetMode(uint32_t mode)
     /* Only the mode number bits */
     mode &= MODE_MASK;
 
+    /* Get the previous mode */
+    prev_mode = g_servo.mode_prev;
+
+    /* Update for previous mode state */
+    g_servo.mode_prev = g_servo.mode;
+
     /* Now set the new servo mode state */
     g_servo.mode = mode;
 
@@ -191,6 +197,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
     /* Initialize servo loop controller data */
     g_servo.mode                = MODE_HALT;
+    g_servo.mode_prev           = MODE_HALT;
     g_servo.offset_sample_cnt   = 0;
     g_servo.offset_null_accum   = 0.0f;
     g_servo.offset_takeup       = 0.0f;

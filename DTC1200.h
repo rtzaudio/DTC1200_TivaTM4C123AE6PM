@@ -73,7 +73,7 @@
 #include "driverlib/timer.h"
 #include "driverlib/uart.h"
 
-#include "pid.h"
+#include "PID.h"
 
 #include "Board.h"
 
@@ -220,6 +220,7 @@ typedef struct _SYSPARMS
 typedef struct _SERVODATA
 {
 	uint32_t	mode;					/* the current servo mode        */
+	uint32_t    mode_prev;              /* previous servo mode           */
 	int32_t		motion;					/* servo motion flag             */
 	int32_t 	direction;				/* 1 = fwd or -1 = reverse       */
     float       holdback;               /* back tension during shuttle   */

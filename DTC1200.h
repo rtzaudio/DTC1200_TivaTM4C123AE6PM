@@ -79,19 +79,18 @@
 
 /*** Global Constants ******************************************************/
 
-/* version info */
-#define FIRMWARE_VER        2           /* firmware version */
-#define FIRMWARE_REV        32        	/* firmware revision */
-#define FIRMWARE_BUILD      1
-
-/* Minimum build required to NOT force default reset of config parameters
+/* VERSION INFO - The min build specifies the minimum build required
+ * that does NOT force a default reset of all the config parameters
  * at run time. For instance, if the config loads build 5 and the minimum
  * is set to 3, then it will reset config for anything less than build 3.
  * Likewise, versions 3 or higher would load and use the config values from
  * eprom as normal. This provides a means to force run time config defaults
  * to be reset or not.
  */
-#define FIRMWARE_MIN_BUILD  1
+#define FIRMWARE_VER        2           /* firmware version */
+#define FIRMWARE_REV        33        	/* firmware revision */
+#define FIRMWARE_BUILD      1           /* firmware build number */
+#define FIRMWARE_MIN_BUILD  1           /* min build req'd to force reset */
 
 #if (FIRMWARE_MIN_BUILD > FIRMWARE_BUILD)
 #error "DTC build option FIRMWARE_MIN_BUILD set incorrectly"

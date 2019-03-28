@@ -628,8 +628,11 @@ static void Service_FwdMode(void)
      * action instead.
      */
 
-    if ((g_servo.direction == TAPE_DIR_REW) && (cv < 0.0f))
-        cv = fabs(cv);
+    if (g_servo.direction == TAPE_DIR_REW)
+    {
+        if (cv < 0.0f)
+            cv = fabs(cv);
+    }
 
     Semaphore_post(g_semaServo);
 
@@ -696,8 +699,11 @@ static void Service_RewMode(void)
      * action instead.
      */
 
-    if ((g_servo.direction == TAPE_DIR_FWD) && (cv < 0.0f))
-        cv = fabs(cv);
+    if (g_servo.direction == TAPE_DIR_FWD)
+    {
+        if (cv < 0.0f)
+            cv = fabs(cv);
+    }
 
     Semaphore_post(g_semaServo);
 

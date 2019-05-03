@@ -2,7 +2,7 @@
 
  DTC-1200 Digital Transport Controller for Ampex MM-1200 Tape Machines
 
- Copyright (C) 2016-2018, RTZ Professional Audio, LLC
+ Copyright (C) 2016-2019, RTZ Professional Audio, LLC
 
  All Rights Reserved
 
@@ -22,12 +22,18 @@ the LMFLASH utility for firmware updates over RS-232.
 
 The file "DTC1200_TivaTM4C123AE6PM.out" contains the object format version
 of the firmware image for use with the XDS JTAG programming pods. These
-are generally used for development systems only.
+are generally used for development systems or recovery only.
 
 Download and install the LMFLASH utility. Follow the DTC bootloader firmware
 update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
+
+=== VERSION 2.33(05/03/2019) ==============================================
+
+Changed Tensions->Servo->reel offset gain (item #15) to allow for greater
+input range. Some users need more range to adjust for creep at the very 
+ends of the tape reels. 
 
 === VERSION 2.32 (03/09/2019) ==============================================
 

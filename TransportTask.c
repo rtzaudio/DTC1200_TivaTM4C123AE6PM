@@ -286,7 +286,7 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    else if (mbutton & S_TAPEIN)
 		    {
 		        /* If transport was in HALT mode (out of tape), set STOP mode */
-		        if (Servo_IsMode(MODE_HALT) || firststate)
+		        if (Servo_IsMode(MODE_HALT) || Servo_IsMode(MODE_THREAD) || firststate)
 		        {
 		        	firststate = 0;
 		            QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
@@ -302,12 +302,16 @@ Void TransportCommandTask(UArg a0, UArg a1)
 
 		    /* Ignore transport control buttons in halt mode */
 
-		    if (Servo_IsMode(MODE_HALT))
+		    if (Servo_IsMode(MODE_HALT) || Servo_IsMode(MODE_THREAD))
 		    {
 		        if (Servo_IsMode(MODE_THREAD))
-                    QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
+		        {
+                    QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_HALT, 0);
+		        }
 		        else if ((mbutton & MODE_MASK) == S_STOP)
+		        {
 	                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_THREAD, 0);
+		        }
 		        continue;
 		    }
 
@@ -472,9 +476,14 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     break;
 
                 case MODE_THREAD:
+                    /* Set transport in thread mode */
                     Servo_SetMode(MODE_THREAD);
                     g_lamp_mask = L_REW | L_FWD;
-                    last_mode_completed = MODE_HALT;
+
+                    /* Release the brakes */
+                    SetTransportMask(0, T_BRAKE);
+
+                    last_mode_completed = MODE_THREAD;
                     mode_pending = 0;
                     break;
 

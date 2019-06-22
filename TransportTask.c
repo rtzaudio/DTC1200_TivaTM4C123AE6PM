@@ -303,7 +303,13 @@ Void TransportCommandTask(UArg a0, UArg a1)
 		    /* Ignore transport control buttons in halt mode */
 
 		    if (Servo_IsMode(MODE_HALT))
+		    {
+		        if (Servo_IsMode(MODE_THREAD))
+                    QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_STOP, 0);
+		        else if ((mbutton & MODE_MASK) == S_STOP)
+	                QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_THREAD, 0);
 		        continue;
+		    }
 
 		    /* Mask out the tape out indicator bits */
 		    mbutton &= ~(S_TAPEOUT | S_TAPEIN);
@@ -461,6 +467,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Set servo mode to HALT */
                     Servo_SetMode(MODE_HALT);
 
+                    last_mode_completed = MODE_HALT;
+                    mode_pending = 0;
+                    break;
+
+                case MODE_THREAD:
+                    Servo_SetMode(MODE_THREAD);
+                    g_lamp_mask = L_REW | L_FWD;
                     last_mode_completed = MODE_HALT;
                     mode_pending = 0;
                     break;

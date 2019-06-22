@@ -101,6 +101,7 @@ static void Service_StopMode(void);
 static void Service_PlayMode(void);
 static void Service_RewMode(void);
 static void Service_FwdMode(void);
+static void Service_ThreadMode(void);
 
 /*****************************************************************************
  * SERVO MODE CONTROL INTERFACE FUNCTIONS (thread safe)
@@ -187,12 +188,13 @@ int32_t Servo_IsMotion(void)
 
 Void ServoLoopTask(UArg a0, UArg a1)
 {
-    static void (*jmptab[5])(void) = {
-        Service_HaltMode,  /* MODE_HALT */
-        Service_StopMode,  /* MODE_STOP */
-        Service_PlayMode,  /* MODE_PLAY */
-        Service_FwdMode,   /* MODE_FWD  */
-        Service_RewMode    /* MODE_REW  */
+    static void (*jmptab[MAX_NUM_MODES])(void) = {
+        Service_HaltMode,       /* 0 = MODE_HALT   */
+        Service_StopMode,       /* 1 = MODE_STOP   */
+        Service_PlayMode,       /* 2 = MODE_PLAY   */
+        Service_FwdMode,        /* 3 = MODE_FWD    */
+        Service_RewMode,        /* 4 = MODE_REW    */
+        Service_ThreadMode      /* 5 = MODE_THREAD */
     };
 
     /* Initialize servo loop controller data */
@@ -416,7 +418,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 }
 
 //*****************************************************************************
-// HALT SERVO - This function halts all reel servo torque and is
+// HALT SERVO - This mode halts all reel servo torque and is
 // called at periodic intervals at the sample frequency specified
 // by the timer interrupt. The global variables g_halt_dac_takeup
 // and g_halt_dac_supply are normally set to zero, except during
@@ -429,7 +431,17 @@ static void Service_HaltMode(void)
 }
 
 //*****************************************************************************
-// PLAY SERVO - This function handles play mode servo logic and is
+// THREAD TAPE - This mode applies a small fixed torque level to each
+// reel motor while the user is threading a new tape on the spools.
+//*****************************************************************************
+
+static void Service_ThreadMode(void)
+{
+    MotorDAC_write(150.0f, 150.0f);
+}
+
+//*****************************************************************************
+// PLAY SERVO - This mode handles play mode servo logic and is
 // called at periodic intervals at the sample frequency specified
 // by the timer interrupt.
 //*****************************************************************************
@@ -510,7 +522,7 @@ static void Service_PlayMode(void)
 }
 
 //*****************************************************************************
-// STOP SERVO - This function handles dynamic braking for stop mode to
+// STOP SERVO - This mode handles dynamic braking for stop mode to
 // null all motion by applying opposing torque force to each reel. This works
 // in either tape direction and at velocity. The amount of braking torque
 // applied at any given velocity is controlled by the 'stop_brake_torque'
@@ -597,7 +609,7 @@ static void Service_StopMode(void)
 }
 
 //*****************************************************************************
-// FWD SERVO - This function handles forward mode servo logic and is
+// FWD SERVO - This mode handles forward mode servo logic and is
 // called at periodic intervals at the sample frequency specified
 // by the timer interrupt.
 //*****************************************************************************
@@ -668,7 +680,7 @@ static void Service_FwdMode(void)
 }
 
 //*****************************************************************************
-// REW SERVO - This function handles rewind mode servo logic and is
+// REW SERVO - This mode handles rewind mode servo logic and is
 // called at periodic intervals at the sample frequency specified
 // by the timer interrupt.
 //*****************************************************************************

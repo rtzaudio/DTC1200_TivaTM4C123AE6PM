@@ -40,55 +40,16 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * ============================================================================ */
 
-#ifndef _SERVOTASK_H_
-#define _SERVOTASK_H_
+#ifndef __UTILS_H__
+#define __UTILS_H__
 
-/*** Servo Mode Constants **************************************************/
+bool ReadSerialNumber(I2C_Handle handle, uint8_t ui8SerialNumber[16]);
 
-#define MODE_HALT       	0       		/* all servo motion halted		*/
-#define MODE_STOP       	1       		/* servo stop mode				*/
-#define MODE_PLAY       	2       		/* servo play mode				*/
-#define MODE_FWD        	3       		/* servo forward mode			*/
-#define MODE_REW        	4       		/* servo rewind mode			*/
-#define MODE_THREAD         5               /* load/thread tape mode        */
+void FlashLEDSuccess(void);
+void FlashLEDError(void);
 
-#define MAX_NUM_MODES       6               /* max num of transport modes   */
+void InitSysDefaults(SYSPARMS* p);
+int32_t SysParamsWrite(SYSPARMS* sp);
+int32_t SysParamsRead(SYSPARMS* sp);
 
-#define M_NOSLOW            0x20            /* no auto slow in shuttle mode */
-#define M_LIBWIND			0x40			/* shuttle library wind flag    */
-#define M_RECORD			0x80			/* upper bit indicates record   */
-
-#define MODE_MASK			0x07
-
-/* General Purpose Defines and Macros */
-
-#define TAPE_DIR_FWD		(-1)			/* play, fwd direction */
-#define TAPE_DIR_REW		(1)				/* rewind direction    */
-#define TAPE_DIR_STOP		(0)
-
-/*** Function Prototypes ***************************************************/
-
-/* Servo Operation Functions */
-
-//void Servo_SetShuttleVelocity(uint32_t target_velocity);
-//uint32_t Servo_GetShuttleVelocity(void);
-void Servo_SetMode(uint32_t mode);
-uint32_t Servo_GetMode(void);
-int32_t Servo_IsMode(uint32_t mode);
-int32_t Servo_IsMotion(void);
-
-Void ServoLoopTask(UArg a0, UArg a1);
-
-/*** Inline Prototypes *****************************************************/
-
-inline uint32_t Servo_GetShuttleVelocity(void)
-{
-    return g_servo.shuttle_velocity;
-}
-
-inline void Servo_SetShuttleVelocity(uint32_t target_velocity)
-{
-    g_servo.shuttle_velocity = target_velocity;
-}
-
-#endif /* _SERVOTASK_H_ */
+#endif // __UTILS_H__

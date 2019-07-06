@@ -74,50 +74,70 @@ static MENUITEM tension_items[] = {
 		.param2.U = 1024,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_supply_tension },
 
+{ 9, 2, "5", "Thread ", MI_NUMERIC,
+        .param1.U = 0,
+        .param2.U = 200,
+        NULL, put_idata, DT_LONG, &g_sys.thread_supply_tension },
+
 { 3, 30, "", "TAKEUP TENSION", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 5, 26, "5", "Stop   ", MI_NUMERIC,
+{ 5, 26, "6", "Stop   ", MI_NUMERIC,
 		.param1.U = 1,
 		.param2.U = MAX_TENSION,
 		NULL, put_idata, DT_LONG, &g_sys.stop_takeup_tension },
 
-{ 6, 26, "6", "Shuttle", MI_NUMERIC,
+{ 6, 26, "7", "Shuttle", MI_NUMERIC,
 		.param1.U = 1,
 		.param2.U = MAX_TENSION,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_takeup_tension },
 
-{ 7, 26, "7", "Play LO", MI_NUMERIC,
+{ 7, 26, "8", "Play LO", MI_NUMERIC,
 		.param1.U = 10.0f,
 		.param2.U = 1024.0f,
 		NULL, put_idata, DT_LONG, &g_sys.play_lo_takeup_tension },
 
-{ 8, 26, "8", "Play HI", MI_NUMERIC,
+{ 8, 26, "9", "Play HI", MI_NUMERIC,
 		.param1.U = 10.0f,
 		.param2.U = 1024.0f,
 		NULL, put_idata, DT_LONG, &g_sys.play_hi_takeup_tension },
 
-{ 16,  6, "", "SERVO PARAMETERS", MI_TEXT,
+{ 9, 26, "10","Thread ", MI_NUMERIC,
+        .param1.U = 0.0f,
+        .param2.U = 200.0f,
+        NULL, put_idata, DT_LONG, &g_sys.thread_takeup_tension },
+
+{ 12,  6, "", "SERVO PARAMETERS", MI_TEXT,
 		.param1.U = 1,
 		.param2.U = 0,
 		NULL, NULL, 0, 0 },
 
-{ 18,  2, "15", "Reel Offset Gain   ", MI_NUMERIC,
+{ 14,  2, "15", "Reel Offset Gain   ", MI_NUMERIC,
 		.param1.F = 0.05f,
 		.param2.F = 1.00f,
 		NULL, put_idata, DT_FLOAT, &g_sys.reel_offset_gain },
 
-{ 19,  2, "16", "Reel Radius Gain   ", MI_NUMERIC,
+{ 15,  2, "16", "Reel Radius Gain   ", MI_NUMERIC,
 		.param1.F = 0.01f,
 		.param2.F = 1.00f,
 		NULL, put_idata, DT_FLOAT, &g_sys.reel_radius_gain },
 
-{ 20,  2, "17", "Tension Sensor Gain", MI_NUMERIC,
+{ 16,  2, "17", "Tension Sensor Gain", MI_NUMERIC,
 		.param1.F = 0.0f,
 		.param2.F = 1.0f,
 		NULL, put_idata, DT_FLOAT, &g_sys.tension_sensor_gain },
+
+{ 17,  2, "18", "ADC mid-scale 1\"   ", MI_NUMERIC,
+        .param1.F = 1500.0f,
+        .param2.F = 2500.0f,
+        NULL, put_idata, DT_FLOAT, &g_sys.tension_sensor_midscale1 },
+
+{ 18,  2, "19", "ADC mid-scale 2\"   ", MI_NUMERIC,
+        .param1.F = 1500.0f,
+        .param2.F = 2500.0f,
+        NULL, put_idata, DT_FLOAT, &g_sys.tension_sensor_midscale2 },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT,
 		.param1.U = 0,

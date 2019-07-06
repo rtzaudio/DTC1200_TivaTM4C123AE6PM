@@ -165,6 +165,13 @@ typedef struct _SYSPARMS
     float   reel_radius_gain;           /* reeling radius play gain factor   */
     float   reel_offset_gain;           /* reeling radius offset gain factor */
     float   tension_sensor_gain;        /* tension sensor gain divisor       */
+    float   tension_sensor_midscale1;   /* ADC mid-scale for 1" tape         */
+    float   tension_sensor_midscale2;   /* ADC mid-scale for 2" tape         */
+
+    /*** THREAD TAPE PARAMETERS ***/
+
+    int32_t thread_supply_tension;      /* supply tension level (0-DAC_MAX)  */
+    int32_t thread_takeup_tension;      /* takeup tension level (0-DAC_MAX)  */
 
     /*** STOP SERVO PARAMETERS ***/
 

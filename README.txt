@@ -29,6 +29,24 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 2.34(07/06/2019) ==============================================
+
+Added new default config parameter values for 1" tape configuration. 
+
+Added an ADC mid-scale configuration parameter under the tensions menu, 
+which allows shifting the ADC mid-scale offset, for zero reference of
+tape tension arm while under correction tension. This can be used to shift
+the tension arm readings to compensate for less tension with 1" tape. The
+tension sensor ADC is 12-bit, so a value of 2047 is treated as midscale.
+The tape tension sensor should read around zero when the tape is under
+proper tension on the transport with equal tape pack on the reels.
+
+Added new tape threading mode. When the tape out arm is open, the user
+can press STOP on the transport to release the brakes and the controller
+applies a small amount of torque to the reels to allow easier threading
+of tape on the transport. Thread mode exits by pressing the STOP again
+or the tape out arm is released back to tape.
+
 === VERSION 2.33(05/03/2019) ==============================================
 
 Changed Tensions->Servo->reel offset gain (item #15) to allow for greater

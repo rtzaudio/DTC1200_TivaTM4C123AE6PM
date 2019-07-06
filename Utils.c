@@ -189,6 +189,8 @@ void InitSysDefaults(SYSPARMS* p)
     p->reel_offset_gain          = 0.150f;      /* reel torque null offset gain     */
     p->reel_radius_gain          = 1.000f;	    /* reeling radius gain              */
     p->tension_sensor_gain       = 0.07f;	    /* tension sensor arm gain          */
+    p->tension_sensor_midscale1  = 2047.0f;     /* tensions sensor ADC 1" mid-scale */
+    p->tension_sensor_midscale2  = 2047.0f;     /* tensions sensor ADC 2" mid-scale */
 
     p->debounce                  = 30;		    /* button debounce time             */
     p->lifter_settle_time        = 600;         /* tape lifter settling delay in ms */
@@ -198,9 +200,12 @@ void InitSysDefaults(SYSPARMS* p)
     p->record_pulse_time     	 = REC_PULSE_TIME;
     p->rechold_settle_time    	 = REC_SETTLE_TIME;
 
+    p->thread_supply_tension     = 150;         /* tension for thread tape mode     */
+    p->thread_takeup_tension     = 150;         /* tension for thread tape mode     */
+
     p->stop_supply_tension       = 360;         /* supply tension level (0-DAC_MAX) */
     p->stop_takeup_tension       = 385;         /* takeup tension level (0-DAC_MAX) */
-    p->stop_brake_torque         = 650;    	    /* max dynamic stop brake torque   */
+    p->stop_brake_torque         = 650;    	    /* max dynamic stop brake torque    */
 
     p->shuttle_supply_tension    = 360;         /* shuttle supply reel tension      */
     p->shuttle_takeup_tension    = 385;         /* shuttle takeup reel tension      */
@@ -229,25 +234,36 @@ void InitSysDefaults(SYSPARMS* p)
     p->play_hi_boost_end         = 118;         /* target play velocity */
 
     /* If running 1" tape width headstack, overwrite any members
-     * that require different default values. Mainly we load the
-     * tensions with 1/2 the values required for 2".
+     * that require different default values for 1" tape transport.
      */
 
     if (g_tape_width == 1)
     {
-        p->stop_brake_torque         = 400;		/* max dynamic stop brake torque   */
+        p->stop_brake_torque         = 600;		/* max dynamic stop brake torque   */
 
-        p->stop_supply_tension       /= 2;		/* supply tension level (0-DAC_MAX) */
-        p->stop_takeup_tension       /= 2;		/* takeup tension level (0-DAC_MAX) */
+        p->stop_supply_tension       = 180;     /* supply tension level (0-DAC_MAX) */
+        p->shuttle_supply_tension    = 180;     /* shuttle supply reel tension      */
+        p->play_lo_supply_tension    = 140;     /* supply tension level             */
+        p->play_hi_supply_tension    = 130;     /* supply tension level             */
 
-        p->shuttle_supply_tension    /= 2;		/* shuttle supply reel tension      */
-        p->shuttle_takeup_tension    /= 2;		/* shuttle takeup reel tension      */
+        p->stop_takeup_tension       = 200;     /* takeup tension level (0-DAC_MAX) */
+        p->shuttle_takeup_tension    = 200;     /* shuttle takeup reel tension      */
+        p->play_lo_takeup_tension    = 230;     /* takeup tension level             */
+        p->play_hi_takeup_tension    = 220;     /* takeup tension level             */
 
-        p->play_lo_takeup_tension    /= 2;		/* takeup tension level             */
-        p->play_lo_supply_tension    /= 2;		/* supply tension level             */
+        p->reel_offset_gain          = 0.130f;  /* reel torque null offset gain     */
+        p->reel_radius_gain          = 1.000f;  /* reeling radius gain              */
+        p->tension_sensor_gain       = 0.18f;   /* tension sensor arm gain          */
 
-        p->play_hi_takeup_tension    /= 2;		/* takeup tension level             */
-        p->play_hi_supply_tension    /= 2;		/* supply tension level             */
+        p->play_lo_boost_pgain       = 1.400f;      /* P-gain */
+        p->play_lo_boost_igain       = 0.250f;      /* I-gain */
+        p->play_lo_boost_end         = 25;          /* target play velocity */
+
+        p->play_hi_boost_pgain       = 1.800f;      /* P-gain */
+        p->play_hi_boost_igain       = 0.200f;      /* I-gain */
+        p->play_hi_boost_end         = 100;         /* target play velocity */
+
+        p->lifter_settle_time        = 200;
     }
 }
 

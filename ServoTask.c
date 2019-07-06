@@ -88,8 +88,8 @@
 #include "ReelQEI.h"
 
 /* Calculate the tension value from the ADC reading */
-#define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
-#define TENSION_F(adc)			( (2047.0f - (float)adc) )
+//#define TENSION(adc)			( (0xFFF - (adc & 0xFFF)) )
+//#define TENSION_F(adc)			( (2047.0f - (float)adc) )
 
 /* External Global Data */
 extern Semaphore_Handle g_semaServo;
@@ -284,8 +284,22 @@ Void ServoLoopTask(UArg a0, UArg a1)
             g_servo.cpu_temp_cnt = 0;
         }
 
-        /* calculate the tension sensor value */
-        g_servo.tsense = TENSION_F(g_servo.adc[0]) * g_sys.tension_sensor_gain;
+        /* Calculate signed tension sensor value from 12-bit ADC reading. Since
+         * the ADC is 12-bit, we use 2047 as mids-cale. We allow the offset to be
+         * adjusted in software so the tension sensor can be offset for 1" tape.
+         * Mid-scale of the ADC should equate to tension sensor reading with tape
+         * under proper tension with mid pack on both reels.
+         */
+
+        float midscale;
+
+        if (g_high_speed_flag)
+            midscale = g_sys.tension_sensor_midscale2;   /* ADC mid-scale for 2" tape */
+        else
+            midscale = g_sys.tension_sensor_midscale1;   /* ADC mid-scale for 1" tape */
+
+        /* Calculate the tension sensor position from mid-scale */
+        g_servo.tsense = ((midscale - (float)g_servo.adc[0])) * g_sys.tension_sensor_gain;
 
         /***********************************************************
          * BEGIN REELING RADIUS CALCULATIONS
@@ -427,7 +441,8 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
 static void Service_HaltMode(void)
 {
-    MotorDAC_write((float)g_servo.dac_halt_supply, (float)g_servo.dac_halt_takeup);
+    MotorDAC_write((float)g_servo.dac_halt_supply,
+                   (float)g_servo.dac_halt_takeup);
 }
 
 //*****************************************************************************
@@ -437,7 +452,8 @@ static void Service_HaltMode(void)
 
 static void Service_ThreadMode(void)
 {
-    MotorDAC_write(150.0f, 150.0f);
+    MotorDAC_write((float)g_sys.thread_supply_tension,
+                   (float)g_sys.thread_takeup_tension);
 }
 
 //*****************************************************************************

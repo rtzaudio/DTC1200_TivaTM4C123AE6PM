@@ -135,7 +135,7 @@ void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply)
 
     case OP_MODE_FWD:
         /* param1 is zero, otherwise it specifies the velocity */
-        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD | (param2 & M_NOSLOW), param1);
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_FWD | (param2 & (M_LIBWIND|M_NOSLOW)), param1);
         break;
 
     case OP_MODE_FWD_LIB:
@@ -145,7 +145,7 @@ void DispatchTransportMode(IPC_MSG* msg, IPC_MSG* reply)
 
     case OP_MODE_REW:
         /* param1 is zero, otherwise it specifies the velocity */
-        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW | (param2 & M_NOSLOW), param1);
+        QueueTransportCommand(CMD_TRANSPORT_MODE, MODE_REW | (param2 & (M_LIBWIND|M_NOSLOW)), param1);
         break;
 
     case OP_MODE_REW_LIB:

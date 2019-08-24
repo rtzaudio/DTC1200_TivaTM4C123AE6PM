@@ -493,6 +493,10 @@ Void MainControlTask(UArg a0, UArg a1)
                 break;
 
             case 2:
+                /* Ignore EOT sensor if tape out arm is open */
+                if (g_tape_out_flag)
+                    break;
+
                 /* Send a STOP button press to transport ctrl/cmd task */
                 bits = S_STOP;
                 Mailbox_post(g_mailboxCommander, &bits, 10);

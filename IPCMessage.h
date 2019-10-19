@@ -42,20 +42,4 @@
 #define OP_TRANSPORT_GET_VELOCITY   321
 #define OP_TRANSPORT_GET_TACH       322
 
-/* ============================================================================
- * Notification Bit Flags
- * ============================================================================ */
-
-#if 0
-/* OP_NOTIFY_BUTTON bits for param1.U */
-#define S_STOP          0x01                /* stop button       */
-#define S_PLAY          0x02                /* play button        */
-#define S_REC           0x04                /* record button      */
-#define S_REW           0x08                /* rewind button      */
-#define S_FWD           0x10                /* fast fwd button    */
-#define S_LDEF          0x20                /* lift defeat button */
-#define S_TAPEOUT       0x40                /* tape detect out    */
-#define S_TAPEIN        0x80                /* tape detect in     */
-#endif
-
 #endif /* _IPCMESSAGE_H_ */

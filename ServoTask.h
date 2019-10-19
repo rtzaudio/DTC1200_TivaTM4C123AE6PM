@@ -54,6 +54,7 @@
 
 #define MAX_NUM_MODES       6               /* max num of transport modes   */
 
+#define M_LIFTER            0x10            /* only used for IPC notify     */
 #define M_NOSLOW            0x20            /* no auto slow in shuttle mode */
 #define M_LIBWIND			0x40			/* shuttle library wind flag    */
 #define M_RECORD			0x80			/* upper bit indicates record   */
@@ -70,8 +71,6 @@
 
 /* Servo Operation Functions */
 
-//void Servo_SetShuttleVelocity(uint32_t target_velocity);
-//uint32_t Servo_GetShuttleVelocity(void);
 void Servo_SetMode(uint32_t mode);
 uint32_t Servo_GetMode(void);
 int32_t Servo_IsMode(uint32_t mode);

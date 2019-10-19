@@ -83,7 +83,7 @@ static void DispatchConfigTransaction(IPC_MSG* msg, IPC_MSG* reply);
 
 //*****************************************************************************
 // This handler processes application specific datagram messages received
-// from the peer. No response is required for datagrams.
+// from the STC peer. No response is required for datagrams.
 //*****************************************************************************
 
 Bool IPC_Handle_datagram(IPC_MSG* msg, IPC_FCB* fcb)
@@ -207,7 +207,7 @@ void DispatchTransportTransaction(IPC_MSG* msg, IPC_MSG* reply)
     switch(msg->opcode)
     {
     case OP_TRANSPORT_GET_MODE:                     /* return transport mode */
-        reply->param1.U = (uint32_t)g_servo.mode;
+        reply->param1.U = g_servo.mode;
         reply->param2.U = (g_high_speed_flag) ? 30 : 15;
         break;
 

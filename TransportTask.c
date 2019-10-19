@@ -84,6 +84,7 @@ static void ResetPlayPID(void);
 static void ResetShuttlePID(void);
 static bool HandleAutoSlow(void);
 static void HandleImmediateCommand(CMDMSG *p);
+static void IPCNotify_TransportState(uint32_t mode, uint32_t flags);
 
 extern Semaphore_Handle g_semaServo;
 
@@ -207,8 +208,8 @@ void RecordEnable(void)
         /* 6) Turn on the record button lamp */
         g_lamp_mask |= L_REC;
 
-        /* This sends the DRC a mode change with record bit set */
-        g_notify_mode |= M_RECORD;
+        /* IPC notify STC record bit set */
+        IPCNotify_TransportState(g_servo.mode, M_RECORD);
     }
 }
 
@@ -230,8 +231,8 @@ void RecordDisable(void)
         /* Turn of the rec indicator LED and lamps */
         g_lamp_mask &= ~(L_REC);
 
-        /* This sends the DRC a mode change with record bit set */
-        g_notify_mode &= ~(M_RECORD);
+        /* IPC notify STC record bit cleared */
+        IPCNotify_TransportState(g_servo.mode, 0);
     }
 }
 
@@ -445,11 +446,6 @@ Void TransportControllerTask(UArg a0, UArg a1)
             else
                 g_lamp_mask &= ~(L_STAT2 | L_STAT3);
 
-            /* This causes the main task to send a mode change notification
-             * to the STC so it knows the current transport mode at all times.
-             */
-            g_notify_mode = msg.opcode;
-
             /* Process the requested mode change command */
 
             switch(mode)
@@ -471,6 +467,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Set servo mode to HALT */
                     Servo_SetMode(MODE_HALT);
 
+                    /* IPC notify STC halt mode set */
+                    IPCNotify_TransportState(mode, 0);
+
                     last_mode_completed = MODE_HALT;
                     mode_pending = 0;
                     break;
@@ -482,6 +481,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     /* Release the brakes */
                     SetTransportMask(0, T_BRAKE);
+
+                    /* IPC notify STC thread mode set */
+                    IPCNotify_TransportState(mode, 0);
 
                     last_mode_completed = MODE_THREAD;
                     mode_pending = 0;
@@ -523,6 +525,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     /* Set the reel servos for stop mode */
                     Servo_SetMode(MODE_STOP);
+
+                    /* IPC notify STC stop mode set */
+                    IPCNotify_TransportState(mode, 0);
 
                     mode_pending = MODE_STOP;
                     break;
@@ -610,6 +615,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     /* Set servos to REW mode */
                     Servo_SetMode(MODE_REW);
 
+                    /* IPC notify STC rewind mode set */
+                    IPCNotify_TransportState(mode, 0);
+
                     last_mode_completed = MODE_REW;
                     mode_pending = 0;
                     break;
@@ -659,6 +667,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                     /* Set servos to FWD mode */
                     Servo_SetMode(MODE_FWD);
+
+                    /* IPC notify STC forward mode set */
+                    IPCNotify_TransportState(mode, 0);
 
                     last_mode_completed = MODE_FWD;
                     mode_pending = 0;
@@ -822,6 +833,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         /* Release the lifter */
                         SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH);
 
+                        /* IPC notify STC lifters released */
+                        IPCNotify_TransportState(g_servo.mode, 0);
+
                         /* Tape lifter settling Time */
                         if (mask & T_TLIFT)
                             Task_sleep(g_sys.lifter_settle_time);
@@ -832,6 +846,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         SetTransportMask(T_BRAKE, 0);
                     else
                         SetTransportMask(0, T_BRAKE);
+
+                    /* IPC notify STC stop mode set */
+                    IPCNotify_TransportState(mode, 0);
 
                     last_mode_completed = MODE_STOP;
                     mode_pending = 0;
@@ -903,6 +920,9 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         record = 0;
                         RecordEnable();
                     }
+
+                    /* IPC notify STC play mode set */
+                    IPCNotify_TransportState(mode, 0);
 
                     shuttling = FALSE;
                     last_mode_completed = MODE_PLAY;
@@ -1030,9 +1050,17 @@ void HandleImmediateCommand(CMDMSG *p)
             {
                 /* toggle lifter defeat */
                 if (GetTransportMask() & T_TLIFT)
+                {
                     SetTransportMask(0, T_TLIFT);
+                    /* IPC notify STC lifters released */
+                    IPCNotify_TransportState(g_servo.mode, 0);
+                }
                 else
+                {
                     SetTransportMask(T_TLIFT, 0);
+                    /* IPC notify STC lifters engaged */
+                    IPCNotify_TransportState(g_servo.mode, M_LIFTER);
+                }
             }
             break;
 
@@ -1040,6 +1068,31 @@ void HandleImmediateCommand(CMDMSG *p)
             /* invalid command */
             break;
     }
+}
+
+/*****************************************************************************
+ * IPC Notify - Send transport mode change events to STC.
+ *****************************************************************************/
+
+void IPCNotify_TransportState(uint32_t mode, uint32_t flags)
+{
+    IPC_MSG ipc;
+
+    /* We set the lifter flag here for the IPC notify, it's
+     * only used to indicate lifter status to the STC.
+     */
+    if (IsTransportLifters())
+        mode |= M_LIFTER;
+
+    mode = mode | (flags & ~(0x07));
+
+    /* Notify the STC of the new transport mode */
+    ipc.type     = IPC_TYPE_NOTIFY;
+    ipc.opcode   = OP_NOTIFY_TRANSPORT;
+    ipc.param1.U = mode;
+    ipc.param2.U = (g_high_speed_flag) ? 30 : 15;
+
+    IPC_Notify(&ipc, 0);
 }
 
 // End-Of-File

@@ -71,9 +71,12 @@ uint32_t GetModeSwitches(uint8_t* pucMask);
 
 uint32_t SetTransportMask(uint8_t ucSetMask, uint8_t ucClearMask);
 uint8_t GetTransportMask(void);
+uint32_t GetTransportStateMask(void);
+bool IsTransportLifters(void);
 
 uint32_t SetLamp(uint8_t ucBitMask);
 uint32_t SetLampMask(uint8_t ucSetMask, uint8_t ucClearMask);
 uint8_t GetLampMask(void);
+uint32_t GetLampStateMask(void);
 
 #endif /*DTC1200_TIVATM4C123AE6PMI_IOEXPANDER_H_*/

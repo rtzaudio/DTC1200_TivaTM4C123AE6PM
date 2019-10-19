@@ -81,6 +81,8 @@
 extern Semaphore_Handle g_semaSPI;
 extern Event_Handle g_eventSPI;
 
+static void NotifyTransportChange(uint32_t modeflags);
+
 /*****************************************************************************
  * I/O handle and configuration data
  *****************************************************************************/
@@ -430,6 +432,16 @@ uint8_t GetTransportMask(void)
     return mask;
 }
 
+uint32_t GetTransportStateMask(void)
+{
+    return (uint32_t)s_ucTransportMask & 0xFF;
+}
+
+bool IsTransportLifters(void)
+{
+    return (s_ucTransportMask & T_TLIFT) ? true : false;
+}
+
 /*****************************************************************************
  * Set lamp & led indicators. The following bitmasks are valid:
  *
@@ -496,6 +508,11 @@ uint8_t GetLampMask(void)
     }
 
     return mask;
+}
+
+uint32_t GetLampStateMask(void)
+{
+    return (uint32_t)s_ucLampMask & 0xFF;
 }
 
 // End-Of-File

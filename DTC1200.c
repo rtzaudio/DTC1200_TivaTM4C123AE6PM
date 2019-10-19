@@ -352,7 +352,7 @@ Void MainControlTask(UArg a0, UArg a1)
                 /* Notify STC of the lamp mask change & current transport mode */
                 ipc.type     = IPC_TYPE_NOTIFY;
                 ipc.opcode   = OP_NOTIFY_LAMP;
-                ipc.param1.U = (uint32_t)g_lamp_mask;
+                ipc.param1.U = g_lamp_mask;
                 ipc.param2.U = (g_high_speed_flag != 0) ? 30 : 15;
 
                 IPC_Notify(&ipc, 0);
@@ -360,21 +360,6 @@ Void MainControlTask(UArg a0, UArg a1)
 
             // Update the previous lamp state
             g_lamp_mask_prev = g_lamp_mask;
-        }
-
-        /* Notify the STC of any transport mode changes */
-
-        if (g_notify_mode != g_notify_mode_prev)
-        {
-            g_notify_mode_prev = g_notify_mode;
-
-            /* Notify the STC of the new transport mode */
-            ipc.type     = IPC_TYPE_NOTIFY;
-            ipc.opcode   = OP_NOTIFY_TRANSPORT;
-            ipc.param1.U = g_notify_mode;
-            ipc.param2.U = (g_high_speed_flag) ? 30 : 15;
-
-            IPC_Notify(&ipc, 0);
         }
 
         /* Poll the transport switches to see if the tape out arm on the

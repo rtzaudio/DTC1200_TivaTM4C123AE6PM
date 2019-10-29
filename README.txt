@@ -29,6 +29,14 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 2.35(10/27/2019) ==============================================
+
+Added minor fixes and changes needed for better support of the new 
+DRCWIN software remote application for the STC-1200. Some IPC messages 
+and flags to go between the DTC and STC required some changes and fixes.
+The STC-1200 firmware v1.04 requires this v2.35 build of the DTC to
+work properly.
+ 
 === VERSION 2.34(07/06/2019) ==============================================
 
 Added new default config parameter values for 1" tape configuration. 

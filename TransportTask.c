@@ -616,7 +616,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     Servo_SetMode(MODE_REW);
 
                     /* IPC notify STC rewind mode set */
-                    IPCNotify_TransportState(mode, 0);
+                    IPCNotify_TransportState(mode, msg.opcode);
 
                     last_mode_completed = MODE_REW;
                     mode_pending = 0;
@@ -669,7 +669,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     Servo_SetMode(MODE_FWD);
 
                     /* IPC notify STC forward mode set */
-                    IPCNotify_TransportState(mode, 0);
+                    IPCNotify_TransportState(mode, msg.opcode);
 
                     last_mode_completed = MODE_FWD;
                     mode_pending = 0;
@@ -834,7 +834,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         SetTransportMask(0, T_SERVO | T_TLIFT | T_PROL | T_RECH);
 
                         /* IPC notify STC lifters released */
-                        IPCNotify_TransportState(g_servo.mode, 0);
+                        IPCNotify_TransportState(g_servo.mode, msg.opcode);
 
                         /* Tape lifter settling Time */
                         if (mask & T_TLIFT)
@@ -848,7 +848,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                         SetTransportMask(0, T_BRAKE);
 
                     /* IPC notify STC stop mode set */
-                    IPCNotify_TransportState(mode, 0);
+                    IPCNotify_TransportState(mode, msg.opcode);
 
                     last_mode_completed = MODE_STOP;
                     mode_pending = 0;
@@ -922,7 +922,7 @@ Void TransportControllerTask(UArg a0, UArg a1)
                     }
 
                     /* IPC notify STC play mode set */
-                    IPCNotify_TransportState(mode, 0);
+                    IPCNotify_TransportState(mode, msg.opcode);
 
                     shuttling = FALSE;
                     last_mode_completed = MODE_PLAY;

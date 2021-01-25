@@ -237,9 +237,18 @@ Void ServoLoopTask(UArg a0, UArg a1)
         /* Read the tape roller tachometer count */
         g_servo.tape_tach = TapeTach_read();
 
+        uint32_t supply = QEIVelocityGet(QEI_BASE_SUPPLY);
+        uint32_t takeup = QEIVelocityGet(QEI_BASE_TAKEUP);
+#if 0
+        if (!(g_dip_switch & M_DIPSW3))
+        {
+            supply = supply << 1;
+            takeup = takeup << 1;
+        }
+#endif
         /* Read the takeup and supply reel motor velocity values */
-        g_servo.velocity_supply = (float)QEIVelocityGet(QEI_BASE_SUPPLY);
-        g_servo.velocity_takeup = (float)QEIVelocityGet(QEI_BASE_TAKEUP);
+        g_servo.velocity_supply = (float)supply;
+        g_servo.velocity_takeup = (float)takeup;
 
         /* Sum the two for current total reel velocity */
         g_servo.velocity = (g_servo.velocity_supply + g_servo.velocity_takeup);

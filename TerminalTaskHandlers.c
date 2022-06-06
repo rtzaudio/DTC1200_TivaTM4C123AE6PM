@@ -290,10 +290,71 @@ void show_monitor_data()
 {
     if (g_sys.debug == 1)
     {
+        /* Display current tape servo loop direction mode */
+
     	int ch = get_dir_char();
         tty_pos(4, 27);
         tty_putc(ch);
         tty_putc(ch);
+
+        /* Display Current Transport State */
+
+        tty_pos(5, 27);
+
+        switch(g_servo.mode & MODE_MASK)
+        {
+        case MODE_HALT:
+            tty_puts("HALT");
+            break;
+        case MODE_STOP:
+            tty_puts("STOP");
+            break;
+        case MODE_PLAY:
+            if (g_servo.mode & M_RECORD)
+                tty_puts("REC ");
+            else
+                tty_puts("PLAY");
+            break;
+        case MODE_FWD:
+            tty_puts("FWD ");
+            break;
+        case MODE_REW:
+            tty_puts("REW ");
+            break;
+        case MODE_THREAD:
+            tty_puts("LOAD");
+            break;
+        default:
+            tty_puts("----");
+            break;
+        }
+
+        /* Secondary Transport Status */
+
+        tty_pos(6, 27);
+
+        if (g_servo.mode & M_NOSLOW)
+            tty_puts("    ");
+        else
+            tty_puts("AUTO");
+
+        /* Show lib wind flag */
+
+        tty_pos(7, 27);
+
+        if (g_servo.mode & M_LIBWIND)
+            tty_puts("LIBW");
+        else
+            tty_puts("    ");
+
+        /* Show lifter state */
+
+        tty_pos(8, 27);
+
+        if (g_servo.mode & M_LIFTER)
+            tty_puts("LIFT");
+        else
+            tty_puts("    ");
 
         /* SUPPLY */
         tty_pos(4, 14);

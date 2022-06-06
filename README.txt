@@ -29,6 +29,11 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 2.36(05/30/2022) ==============================================
+
+Added transport state/mode display to TTY debug monitor screen. Also
+shows record, auto-slow, lifters and lib-wind mode status. 
+ 
 === VERSION 2.35(10/27/2019) ==============================================
 
 Added minor fixes and changes needed for better support of the new 

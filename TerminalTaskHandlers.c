@@ -261,7 +261,9 @@ void show_monitor_screen()
         tty_pos(11, 35);
         tty_printf("%sSYSTEM%s", g_ul_on, g_ul_off);
         tty_pos(12, 35);
-        tty_puts("CPU Temp(F)");
+        tty_puts("Transport");
+        //tty_pos(13, 35);
+        //tty_puts("CPU Temp F");
 
         tty_pos(23, 2);
         tty_puts(g_escstr);
@@ -296,65 +298,6 @@ void show_monitor_data()
         tty_pos(4, 27);
         tty_putc(ch);
         tty_putc(ch);
-
-        /* Display Current Transport State */
-
-        tty_pos(5, 27);
-
-        switch(g_servo.mode & MODE_MASK)
-        {
-        case MODE_HALT:
-            tty_puts("HALT");
-            break;
-        case MODE_STOP:
-            tty_puts("STOP");
-            break;
-        case MODE_PLAY:
-            if (g_servo.mode & M_RECORD)
-                tty_puts("REC ");
-            else
-                tty_puts("PLAY");
-            break;
-        case MODE_FWD:
-            tty_puts("FWD ");
-            break;
-        case MODE_REW:
-            tty_puts("REW ");
-            break;
-        case MODE_THREAD:
-            tty_puts("LOAD");
-            break;
-        default:
-            tty_puts("----");
-            break;
-        }
-
-        /* Secondary Transport Status */
-
-        tty_pos(6, 27);
-
-        if (g_servo.mode & M_NOSLOW)
-            tty_puts("    ");
-        else
-            tty_puts("AUTO");
-
-        /* Show lib wind flag */
-
-        tty_pos(7, 27);
-
-        if (g_servo.mode & M_LIBWIND)
-            tty_puts("LIBW");
-        else
-            tty_puts("    ");
-
-        /* Show lifter state */
-
-        tty_pos(8, 27);
-
-        if (g_servo.mode & M_LIFTER)
-            tty_puts("LIFT");
-        else
-            tty_puts("    ");
 
         /* SUPPLY */
         tty_pos(4, 14);
@@ -402,10 +345,47 @@ void show_monitor_data()
         tty_pos(20, 14);
         tty_printf(": %-8.2f", g_servo.tsense);
 
+        /* SYSTEM */
+
+        /* Display Current Transport State */
+
+        tty_pos(12, 47);
+        tty_puts(": ");
+
+        switch(g_servo.mode & MODE_MASK)
+        {
+        case MODE_HALT:
+            tty_puts("HALT");
+            break;
+        case MODE_STOP:
+            tty_puts("STOP");
+            break;
+        case MODE_PLAY:
+            if (g_servo.mode & M_RECORD)
+                tty_puts("REC ");
+            else
+                tty_puts("PLAY");
+            break;
+        case MODE_FWD:
+            tty_puts("FWD ");
+            break;
+        case MODE_REW:
+            tty_puts("REW ");
+            break;
+        case MODE_THREAD:
+            tty_puts("LOAD");
+            break;
+        default:
+            tty_puts("----");
+            break;
+        }
+
+        /* Show CPU temp */
+
         if (g_servo.cpu_temp != 0.0f)
         {
-            tty_pos(12, 47);
-            tty_printf(": %-8.1f", CELCIUS_TO_FAHRENHEIT(ADC_TO_CELCIUS(g_servo.cpu_temp)));
+            tty_pos(3, 64);
+            tty_printf("%.1fF", CELCIUS_TO_FAHRENHEIT(ADC_TO_CELCIUS(g_servo.cpu_temp)));
         }
     }
 }

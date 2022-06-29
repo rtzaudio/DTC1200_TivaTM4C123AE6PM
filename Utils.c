@@ -188,7 +188,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->vel_detect_threshold      = 10;          /* 10 pulses or less = no velocity  */
     p->reel_offset_gain          = 0.150f;      /* reel torque null offset gain     */
     p->reel_radius_gain          = 1.000f;	    /* reeling radius gain              */
-    p->tension_sensor_gain       = 0.07f;	    /* tension sensor arm gain          */
+    p->tension_sensor_gain       = 0.25f;	    /* tension sensor arm gain          */
     p->tension_sensor_midscale1  = 2047.0f;     /* tensions sensor ADC 1" mid-scale */
     p->tension_sensor_midscale2  = 2047.0f;     /* tensions sensor ADC 2" mid-scale */
 
@@ -223,15 +223,15 @@ void InitSysDefaults(SYSPARMS* p)
 
     p->play_lo_takeup_tension    = 375;         /* takeup tension level             */
     p->play_lo_supply_tension    = 350;         /* supply tension level             */
-    p->play_lo_boost_pgain       = 1.300f;      /* P-gain */
+    p->play_lo_boost_pgain       = 1.350f;      /* P-gain */
     p->play_lo_boost_igain       = 0.300f;      /* I-gain */
-    p->play_lo_boost_end         = 25;          /* target play velocity */
+    p->play_lo_boost_end         = 50;          /* target play velocity */
 
     p->play_hi_takeup_tension    = 375;         /* takeup tension level             */
     p->play_hi_supply_tension    = 350;         /* supply tension level             */
     p->play_hi_boost_pgain       = 1.350f;      /* P-gain */
     p->play_hi_boost_igain       = 0.250f;      /* I-gain */
-    p->play_hi_boost_end         = 118;         /* target play velocity */
+    p->play_hi_boost_end         = 115;         /* target play velocity */
 
     /* If running 1" tape width headstack, overwrite any members
      * that require different default values for 1" tape transport.

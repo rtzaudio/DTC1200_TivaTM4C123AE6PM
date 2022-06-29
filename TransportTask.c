@@ -783,7 +783,8 @@ Void TransportControllerTask(UArg a0, UArg a1)
                      */
 
                     /* STOP capstan servo, disengage pinch roller & disable record. */
-                    SetTransportMask(0, T_SERVO | T_PROL | T_RECH);
+                    //SetTransportMask(0, T_SERVO | T_PROL | T_RECH);
+                    SetTransportMask(0, T_RECH);
 
                     if ((prev_mode_requested == MODE_FWD) ||
                         (prev_mode_requested == MODE_REW) ||
@@ -794,6 +795,13 @@ Void TransportControllerTask(UArg a0, UArg a1)
                             /* STOP - Engage brakes, stop capstan servo,
                              *        disengage pinch roller, disable record.
                              */
+
+                            /* Release pinch roller */
+                            SetTransportMask(0, T_PROL | T_RECH);
+                            Task_sleep(10);
+
+                            /* Release pinch roller */
+                            SetTransportMask(0, T_SERVO | T_RECH);
 
                             /* Pre-brake delay, let servo stop loop have some effect */
                             Task_sleep(225);
@@ -811,6 +819,10 @@ Void TransportControllerTask(UArg a0, UArg a1)
 
                         /* Brake settle time after stop (~300 ms) */
                         Task_sleep(g_sys.brake_settle_time);
+                    }
+                    else
+                    {
+                        SetTransportMask(0, T_SERVO | T_PROL | T_RECH);
                     }
 
                     /* Stop lamp only, diag LED's preserved */

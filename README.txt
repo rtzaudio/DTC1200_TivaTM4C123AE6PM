@@ -29,10 +29,14 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
-=== VERSION 2.36(05/30/2022) ==============================================
+=== VERSION 2.36(06/28/2022) ==============================================
 
 Added transport state/mode display to TTY debug monitor screen. Also
-shows record, auto-slow, lifters and lib-wind mode status. 
+improved STOP mode when using brakes from play mode. Now tape should not
+jerk less when the brakes are applied. Corrected default parameter values
+for "End Velocity" in play boost configuration settings. The default value
+for low speed was 25, but should actually be 50 instead for smooth low
+speed play boost.
  
 === VERSION 2.35(10/27/2019) ==============================================
 

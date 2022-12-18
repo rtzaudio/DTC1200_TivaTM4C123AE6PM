@@ -56,9 +56,9 @@ extern "C" {
 #define Board_SPI1                  DTC1200_SPI1		// SSI-1 : SPI MCP23S17SO TRANSPORT SWITCHES & LAMPS
 #define Board_SPI2                  DTC1200_SPI2		// SSI-2 : SPI MCP23S17SO SOLENOID, CONFIG DIP SWITCH & TAPE OUT
 
-#define Board_UART_IPC              DTC1200_UART0		// RS-232 IPC on edge connector to timer/counter board
-#define Board_UART_TTY              DTC1200_UART1		// RS-232 for TTY terminal console
-#define Board_UART_EXP              DTC1200_UART5		// RS-232 on expansion port connector P1
+#define Board_UART_IPC_A            DTC1200_UART0		// RS-232 IPC on edge connector to STC1200 board
+#define Board_UART_IPC_B            DTC1200_UART5		// RS-232 IPC on edge connector from STC1200 board
+#define Board_UART_TTY              DTC1200_UART1       // RS-232 for TTY terminal command line interface (CLI)
 
 #define Board_WATCHDOG0             DTC1200_WATCHDOG0
 

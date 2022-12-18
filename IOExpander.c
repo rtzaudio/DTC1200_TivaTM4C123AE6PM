@@ -81,7 +81,7 @@
 extern Semaphore_Handle g_semaSPI;
 extern Event_Handle g_eventSPI;
 
-static void NotifyTransportChange(uint32_t modeflags);
+//static void NotifyTransportChange(uint32_t modeflags);
 
 /*****************************************************************************
  * I/O handle and configuration data

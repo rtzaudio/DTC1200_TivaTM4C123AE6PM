@@ -207,7 +207,7 @@ Bool IPC_Server_startup(void)
     uartParams.stopBits       = UART_STOP_ONE;
     uartParams.parityType     = UART_PAR_NONE;
 
-    g_ipc.uartHandle = UART_open(Board_UART_IPC, &uartParams);
+    g_ipc.uartHandle = UART_open(Board_UART_IPC_A, &uartParams);
 
     if (g_ipc.uartHandle == NULL)
         System_abort("Error initializing UART\n");

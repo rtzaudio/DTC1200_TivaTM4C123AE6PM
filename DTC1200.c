@@ -87,6 +87,7 @@
 #include "IOExpander.h"
 #include "Diag.h"
 #include "IPCServer.h"
+#include "IPCFromSTCTask.h"
 #include "Utils.h"
 
 /* Global Data Items */
@@ -306,6 +307,9 @@ Void MainControlTask(UArg a0, UArg a1)
     /****************************************************************
      * Enter the main application button processing loop forever.
      ****************************************************************/
+
+    /* Startup the IPC listener from the STC */
+    IPCFromSTC_Startup();
 
     /* Startup the IPC server threads */
     IPC_Server_startup();

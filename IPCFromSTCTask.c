@@ -80,6 +80,7 @@
 #include "Globals.h"
 #include "ServoTask.h"
 #include "TransportTask.h"
+#include "IPCFromSTCTask.h"
 #include "IPCCMD_DTC1200.h"
 
 #define RXBUFSIZ    (sizeof(SYSPARMS) + 64)
@@ -90,7 +91,6 @@ static int HandleEPROM(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_EPROM* msg);
 static int HandleConfigSet(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_SET* msg);
 static int HandleConfigGet(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_GET* msg);
 static int HandleTransportCmd(IPCCMD_Handle handle, DTC_IPCMSG_TRANSPORT_CMD* msg);
-
 
 //*****************************************************************************
 // Main Program Entry Point
@@ -254,7 +254,9 @@ int HandleEPROM(
 }
 
 //*****************************************************************************
-//
+// This method returns all configuration data currently in runtime memory.
+// The EPROM configuration data stored may be different from what is in
+// runtime memory if the user has made any setting changes.
 //*****************************************************************************
 
 int HandleConfigGet(
@@ -279,7 +281,10 @@ int HandleConfigGet(
 }
 
 //*****************************************************************************
-//
+// This method replaces the entire configuration set in runtime memory. All
+// parameters are replaced in runtime memory only. You must issue a config
+// EPROM write command to store the configuration in EPROM. The configuration
+// data is loaded from EPROM each time the system begins execution.
 //*****************************************************************************
 
 int HandleConfigSet(
@@ -301,7 +306,8 @@ int HandleConfigSet(
 }
 
 //*****************************************************************************
-//
+// This method queues transport commands (eg, stop, play, record, fwd, rew).
+// Some commands support flag options in param1 and param2, see comments below.
 //*****************************************************************************
 
 int HandleTransportCmd(

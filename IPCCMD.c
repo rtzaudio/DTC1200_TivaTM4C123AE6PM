@@ -75,7 +75,7 @@
 
 /* Default IPCCMD parameters structure */
 const IPCCMD_Params IPCCMD_defaultParams = {
-    .dummy = 0,
+    .uartHandle = 0,
 };
 
 /* Static Function Prototypes */
@@ -94,17 +94,53 @@ Void IPCCMD_Params_init(
 }
 
 /*****************************************************************************
+ * Create Handle to I/O expander and initialize it
+ *****************************************************************************/
+
+IPCCMD_Handle IPCCMD_create(
+        IPCCMD_Params *params
+        )
+{
+    IPCCMD_Handle handle;
+    IPCCMD_Object* obj;
+    Error_Block eb;
+
+    Error_init(&eb);
+
+    obj = Memory_alloc(NULL, sizeof(IPCCMD_Object), NULL, &eb);
+
+    if (obj == NULL)
+        return NULL;
+
+    handle = IPCCMD_construct(obj, params);
+
+    return handle;
+}
+
+/*****************************************************************************
+ * Destruct and free the object memory
+ *****************************************************************************/
+
+Void IPCCMD_delete(
+        IPCCMD_Handle handle
+        )
+{
+    IPCCMD_destruct(handle);
+
+    Memory_free(NULL, handle, sizeof(IPCCMD_Object));
+}
+
+/*****************************************************************************
  * Construct the driver object
  *****************************************************************************/
 
 IPCCMD_Handle IPCCMD_construct(
         IPCCMD_Object *obj,
-        UART_Handle uartHandle,
         IPCCMD_Params *params
         )
 {
     /* Initialize the object members */
-    obj->uartHandle = uartHandle;
+    obj->uartHandle = params->uartHandle;
 
     IPC_FrameInit(&(obj->txFCB));
     IPC_FrameInit(&(obj->rxFCB));
@@ -129,44 +165,6 @@ Void IPCCMD_destruct(
 #if (IPCCMD_THREAD_SAFE > 0)
     GateMutex_destruct(&(handle->gate));
 #endif
-}
-
-/*****************************************************************************
- * Create Handle to I/O expander and initialize it
- *****************************************************************************/
-
-IPCCMD_Handle IPCCMD_create(
-        UART_Handle uartHandle,
-        IPCCMD_Params *params
-        )
-{
-    IPCCMD_Handle handle;
-    IPCCMD_Object* obj;
-    Error_Block eb;
-
-    Error_init(&eb);
-
-    obj = Memory_alloc(NULL, sizeof(IPCCMD_Object), NULL, &eb);
-
-    if (obj == NULL)
-        return NULL;
-
-    handle = IPCCMD_construct(obj, uartHandle, params);
-
-    return handle;
-}
-
-/*****************************************************************************
- * Destruct and free memory
- *****************************************************************************/
-
-Void IPCCMD_delete(
-        IPCCMD_Handle handle
-        )
-{
-    IPCCMD_destruct(handle);
-
-    Memory_free(NULL, handle, sizeof(IPCCMD_Object));
 }
 
 /*****************************************************************************

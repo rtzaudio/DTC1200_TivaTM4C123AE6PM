@@ -61,7 +61,7 @@
 
 /* IPCCMD Parameters object points to init data */
 typedef struct IPCCMD_Params {
-    uint32_t            dummy;
+    UART_Handle         uartHandle;
 } IPCCMD_Params;
 
 /* IPCCMD handle object */
@@ -94,22 +94,20 @@ Void IPCCMD_Params_init(
         IPCCMD_Params *params
         );
 
-IPCCMD_Handle IPCCMD_construct(
-        IPCCMD_Object *obj,
-        UART_Handle uartHandle,
-        IPCCMD_Params *params
-        );
-
-Void IPCCMD_destruct(
-        IPCCMD_Handle handle
-        );
-
 IPCCMD_Handle IPCCMD_create(
-        UART_Handle uartHandle,
         IPCCMD_Params *params
         );
 
 void IPCCMD_delete(
+        IPCCMD_Handle handle
+        );
+
+IPCCMD_Handle IPCCMD_construct(
+        IPCCMD_Object *obj,
+        IPCCMD_Params *params
+        );
+
+Void IPCCMD_destruct(
         IPCCMD_Handle handle
         );
 

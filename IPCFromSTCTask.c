@@ -81,7 +81,9 @@
 #include "ServoTask.h"
 #include "TransportTask.h"
 #include "IPCFromSTCTask.h"
+#include "IPCCMD.h"
 #include "IPCCMD_DTC1200.h"
+
 
 #define RXBUFSIZ    (sizeof(SYSPARMS) + 64)
 
@@ -127,6 +129,7 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
     UART_Params uartParams;
     UART_Handle uartHandle;
     IPCCMD_Handle ipcHandle;
+    IPCCMD_Params ipcParams;
 
     /* Open the UART for binary mode */
 
@@ -152,7 +155,12 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
     if (uartHandle == NULL)
         System_abort("Error initializing UART\n");
 
-    ipcHandle = IPCCMD_create(uartHandle, NULL);
+    IPCCMD_Params_init(&ipcParams);
+
+    /* UART to attach to IPC link */
+    ipcParams.uartHandle = uartHandle;
+
+    ipcHandle = IPCCMD_create(&ipcParams);
 
     if (ipcHandle == NULL)
         System_abort("IPCCMD_create() failed");

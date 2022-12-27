@@ -13,22 +13,12 @@
 #ifndef _IPCCMD_DTC1200_H_
 #define _IPCCMD_DTC1200_H_
 
-#include "IPCCMD.h"
-
 /***************************************************************************/
 /*** DTC IPC MESSAGE HEADER ************************************************/
 /***************************************************************************/
 
-//typedef struct _DTC_IPCMSG_HDR {
-//    uint16_t    opcode;                     /* the IPC message type code   */
-//    uint16_t    msglen;                     /* length of hdr & msg data    */
-//} DTC_IPCMSG_HDR;
-
-/* Define the default message header structure */
-typedef IPCMSG_HDR DTC_IPCMSG_HDR;
-
 /* Configuration Parameters - MUST MATCH SYSPARMS STRUCT IN DTC1200.h */
-typedef struct _DTC1200_CONFIG {
+typedef struct _DTC_CONFIG_DATA {
     uint32_t magic;
     uint32_t version;
     uint32_t build;
@@ -83,7 +73,7 @@ typedef struct _DTC1200_CONFIG {
     int32_t play_lo_boost_end;
     float   play_lo_boost_pgain;        /* P-gain */
     float   play_lo_boost_igain;        /* I-gain */
-} DTC1200_CONFIG;
+} DTC_CONFIG_DATA;
 
 /* System Bit Flags for DTC1200_CONFIG.sysflags */
 #define DTC_SF_LIFTER_AT_STOP       0x0001  /* leave lifter engaged at stop */
@@ -106,6 +96,9 @@ typedef struct _DTC1200_CONFIG {
 /*** IPC MESSAGE DATA STRUCTURES *******************************************/
 /***************************************************************************/
 
+/* Define the default message header structure */
+typedef IPCMSG_HDR DTC_IPCMSG_HDR;
+
 /*** STORE/RECALL CONFIG FROM EPOM *****************************************/
 
 typedef struct _DTC_IPCMSG_CONFIG_EPROM {
@@ -118,14 +111,14 @@ typedef struct _DTC_IPCMSG_CONFIG_EPROM {
 
 typedef struct _DTC_IPCMSG_CONFIG_GET {
     DTC_IPCMSG_HDR  hdr;
-    DTC1200_CONFIG  cfg;                    /* global config data returned */
+    DTC_CONFIG_DATA cfg;                    /* global config data returned */
 } DTC_IPCMSG_CONFIG_GET;
 
 /*** SET CONFIG DATA *******************************************************/
 
 typedef struct _DTC_IPCMSG_CONFIG_SET {
     DTC_IPCMSG_HDR  hdr;
-    DTC1200_CONFIG  cfg;                    /* global config data to store */
+    DTC_CONFIG_DATA cfg;                    /* global config data to store */
 } DTC_IPCMSG_CONFIG_SET;
 
 /*** TRANSPORT COMMAND *****************************************************/

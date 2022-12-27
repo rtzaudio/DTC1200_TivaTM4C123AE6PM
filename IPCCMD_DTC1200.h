@@ -17,6 +17,9 @@
 /*** DTC IPC MESSAGE HEADER ************************************************/
 /***************************************************************************/
 
+#ifndef _DTC_CONFIG_DATA_DEFINED_
+#define _DTC_CONFIG_DATA_DEFINED_
+
 /* Configuration Parameters - MUST MATCH SYSPARMS STRUCT IN DTC1200.h */
 typedef struct _DTC_CONFIG_DATA {
     uint32_t magic;
@@ -81,6 +84,8 @@ typedef struct _DTC_CONFIG_DATA {
 #define DTC_SF_BRAKES_STOP_PLAY     0x0004  /* use brakes to stop play mode */
 #define DTC_SF_ENGAGE_PINCH_ROLLER  0x0008  /* engage pinch roller at play  */
 #define DTC_SF_STOP_AT_TAPE_END     0x0010  /* stop @tape end leader detect */
+
+#endif /*_DTC_CONFIG_DATA_DEFINED_*/
 
 /***************************************************************************/
 /*** IPC MESSAGE OP-CODE TYPES *********************************************/

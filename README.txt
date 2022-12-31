@@ -29,6 +29,16 @@ update instructions in the owners manual for instructions. You will need to
 download the LMFLASH utility from the link on the RTZ page, or search the
 web and download free from TI.
 
+=== VERSION 3.00(12/31/2022) ==============================================
+
+All new v3.0 release with that allows full system configuration via
+expanded IPC implementing second RS-232 to channel from STC to DTC.
+Now DRC has features to edit all system configuration settings for the
+STC and the DTC controllers via DRCWIN.
+
+NOTE: THIS VERSION IS NOT BACKWARDS COMPATIBLE AND REQUIRES v3.0 FIRMWARE 
+      FOR THE STC, DTC AND DRCWIN!
+
 === VERSION 2.36(06/28/2022) ==============================================
 
 Added transport state/mode display to TTY debug monitor screen. Also

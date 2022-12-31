@@ -155,11 +155,13 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
     if (uartHandle == NULL)
         System_abort("Error initializing UART\n");
 
+    /* Initialize default IPC command parameters */
     IPCCMD_Params_init(&ipcParams);
 
-    /* UART to attach to IPC link */
+    /* Attach UART to IPC command object */
     ipcParams.uartHandle = uartHandle;
 
+    /* Create the IPC command object */
     ipcHandle = IPCCMD_create(&ipcParams);
 
     if (ipcHandle == NULL)
@@ -234,7 +236,9 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
 }
 
 //*****************************************************************************
-//
+// The method handles storing the current system configuration data to or
+// from EPROM memory. It also allows resetting all parameters to their
+// default values.
 //*****************************************************************************
 
 int HandleEPROM(
@@ -242,13 +246,30 @@ int HandleEPROM(
         DTC_IPCMSG_CONFIG_EPROM* msg
         )
 {
-    int rc;
+    int rc = 0;
 
     /* Read or write config parameters to EPROM */
-    if (msg->store == 1)
-        rc = SysParamsWrite(&g_sys);
-    else
+    switch (msg->store)
+    {
+    case 0:
+        /* Load system parameters from EPROM */
         rc = SysParamsRead(&g_sys);
+        break;
+
+    case 1:
+        /* Write system parameters to EPROM */
+        rc = SysParamsWrite(&g_sys);
+        break;
+
+    case 2:
+        /* Reset system parameters to defaults */
+        InitSysDefaults(&g_sys);
+        break;
+
+    default:
+        rc = 1;
+        break;
+    }
 
     msg->status = rc;
 

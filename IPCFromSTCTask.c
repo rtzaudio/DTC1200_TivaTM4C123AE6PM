@@ -89,6 +89,7 @@
 
 /* Static Function Prototypes */
 static Void IPCFromSTC_Task(UArg a0, UArg a1);
+static int HandleVersion(IPCCMD_Handle handle, DTC_IPCMSG_VERSION* msg);
 static int HandleEPROM(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_EPROM* msg);
 static int HandleConfigSet(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_SET* msg);
 static int HandleConfigGet(IPCCMD_Handle handle, DTC_IPCMSG_CONFIG_GET* msg);
@@ -207,6 +208,11 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
 
         switch(msg->opcode)
         {
+        case DTC_OP_VERSION:
+            /* Return the current firmware version and build */
+            rc = HandleVersion(ipcHandle, (DTC_IPCMSG_VERSION*)msg);
+            break;
+
         case DTC_OP_CONFIG_EPROM:
             /* Read or Write the global configuration data to EPROM */
             rc = HandleEPROM(ipcHandle, (DTC_IPCMSG_CONFIG_EPROM*)msg);
@@ -233,6 +239,29 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
             break;
         }
     }
+}
+
+//*****************************************************************************
+// Return the current DTC firmware version and build number
+//*****************************************************************************
+
+int HandleVersion(
+        IPCCMD_Handle handle,
+        DTC_IPCMSG_VERSION* msg
+        )
+{
+    int rc = 0;
+
+    msg->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
+    msg->build   = FIRMWARE_BUILD;
+
+    /* Set length of return data */
+    msg->hdr.msglen = sizeof(DTC_IPCMSG_VERSION);
+
+    /* Write message plus ACK to client */
+    rc = IPCCMD_WriteMessageACK(handle, &msg->hdr);
+
+    return rc;
 }
 
 //*****************************************************************************

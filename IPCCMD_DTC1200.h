@@ -92,6 +92,7 @@ typedef struct _DTC_CONFIG_DATA {
 /***************************************************************************/
 
 /* Command Codes for DTC_IPCMSG_HDR.opcode */
+#define DTC_OP_VERSION_GET      0           /* return firmware version     */
 #define DTC_OP_CONFIG_EPROM     100         /* store/recall config eprom   */
 #define DTC_OP_CONFIG_GET       101         /* get configuration data      */
 #define DTC_OP_CONFIG_SET       102         /* set configuration data      */
@@ -103,6 +104,14 @@ typedef struct _DTC_CONFIG_DATA {
 
 /* Define the default message header structure */
 typedef IPCMSG_HDR DTC_IPCMSG_HDR;
+
+/*** STORE/RECALL CONFIG FROM EPOM *****************************************/
+
+typedef struct _DTC_IPCMSG_VERSION_GET {
+    DTC_IPCMSG_HDR  hdr;
+    uint32_t        version;                /* DTC ver(msw)/rev(msw)      */
+    uint32_t        build;
+} DTC_IPCMSG_VERSION_GET;
 
 /*** STORE/RECALL CONFIG FROM EPOM *****************************************/
 

@@ -1,6 +1,6 @@
 /* ============================================================================
  *
- * IPC Command Messaging Functions v1.02
+ * IPC Command Messaging Functions v1.03
  *
  * Copyright (C) 2022, RTZ Professional Audio, LLC
  * All Rights Reserved
@@ -198,7 +198,7 @@ int IPCCMD_Notify(
     handle->txFCB.acknak = 0;
 
     /* Send IPC command/data to track controller */
-    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), request, request->msglen);
+    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), request, request->length);
 
     if (rc == IPC_ERR_SUCCESS)
     {
@@ -214,8 +214,8 @@ int IPCCMD_Notify(
 }
 
 /*****************************************************************************
- * request->msglen must be set to specify tx message buffer size!
- * reply->msglen must be set to specify maximum rx message buffer size!
+ * request->length must be set to specify tx message buffer size!
+ * reply->length must be set to specify maximum rx message buffer size!
  *****************************************************************************/
 
 int IPCCMD_Transaction(
@@ -238,12 +238,12 @@ int IPCCMD_Transaction(
     handle->txFCB.acknak = 0;
 
     /* Send IPC command/data to track controller */
-    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), request, request->msglen);
+    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), request, request->length);
 
     if (rc == IPC_ERR_SUCCESS)
     {
         /* Try to read ack/nak response back */
-        rc = IPC_FrameRx(handle->uartHandle, &(handle->rxFCB), reply, &(reply->msglen));
+        rc = IPC_FrameRx(handle->uartHandle, &(handle->rxFCB), reply, &(reply->length));
 
         if (rc == IPC_ERR_SUCCESS)
         {
@@ -264,7 +264,7 @@ int IPCCMD_Transaction(
  *****************************************************************************/
 
 /*****************************************************************************
- * reply->msglen must be set to specify maximum rx message buffer size!
+ * reply->length must be set to specify maximum rx message buffer size!
  *****************************************************************************/
 
 int IPCCMD_ReadMessage(
@@ -279,7 +279,7 @@ int IPCCMD_ReadMessage(
 #endif
 
     /* Try to read ack/nak response back */
-    rc = IPC_FrameRx(handle->uartHandle, &(handle->rxFCB), request, &(request->msglen));
+    rc = IPC_FrameRx(handle->uartHandle, &(handle->rxFCB), request, &(request->length));
 
 #if (IPCCMD_THREAD_SAFE > 0)
     GateMutex_leave(GateMutex_handle(&(handle->gate)), key);
@@ -289,7 +289,7 @@ int IPCCMD_ReadMessage(
 }
 
 /*****************************************************************************
- * reply->msglen must be set to specify tx message length!
+ * reply->length must be set to specify tx message length!
  *****************************************************************************/
 
 int IPCCMD_WriteMessage(
@@ -307,7 +307,7 @@ int IPCCMD_WriteMessage(
     handle->txFCB.seqnum = handle->rxFCB.seqnum;
 
     /* Send IPC command/data to track controller */
-    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->msglen);
+    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->length);
 
 #if (IPCCMD_THREAD_SAFE > 0)
     GateMutex_leave(GateMutex_handle(&(handle->gate)), key);
@@ -317,7 +317,7 @@ int IPCCMD_WriteMessage(
 }
 
 /*****************************************************************************
- * reply->msglen must be set to specify tx message length!
+ * reply->length must be set to specify tx message length!
  *****************************************************************************/
 
 int IPCCMD_WriteMessageACK(
@@ -336,7 +336,7 @@ int IPCCMD_WriteMessageACK(
     handle->txFCB.seqnum = handle->rxFCB.seqnum;
 
     /* Send IPC command/data to track controller */
-    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->msglen);
+    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->length);
 
 #if (IPCCMD_THREAD_SAFE > 0)
     GateMutex_leave(GateMutex_handle(&(handle->gate)), key);
@@ -346,7 +346,7 @@ int IPCCMD_WriteMessageACK(
 }
 
 /*****************************************************************************
- * reply->msglen must be set to specify tx message length!
+ * reply->length must be set to specify tx message length!
  *****************************************************************************/
 
 int IPCCMD_WriteMessageNAK(
@@ -365,7 +365,7 @@ int IPCCMD_WriteMessageNAK(
     handle->txFCB.seqnum = handle->rxFCB.seqnum;
 
     /* Send IPC command/data to track controller */
-    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->msglen);
+    rc = IPC_FrameTx(handle->uartHandle, &(handle->txFCB), reply, reply->length);
 
 #if (IPCCMD_THREAD_SAFE > 0)
     GateMutex_leave(GateMutex_handle(&(handle->gate)), key);

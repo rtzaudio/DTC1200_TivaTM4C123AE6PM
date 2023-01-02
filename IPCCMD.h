@@ -1,6 +1,6 @@
 /* ============================================================================
  *
- * IPC Command Messaging Functions v1.02
+ * IPC Command Messaging Functions v1.03
  *
  * Copyright (C) 2022, RTZ Professional Audio, LLC
  * All Rights Reserved
@@ -82,8 +82,10 @@ typedef IPCCMD_Object* IPCCMD_Handle;
  *****************************************************************************/
 
 typedef struct _IPCMSG_HDR {
+    uint16_t    length;                     /* msg length + payload length */
     uint16_t    opcode;                     /* the IPC message type code   */
-    uint16_t    msglen;                     /* msg length + payload length */
+    uint16_t    status;                     /* general purpose status use  */
+    uint16_t    error;                      /* general purpose error num   */
 } IPCMSG_HDR;
 
 /*****************************************************************************

@@ -188,7 +188,7 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
          * This gets updated on return and contains the actual
          * number of header and message bytes received.
          */
-        msg->msglen = RXBUFSIZ;
+        msg->length = RXBUFSIZ;
 
         /* Attempt to receive an IPC message */
         if ((rc = IPCCMD_ReadMessage(ipcHandle, msg)) == IPC_ERR_TIMEOUT)
@@ -201,6 +201,10 @@ Void IPCFromSTC_Task(UArg a0, UArg a1)
             System_flush();
             continue;
         }
+
+        /* Reset error/status codes on return */
+        msg->error = 0;
+        msg->status = 0;
 
         /*
          * Dispatch IPC message by opcode
@@ -256,7 +260,7 @@ int HandleVersion(
     msg->build   = FIRMWARE_BUILD;
 
     /* Set length of return data */
-    msg->hdr.msglen = sizeof(DTC_IPCMSG_VERSION_GET);
+    msg->hdr.length = sizeof(DTC_IPCMSG_VERSION_GET);
 
     /* Write message plus ACK to client */
     rc = IPCCMD_WriteMessageACK(handle, &msg->hdr);
@@ -300,10 +304,12 @@ int HandleEPROM(
         break;
     }
 
+    msg->hdr.error = rc;
+
     msg->status = rc;
 
     /* Set length of return data */
-    msg->hdr.msglen = sizeof(DTC_IPCMSG_CONFIG_EPROM);
+    msg->hdr.length = sizeof(DTC_IPCMSG_CONFIG_EPROM);
 
     /* Write message plus ACK to client */
     rc = IPCCMD_WriteMessageACK(handle, &msg->hdr);
@@ -330,7 +336,7 @@ int HandleConfigGet(
     memcpy(&(msg->cfg), &g_sys, sizeof(msg->cfg));
 
     /* Set length of return data */
-    msg->hdr.msglen = sizeof(DTC_IPCMSG_CONFIG_GET);
+    msg->hdr.length = sizeof(DTC_IPCMSG_CONFIG_GET);
 
     /* Write config data plus ACK back to client */
     rc = IPCCMD_WriteMessageACK(handle, &msg->hdr);

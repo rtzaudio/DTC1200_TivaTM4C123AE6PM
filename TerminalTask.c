@@ -141,7 +141,7 @@ static void set_item_data(MENUITEM* item, long data);
 static void set_item_text(MENUITEM* item, char *text);
 static MENU_ARGLIST* find_bitlist_item(MENUITEM* item, long value);
 static MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value);
-static int get_hex_str(char* textbuf, uint8_t* databuf, int len);
+static int GetSerialNumStr(char* buf, uint8_t* sn);
 
 /*****************************************************************************
  * EXTERNAL MENU DATA REFERENCE TABLE
@@ -315,7 +315,7 @@ void show_menu(void)
     if (menu->id == MENU_GENERAL)
     {
         char buf[64];
-        get_hex_str(buf, g_ui8SerialNumber, 16);
+        GetSerialNumStr(buf, g_ui8SerialNumber);
         tty_pos(20, 2);
         tty_printf("Serial# %s", buf);
     }
@@ -1185,36 +1185,17 @@ MENU_ARGLIST* find_vallist_item(MENUITEM* item, long value)
 /* Format hex string for GUID serial number display.
  */
 
-int get_hex_str(char* textbuf, uint8_t* databuf, int len)
+int GetSerialNumStr(char* buf, uint8_t* sn)
 {
-    char *p = textbuf;
-    uint8_t *d;
-    uint32_t i;
-    int32_t l;
+    int len;
 
-    /* Null output text buffer initially */
-    *textbuf = 0;
+    len = sprintf(buf, "%02X%02X%02X%02X-%02X%02X%02X%02X-%02X%02X%02X%02X-%02X%02X%02X%02X",
+        sn[0], sn[1], sn[2], sn[3],
+        sn[4], sn[5], sn[6], sn[7],
+        sn[8], sn[9], sn[10], sn[11],
+        sn[12], sn[13], sn[14], sn[15]);
 
-    /* Make sure buffer length is not zero */
-    if (!len)
-        return 0;
-
-    /* Read data bytes in reverse order so we print most significant byte first */
-    d = databuf + (len-1);
-
-    for (i=0; i < len; i++)
-    {
-        l = sprintf(p, "%02X", *d--);
-        p += l;
-
-        if (((i % 2) == 1) && (i != (len-1)))
-        {
-            l = sprintf(p, "-");
-            p += l;
-        }
-    }
-
-    return strlen(textbuf);
+    return len;
 }
 
 /* Read data from the menu data item being edited.

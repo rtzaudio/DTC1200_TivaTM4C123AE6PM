@@ -110,7 +110,8 @@ typedef IPCMSG_HDR DTC_IPCMSG_HDR;
 typedef struct _DTC_IPCMSG_VERSION_GET {
     DTC_IPCMSG_HDR  hdr;
     uint32_t        version;                /* DTC ver(msw)/rev(msw)      */
-    uint32_t        build;
+    uint32_t        build;                  /* lower 16-bits is build num */
+    uint8_t         sn[16];                 /* 128-bit serial number data */
 } DTC_IPCMSG_VERSION_GET;
 
 /*** STORE/RECALL CONFIG FROM EPOM *****************************************/

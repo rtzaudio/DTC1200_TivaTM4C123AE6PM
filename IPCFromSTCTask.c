@@ -256,6 +256,10 @@ int HandleVersion(
 {
     int rc = 0;
 
+    /* Copy the DTC serial# to message buffer */
+    memcpy(msg->sn, g_ui8SerialNumber, 16);
+
+    /* Fill in the version and build info */
     msg->version = MAKEREV(FIRMWARE_VER, FIRMWARE_REV);
     msg->build   = FIRMWARE_BUILD;
 

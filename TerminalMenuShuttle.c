@@ -84,7 +84,7 @@ static MENUITEM shuttle_items[] = {
 
 { 14, 2, "7",  "Shuttle Mode Velocity", MI_NUMERIC,
 		.param1.U = 100,
-		.param2.U = 1100,
+		.param2.U = 1200,
 		NULL, put_idata, DT_LONG, &g_sys.shuttle_velocity },
 
 { 15, 2, "8",  "Library Wind Velocity", MI_NUMERIC,

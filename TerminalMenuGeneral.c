@@ -63,13 +63,13 @@ static MENUITEM general_items[] = {
 		NULL, put_idata, DT_LONG, &g_sys.record_pulse_time },
 
 { 7, 2, "3", "Record Hold Settle Time  ", MI_NUMERIC,
-		.param1.U = 5,
-		.param2.U = 20,
+		.param1.U = 1,
+		.param2.U = 10,
 		NULL, put_idata, DT_LONG, &g_sys.rechold_settle_time },
 
 { 8, 2, "4", "Transport Button Debounce", MI_NUMERIC,
-		.param1.U = 5,
-		.param2.U = 50,
+		.param1.U = 2,
+		.param2.U = 10,
 		NULL, put_idata, DT_LONG, &g_sys.debounce },
 
 { PROMPT_ROW, PROMPT_COL, "", "", MI_PROMPT,

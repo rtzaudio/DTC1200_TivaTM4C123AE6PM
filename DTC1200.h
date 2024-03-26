@@ -121,6 +121,8 @@
 #define BUTTON_INTERRUPTS	0			/* 1=interrupt, 0=polled buttons */
 #define CAPDATA_SIZE		0			/* 250 = 0.5 sec of capture data */
 
+#define DEBOUNCE            6
+
 /*** System Structures *****************************************************/
 
 #if (CAPDATA_SIZE > 0)

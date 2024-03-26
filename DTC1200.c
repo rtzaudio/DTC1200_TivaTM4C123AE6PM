@@ -211,8 +211,6 @@ void InitPeripherals(void)
 // The main application initialization, setup and button controler task.
 //*****************************************************************************
 
-#define DEBOUNCE	6
-
 Void MainControlTask(UArg a0, UArg a1)
 {
     uint8_t count = 0;
@@ -376,7 +374,7 @@ Void MainControlTask(UArg a0, UArg a1)
         /* First process the tape out arm switch */
         if ((bits & S_TAPEOUT) != tout_prev)
         {
-            if (++debounce_tout >= DEBOUNCE)
+            if (++debounce_tout >= g_sys.debounce)
             {
                 debounce_tout = 0;
 
@@ -404,7 +402,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
 			if (temp != tran_prev)
 			{
-				if (++debounce_tran >= DEBOUNCE)
+				if (++debounce_tran >= g_sys.debounce)
 				{
 					debounce_tran = 0;
 
@@ -437,7 +435,7 @@ Void MainControlTask(UArg a0, UArg a1)
 
         if (bits != mode_prev)
         {
-            if (++debounce_mode >= DEBOUNCE)
+            if (++debounce_mode >= g_sys.debounce)
             {
                 debounce_mode = 0;
 

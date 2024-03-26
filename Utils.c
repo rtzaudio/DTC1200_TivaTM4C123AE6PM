@@ -192,7 +192,7 @@ void InitSysDefaults(SYSPARMS* p)
     p->tension_sensor_midscale1  = 2047.0f;     /* tensions sensor ADC 1" mid-scale */
     p->tension_sensor_midscale2  = 2047.0f;     /* tensions sensor ADC 2" mid-scale */
 
-    p->debounce                  = 30;		    /* button debounce time             */
+    p->debounce                  = DEBOUNCE;    /* button debounce time             */
     p->lifter_settle_time        = 600;         /* tape lifter settling delay in ms */
     p->brake_settle_time         = 100;
     p->play_settle_time			 = 800;		    /* play after shuttle settle time   */
@@ -347,6 +347,9 @@ int32_t SysParamsRead(SYSPARMS* sp)
 
         return -1;
     }
+
+    if (sp->debounce  > DEBOUNCE)
+        sp->debounce = DEBOUNCE;
 
     System_printf("System Parameters Loaded (size=%d)\n", sizeof(SYSPARMS));
     System_flush();

@@ -302,7 +302,7 @@ Void ServoLoopTask(UArg a0, UArg a1)
 
         float midscale;
 
-        if (g_high_speed_flag)
+        if (g_tape_width)
             midscale = g_sys.tension_sensor_midscale2;   /* ADC mid-scale for 2" tape */
         else
             midscale = g_sys.tension_sensor_midscale1;   /* ADC mid-scale for 1" tape */
